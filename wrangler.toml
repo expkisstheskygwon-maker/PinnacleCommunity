@@ -9,7 +9,7 @@ limits = { cpu_ms = 50 }
 [[d1_databases]]
 binding = "DB"
 database_name = "pinnacle_db"
-database_id = "YOUR_D1_DATABASE_ID_HERE"
+# database_id = "YOUR_D1_DATABASE_ID_HERE"
 
 [vars]
 NEXT_PUBLIC_APP_ENV = "production"
