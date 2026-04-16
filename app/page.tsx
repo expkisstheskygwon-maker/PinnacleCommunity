@@ -2,11 +2,83 @@
 
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { Trophy, Activity, TrendingUp, ShieldAlert, BarChart3, Users } from "lucide-react";
+import { Trophy, Activity, TrendingUp, ShieldAlert, BarChart3, Users, Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type Language = "ko" | "en";
+
+const translations = {
+  ko: {
+    title: "피나클 커뮤니티",
+    beginner: "초보자",
+    pro: "전문가",
+    liveOdds: "라이브 배당",
+    matchAnalysis: "경기 분석",
+    community: "커뮤니티",
+    bannerTitle: {
+      beginner: "스마트한 베팅의 시작",
+      pro: "고급 마켓 및 데이터 분석"
+    },
+    bannerSub: {
+      beginner: "당신이 좋아하는 스포츠를 위한 AI 기반 경기 요약과 시각적 인사이트.",
+      pro: "아시안 핸디캡 변동, 오버/언더 격차 및 실시간 피나클 API 스트림 심층 분석."
+    },
+    activeCommunity: "활성 커뮤니티",
+    predictionShared: "유저{id}님이 예측을 공유했습니다",
+    predictionText: "경기 시작 전 배당이 떨어지는 추세를 볼 때 아스널의 승리가 유력해 보입니다.",
+    aiSummary: "AI 경기 요약",
+    liveNow: "라이브 중",
+    aiVerdict: "AI 진단:",
+    aiVerdictText: "현재의 흐름과 과거 통계를 바탕으로 아스널의 승리 확률은 65%입니다. 피나클의 라인 움직임을 고려할 때, 첫 골을 넣을 가능성이 매우 높습니다.",
+    realtimeOdds: "실시간 배당 흐름",
+    match: "경기",
+    moneyline: "머니라인 (1X2)",
+    asianHandicap: "아시안 핸디캡",
+    overUnder: "오버/언더",
+    trend: "트렌드",
+    trendText: "아스널 하락 중"
+  },
+  en: {
+    title: "Pinnacle Community",
+    beginner: "Beginner",
+    pro: "Pro",
+    liveOdds: "Live Odds",
+    matchAnalysis: "Match Analysis",
+    community: "Community",
+    bannerTitle: {
+      beginner: "Smart Betting Made Simple",
+      pro: "Advanced Markets & Analytics"
+    },
+    bannerSub: {
+      beginner: "AI-powered match summaries and visual insights for your favorite sports.",
+      pro: "Deep dive into Asian Handicap movements, over/under disparities, and real-time Pinnacle API streams."
+    },
+    activeCommunity: "Active Community",
+    predictionShared: "User{id} shared a prediction",
+    predictionText: "Arsenal looks strong on standard lines given the current odds dropping before kickoff.",
+    aiSummary: "AI Match Summary",
+    liveNow: "Live Now",
+    aiVerdict: "AI Verdict:",
+    aiVerdictText: "Arsenal has a 65% win probability based on current momentum and historical stats. Considering Pinnacle's line movement, they are strongly favored to score first.",
+    realtimeOdds: "Real-time Odds Flow",
+    match: "Match",
+    moneyline: "Moneyline (1X2)",
+    asianHandicap: "Asian Handicap",
+    overUnder: "Over/Under",
+    trend: "Trend",
+    trendText: "ARS dropping"
+  }
+};
 
 export default function DashboardPage() {
   const [isProMode, setIsProMode] = useState(false);
+  const [lang, setLang] = useState<Language>("ko");
+
+  const t = translations[lang];
+
+  const toggleLang = () => {
+    setLang(prev => prev === "ko" ? "en" : "ko");
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -15,24 +87,33 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Trophy className="h-6 w-6 text-primary" />
-            <h1 className="font-bold text-xl tracking-tight">Pinnacle Community</h1>
+            <h1 className="font-bold text-xl tracking-tight">{t.title}</h1>
           </div>
           
           <div className="flex items-center gap-4">
+            {/* Language Switcher */}
+            <button 
+              onClick={toggleLang}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-muted bg-background/50 hover:bg-secondary/50 transition-all text-xs font-semibold"
+            >
+              <Languages className="w-4 h-4 text-primary" />
+              <span className="uppercase">{lang === "ko" ? "English" : "한국어"}</span>
+            </button>
+
             <div className="flex items-center gap-3 bg-secondary/50 px-4 py-2 rounded-full border border-muted/50">
               <span className={cn("text-sm font-medium transition-colors", !isProMode ? "text-primary" : "text-muted-foreground")}>
-                Beginner
+                {t.beginner}
               </span>
               <Switch checked={isProMode} onCheckedChange={setIsProMode} />
               <span className={cn("text-sm font-medium transition-colors", isProMode ? "text-primary" : "text-muted-foreground")}>
-                Pro
+                {t.pro}
               </span>
             </div>
             
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground ml-6">
-              <a href="#" className="text-foreground hover:text-primary transition">Live Odds</a>
-              <a href="#" className="hover:text-primary transition">Match Analysis</a>
-              <a href="#" className="hover:text-primary transition">Community</a>
+              <a href="#" className="text-foreground hover:text-primary transition">{t.liveOdds}</a>
+              <a href="#" className="hover:text-primary transition">{t.matchAnalysis}</a>
+              <a href="#" className="hover:text-primary transition">{t.community}</a>
             </nav>
           </div>
         </div>
@@ -43,12 +124,10 @@ export default function DashboardPage() {
         {/* Banner Section */}
         <section className="mb-10 text-center space-y-4">
           <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">
-            {isProMode ? "Advanced Markets & Analytics" : "Smart Betting Made Simple"}
+            {isProMode ? t.bannerTitle.pro : t.bannerTitle.beginner}
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            {isProMode 
-              ? "Deep dive into Asian Handicap movements, over/under disparities, and real-time Pinnacle API streams."
-              : "AI-powered match summaries and visual insights for your favorite sports."}
+            {isProMode ? t.bannerSub.pro : t.bannerSub.beginner}
           </p>
         </section>
 
@@ -57,9 +136,9 @@ export default function DashboardPage() {
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-6">
             {!isProMode ? (
-              <BeginnerView />
+              <BeginnerView t={t} />
             ) : (
-              <ProView />
+              <ProView t={t} />
             )}
           </div>
 
@@ -67,7 +146,7 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <div className="rounded-xl border border-muted bg-secondary/20 p-6 flex flex-col gap-4">
               <h3 className="font-semibold flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" /> Active Community
+                <Users className="w-5 h-5 text-primary" /> {t.activeCommunity}
               </h3>
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
@@ -76,8 +155,8 @@ export default function DashboardPage() {
                       U{i}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">User{i * 102} shared a prediction</p>
-                      <p className="text-xs text-muted-foreground mt-1">"Arsenal looks strong on standard lines given the current odds dropping before kickoff."</p>
+                      <p className="text-sm font-medium text-foreground">{t.predictionShared.replace("{id}", (i * 102).toString())}</p>
+                      <p className="text-xs text-muted-foreground mt-1">"{t.predictionText}"</p>
                     </div>
                   </div>
                 ))}
@@ -90,12 +169,12 @@ export default function DashboardPage() {
   );
 }
 
-function BeginnerView() {
+function BeginnerView({ t }: { t: any }) {
   return (
     <div className="rounded-xl border border-muted bg-gradient-to-br from-secondary/40 to-background p-6">
       <div className="flex items-center gap-2 mb-6">
         <Activity className="text-primary w-6 h-6" />
-        <h3 className="text-xl font-bold">AI Match Summary</h3>
+        <h3 className="text-xl font-bold">{t.aiSummary}</h3>
       </div>
       
       <div className="space-y-4">
@@ -108,7 +187,7 @@ function BeginnerView() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </span>
-              Live Now
+              {t.liveNow}
             </span>
           </div>
           <div className="p-6">
@@ -121,8 +200,8 @@ function BeginnerView() {
             <div className="bg-primary/5 rounded-lg p-4 flex gap-3 text-sm border-l-4 border-primary shadow-inner">
               <ShieldAlert className="w-5 h-5 text-primary shrink-0" />
               <div>
-                <strong className="block mb-1 text-foreground">AI Verdict:</strong>
-                <p className="text-muted-foreground leading-relaxed">Arsenal has a 65% win probability based on current momentum and historical stats. Considering Pinnacle's line movement, they are strongly favored to score first.</p>
+                <strong className="block mb-1 text-foreground">{t.aiVerdict}</strong>
+                <p className="text-muted-foreground leading-relaxed">{t.aiVerdictText}</p>
               </div>
             </div>
           </div>
@@ -132,13 +211,13 @@ function BeginnerView() {
   );
 }
 
-function ProView() {
+function ProView({ t }: { t: any }) {
   return (
     <div className="rounded-xl border border-muted bg-background shadow-lg overflow-hidden">
       <div className="p-6 border-b border-muted flex items-center justify-between bg-secondary/10">
         <div className="flex items-center gap-2">
           <TrendingUp className="text-primary w-6 h-6" />
-          <h3 className="text-xl font-bold">Real-time Odds Flow</h3>
+          <h3 className="text-xl font-bold">{t.realtimeOdds}</h3>
         </div>
         <div className="flex items-center gap-2 text-xs bg-background px-3 py-1 rounded-full border border-muted">
           <BarChart3 className="w-4 h-4 text-muted-foreground" />
@@ -150,11 +229,11 @@ function ProView() {
         <table className="w-full text-sm text-left whitespace-nowrap">
           <thead className="text-xs text-muted-foreground bg-secondary/30 uppercase border-b border-muted">
             <tr>
-              <th className="px-6 py-4 font-medium">Match</th>
-              <th className="px-6 py-4 font-medium">Moneyline (1X2)</th>
-              <th className="px-6 py-4 font-medium text-center">Asian Handicap</th>
-              <th className="px-6 py-4 font-medium text-center">Over/Under</th>
-              <th className="px-6 py-4 font-medium text-right">Trend</th>
+              <th className="px-6 py-4 font-medium">{t.match}</th>
+              <th className="px-6 py-4 font-medium">{t.moneyline}</th>
+              <th className="px-6 py-4 font-medium text-center">{t.asianHandicap}</th>
+              <th className="px-6 py-4 font-medium text-center">{t.overUnder}</th>
+              <th className="px-6 py-4 font-medium text-right">{t.trend}</th>
             </tr>
           </thead>
           <tbody>
@@ -184,7 +263,7 @@ function ProView() {
               </td>
               <td className="px-6 py-4 text-right">
                 <span className="text-xs font-medium text-primary flex items-center justify-end gap-1 bg-primary/10 px-2 py-1 rounded-full border border-primary/20 inline-flex">
-                  <TrendingUp className="w-3 h-3" /> ARS dropping
+                  <TrendingUp className="w-3 h-3" /> {t.trendText}
                 </span>
               </td>
             </tr>
