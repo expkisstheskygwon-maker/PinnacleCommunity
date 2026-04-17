@@ -111,52 +111,91 @@ export default function DashboardPage() {
   const t = translations[lang];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col mesh-gradient overflow-x-hidden">
       {/* Navigation Layer */}
-      <header className="border-b border-muted bg-secondary/30 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab("live")}>
-            <Trophy className="h-6 w-6 text-primary" />
-            <h1 className="font-bold text-xl tracking-tight">{t.title}</h1>
+      <header className="border-b border-white/5 bg-secondary/10 backdrop-blur-xl sticky top-0 z-50">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setActiveTab("live")}>
+            <div className="bg-primary/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
+              <Trophy className="h-6 w-6 text-primary animate-pulse-slow" />
+            </div>
+            <h1 className="font-bold text-2xl tracking-tighter text-glow">{t.title}</h1>
           </div>
           
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setLang(prev => prev === "ko" ? "en" : "ko")}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-muted bg-background/50 hover:bg-secondary/50 transition-all text-xs font-semibold"
+              className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-semibold group"
             >
-              <Languages className="w-4 h-4 text-primary" />
+              <Languages className="w-4 h-4 text-primary group-hover:rotate-12 transition-transform" />
               <span className="uppercase">{lang === "ko" ? "English" : "한국어"}</span>
             </button>
 
-            <div className="flex items-center gap-3 bg-secondary/50 px-4 py-2 rounded-full border border-muted/50">
-              <span className={cn("text-sm font-medium transition-colors", !isProMode ? "text-primary" : "text-muted-foreground")}>{t.beginner}</span>
+            <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+              <span className={cn("text-sm font-bold transition-colors", !isProMode ? "text-primary" : "text-muted-foreground")}>{t.beginner}</span>
               <Switch checked={isProMode} onCheckedChange={setIsProMode} />
-              <span className={cn("text-sm font-medium transition-colors", isProMode ? "text-primary" : "text-muted-foreground")}>{t.pro}</span>
+              <span className={cn("text-sm font-bold transition-colors", isProMode ? "text-primary" : "text-muted-foreground")}>{t.pro}</span>
             </div>
             
-            <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground ml-6">
-              <button onClick={() => setActiveTab("live")} className={cn("transition", activeTab === "live" ? "text-foreground font-bold" : "hover:text-primary")}>{t.liveOdds}</button>
-              <button onClick={() => setActiveTab("analysis")} className={cn("transition", activeTab === "analysis" ? "text-foreground font-bold" : "hover:text-primary")}>{t.matchAnalysis}</button>
-              <button onClick={() => setActiveTab("community")} className={cn("transition", activeTab === "community" ? "text-foreground font-bold" : "hover:text-primary")}>{t.community}</button>
+            <nav className="hidden lg:flex items-center gap-2 text-sm font-medium ml-6">
+              {[
+                { id: "live", label: t.liveOdds, icon: Activity },
+                { id: "analysis", label: t.matchAnalysis, icon: BarChart3 },
+                { id: "community", label: t.community, icon: Users }
+              ].map((item) => (
+                <button 
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id as ActiveTab)} 
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+                    activeTab === item.id 
+                      ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(59,130,246,0.3)]" 
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  )}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.label}
+                </button>
+              ))}
             </nav>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-12 relative">
+        {/* Abstract Background Elements */}
+        <div className="absolute top-20 left-0 w-72 h-72 bg-primary/10 rounded-full blur-[120px] -z-10 animate-float" />
+        <div className="absolute bottom-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[150px] -z-10" />
+
         {activeTab === "live" && (
           <>
-            <section className="mb-10 text-center space-y-4">
-              <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">{isProMode ? t.bannerTitle.pro : t.bannerTitle.beginner}</h2>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">{isProMode ? t.bannerSub.pro : t.bannerSub.beginner}</p>
+            <section className="mb-16 text-center space-y-6 relative">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-bold animate-fade-in">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                </span>
+                LIVE UPDATES
+              </div>
+              <h2 className="text-4xl md:text-7xl font-black tracking-tighter leading-none">
+                {isProMode ? (
+                  <>ADVANCED <span className="text-primary italic">MARKETS</span></>
+                ) : (
+                  <>SMART <span className="text-primary italic">BETTING</span></>
+                )}
+              </h2>
+              <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                {isProMode ? t.bannerSub.pro : t.bannerSub.beginner}
+              </p>
             </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-8 space-y-8">
                 {!isProMode ? <BeginnerView t={t} /> : <ProView t={t} />}
               </div>
-              <Sidebar t={t} />
+              <div className="lg:col-span-4">
+                <Sidebar t={t} />
+              </div>
             </div>
           </>
         )}
@@ -164,6 +203,16 @@ export default function DashboardPage() {
         {activeTab === "analysis" && <AnalysisView t={t} />}
         {activeTab === "community" && <CommunityForumView t={t} />}
       </main>
+
+      <footer className="border-t border-white/5 py-12 bg-secondary/20">
+        <div className="container mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Trophy className="h-5 w-5 text-primary" />
+            <span className="font-bold text-lg">{t.title}</span>
+          </div>
+          <p className="text-muted-foreground text-sm">© 2024 Pinnacle Community. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -171,19 +220,44 @@ export default function DashboardPage() {
 function Sidebar({ t }: { t: any }) {
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-muted bg-secondary/20 p-6 flex flex-col gap-4">
-        <h3 className="font-semibold flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> {t.activeCommunity}</h3>
-        <div className="space-y-4">
+      <div className="glass-card rounded-2xl p-6 flex flex-col gap-6">
+        <h3 className="font-bold text-lg flex items-center gap-2 px-2">
+          <Users className="w-5 h-5 text-primary" /> 
+          {t.activeCommunity}
+        </h3>
+        <div className="space-y-2">
           {[102, 455, 789, 12].map((id) => (
-            <div key={id} className="flex gap-3 items-start border-b border-muted pb-4 last:border-0 hover:bg-secondary/10 p-2 rounded-lg transition-colors cursor-pointer">
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">U</div>
-              <div>
-                <p className="text-sm font-medium text-foreground">{t.predictionShared.replace("{id}", id.toString())}</p>
-                <p className="text-xs text-muted-foreground mt-1">"{t.predictionText}"</p>
+            <div key={id} className="flex gap-4 items-start p-3 rounded-xl transition-all hover:bg-white/5 cursor-pointer group">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                U
+              </div>
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                  {t.predictionShared.replace("{id}", id.toString())}
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed italic">
+                  "{t.predictionText}"
+                </p>
               </div>
             </div>
           ))}
         </div>
+        <button className="w-full py-3 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-primary-foreground transition-all uppercase tracking-widest">
+          View All Feed
+        </button>
+      </div>
+      
+      {/* Featured Insight Card */}
+      <div className="glass-card rounded-2xl p-6 bg-primary/5 border-primary/20 overflow-hidden relative group">
+        <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl group-hover:bg-primary/40 transition-colors" />
+        <h4 className="font-bold mb-2 relative z-10 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-primary" />
+          Market Insight
+        </h4>
+        <p className="text-sm text-muted-foreground relative z-10 mb-4">
+          Asian Handicap lines for upcoming EPL matches are showing significant movement. Log in to see detailed flow.
+        </p>
+        <button className="text-xs font-bold text-primary hover:underline relative z-10">Read Analysis →</button>
       </div>
     </div>
   );
@@ -191,70 +265,120 @@ function Sidebar({ t }: { t: any }) {
 
 function BeginnerView({ t }: { t: any }) {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-2">
-        <Activity className="text-primary w-6 h-6" />
-        <h3 className="text-xl font-bold">{t.aiSummary}</h3>
-      </div>
-      {MOCK_MATCHES.map((m) => (
-        <div key={m.id} className="bg-background rounded-lg border border-muted overflow-hidden transition hover:border-primary/50 relative">
-          <div className="p-4 border-b border-muted bg-secondary/20 flex justify-between items-center">
-            <span className="text-xs font-semibold tracking-wider text-primary uppercase">{m.league}</span>
-            <span className="text-xs text-muted-foreground flex items-center gap-2">
-              {m.live && <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span></span>}
-              {m.live ? t.liveNow : `${t.upcoming} • ${m.time}`}
-            </span>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/20 p-2 rounded-lg">
+            <Activity className="text-primary w-5 h-5" />
           </div>
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex-1 text-center font-bold text-xl">{m.home}</div>
-              <div className="px-4 text-sm font-black text-primary bg-primary/10 rounded-full py-1">VS</div>
-              <div className="flex-1 text-center font-bold text-xl">{m.away}</div>
-            </div>
-            <div className="bg-primary/5 rounded-lg p-4 flex gap-3 text-sm border-l-4 border-primary">
-              <ShieldAlert className="w-5 h-5 text-primary shrink-0" />
-              <div><strong className="block mb-1 text-foreground">{t.aiVerdict}</strong><p className="text-muted-foreground">{m.verdict}</p></div>
-            </div>
-          </div>
+          <h3 className="text-2xl font-black tracking-tight">{t.aiSummary}</h3>
         </div>
-      ))}
+        <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">
+          {MOCK_MATCHES.length} Matches Found
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {MOCK_MATCHES.map((m) => (
+          <div key={m.id} className="glass-card rounded-2xl overflow-hidden transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10 group">
+            <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
+              <span className="text-[10px] font-black tracking-widest text-primary uppercase bg-primary/10 px-2 py-0.5 rounded border border-primary/20">{m.league}</span>
+              <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1.5 bg-background/50 px-2 py-0.5 rounded-full">
+                {m.live ? (
+                  <>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                    <span className="text-red-500">{t.liveNow}</span>
+                  </>
+                ) : (
+                  <>{t.upcoming} • {m.time}</>
+                )}
+              </span>
+            </div>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-8">
+                <div className="flex flex-col items-center gap-2 flex-1">
+                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center font-bold text-lg border border-white/5 group-hover:scale-110 transition-transform">
+                    {m.home[0]}
+                  </div>
+                  <span className="font-bold text-sm text-center line-clamp-1">{m.home}</span>
+                </div>
+                <div className="px-4 text-[10px] font-black text-primary bg-primary/10 rounded-full py-1 border border-primary/10 self-center">VS</div>
+                <div className="flex flex-col items-center gap-2 flex-1">
+                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center font-bold text-lg border border-white/5 group-hover:scale-110 transition-transform">
+                    {m.away[0]}
+                  </div>
+                  <span className="font-bold text-sm text-center line-clamp-1">{m.away}</span>
+                </div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 flex gap-4 text-sm border border-white/1 flex-col sm:flex-row shadow-inner">
+                <div className="bg-primary/20 w-10 h-10 rounded-lg flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <strong className="block mb-1 text-primary text-xs uppercase tracking-wider">{t.aiVerdict}</strong>
+                  <p className="text-muted-foreground text-xs leading-relaxed italic line-clamp-2">"{m.verdict}"</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 function ProView({ t }: { t: any }) {
   return (
-    <div className="rounded-xl border border-muted bg-background shadow-lg overflow-hidden">
-      <div className="p-6 border-b border-muted flex items-center justify-between bg-secondary/10">
-        <div className="flex items-center gap-2"><TrendingUp className="text-primary w-6 h-6" /> <h3 className="text-xl font-bold">{t.realtimeOdds}</h3></div>
-        <span className="text-muted-foreground font-mono text-xs">Lat: 42ms</span>
+    <div className="glass-card rounded-2xl overflow-hidden shadow-2xl">
+      <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/20 p-2 rounded-lg">
+            <TrendingUp className="text-primary w-5 h-5" />
+          </div>
+          <h3 className="text-xl font-bold tracking-tight">{t.realtimeOdds}</h3>
+        </div>
+        <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest">Connected • 42ms</span>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="text-xs text-muted-foreground bg-secondary/30 uppercase border-b border-muted">
+          <thead className="text-[10px] text-muted-foreground bg-white/5 uppercase tracking-widest border-b border-white/5 font-bold">
             <tr>
-              <th className="px-6 py-4 font-medium">{t.match}</th>
-              <th className="px-6 py-4 font-medium">{t.moneyline}</th>
-              <th className="px-6 py-4 font-medium text-center">{t.asianHandicap}</th>
-              <th className="px-6 py-4 font-medium text-center">{t.overUnder}</th>
-              <th className="px-6 py-4 font-medium text-right">{t.trend}</th>
+              <th className="px-6 py-5">{t.match}</th>
+              <th className="px-6 py-5">{t.moneyline}</th>
+              <th className="px-6 py-5 text-center">{t.asianHandicap}</th>
+              <th className="px-6 py-5 text-center">{t.overUnder}</th>
+              <th className="px-6 py-5 text-right font-medium">{t.trend}</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-white/5">
             {MOCK_MATCHES.map((m) => (
-              <tr key={m.id} className="border-b border-muted/50 hover:bg-secondary/10 transition group">
-                <td className="px-6 py-4 font-medium">{m.home} vs {m.away} <br/><span className="text-xs text-muted-foreground font-mono">{m.league} • {m.time}</span></td>
-                <td className="px-6 py-4"><div className="flex gap-2">
-                  <span className="bg-secondary/60 px-2 py-1 rounded text-primary font-mono">{m.odds.ml[0]}</span>
-                  <span className="bg-secondary/60 px-2 py-1 rounded font-mono">{m.odds.ml[1]}</span>
-                  <span className="bg-secondary/60 px-2 py-1 rounded font-mono">{m.odds.ml[2]}</span>
-                </div></td>
-                <td className="px-6 py-4 text-center font-mono">{m.odds.ah}</td>
-                <td className="px-6 py-4 text-center font-mono">{m.odds.ou}</td>
-                <td className="px-6 py-4 text-right">
-                  <span className="text-[10px] font-bold text-primary flex items-center justify-end gap-1 bg-primary/10 px-2 py-1 rounded-full border border-primary/20 inline-flex">
-                    <TrendingUp className="w-3 h-3" /> {m.trend}
-                  </span>
+              <tr key={m.id} className="hover:bg-white/5 transition-colors group">
+                <td className="px-6 py-5">
+                  <div className="font-bold text-foreground group-hover:text-primary transition-colors">{m.home} vs {m.away}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono uppercase mt-1 opacity-70">{m.league} • {m.time}</div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex gap-1.5">
+                    {m.odds.ml.map((odd, idx) => (
+                      <span key={idx} className="bg-white/5 px-2.5 py-1 rounded text-xs font-mono border border-white/5 hover:border-primary/30 transition-colors cursor-pointer text-primary">
+                        {odd}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-6 py-5 text-center font-mono text-xs text-muted-foreground">{m.odds.ah}</td>
+                <td className="px-6 py-5 text-center font-mono text-xs text-muted-foreground">{m.odds.ou}</td>
+                <td className="px-6 py-5 text-right">
+                  <div className="inline-flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
+                    <TrendingUp className="w-3 h-3 text-primary" />
+                    <span className="text-[10px] font-black text-primary uppercase whitespace-nowrap">{m.trend}</span>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -267,24 +391,28 @@ function ProView({ t }: { t: any }) {
 
 function AnalysisView({ t }: { t: any }) {
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="text-center space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">{t.analysisTitle}</h2>
-        <p className="text-muted-foreground">{t.analysisSubtitle}</p>
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="text-center space-y-4 max-w-2xl mx-auto">
+        <h2 className="text-4xl md:text-5xl font-black tracking-tighter">{t.analysisTitle}</h2>
+        <p className="text-muted-foreground text-lg leading-relaxed">{t.analysisSubtitle}</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {MOCK_ANALYSIS.map((a) => (
-          <div key={a.id} className="group rounded-xl border border-muted bg-background hover:border-primary/50 transition-all overflow-hidden cursor-pointer">
-            <div className="h-40 bg-secondary/30 relative flex items-center justify-center overflow-hidden">
-               <Microscope className="w-12 h-12 text-primary/20 group-hover:scale-110 transition-transform" />
-               <div className="absolute top-4 left-4 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded uppercase">Premium</div>
+          <div key={a.id} className="glass-card rounded-2xl group overflow-hidden hover:-translate-y-2 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
+            <div className="h-48 bg-gradient-to-br from-primary/20 to-secondary/40 relative flex items-center justify-center overflow-hidden">
+               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+               <Microscope className="w-16 h-16 text-primary/30 group-hover:scale-125 transition-transform duration-700 blur-[1px] group-hover:blur-0" />
+               <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Premium</div>
             </div>
-            <div className="p-6 space-y-3">
-              <h4 className="font-bold text-lg group-hover:text-primary transition-colors">{a.title}</h4>
-              <p className="text-sm text-muted-foreground line-clamp-2">{a.summary}</p>
-              <div className="flex items-center justify-between text-xs text-muted-foreground pt-4">
-                <div className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {a.date}</div>
-                <div className="flex items-center gap-3"><span>{a.views} views</span><span>{a.comments} comments</span></div>
+            <div className="p-8 space-y-4">
+              <h4 className="font-bold text-xl leading-tight group-hover:text-primary transition-colors line-clamp-2">{a.title}</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 italic opacity-80 decoration-primary/30 underline-offset-4 decoration-1">"{a.summary}"</p>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-6 border-t border-white/5 font-black uppercase tracking-widest">
+                <div className="flex items-center gap-2"><Calendar className="w-3.5 h-3.5 text-primary" /> {a.date}</div>
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {a.views}</span>
+                  <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" /> {a.comments}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -296,27 +424,48 @@ function AnalysisView({ t }: { t: any }) {
 
 function CommunityForumView({ t }: { t: any }) {
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-end justify-between border-b border-muted pb-6">
-        <div><h2 className="text-3xl font-bold tracking-tight">{t.communityTitle}</h2><p className="text-muted-foreground">{t.communitySubtitle}</p></div>
-        <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition">{t.writePost}</button>
+    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="flex items-center justify-between border-b border-white/5 pb-8">
+        <div className="space-y-2">
+          <h2 className="text-4xl font-black tracking-tighter">{t.communityTitle}</h2>
+          <p className="text-muted-foreground text-lg">{t.communitySubtitle}</p>
+        </div>
+        <button className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] uppercase tracking-widest text-xs">
+          {t.writePost}
+        </button>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {MOCK_POSTS.map((p) => (
-          <div key={p.id} className="p-6 rounded-xl border border-muted bg-secondary/10 hover:bg-secondary/20 transition cursor-pointer space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">V</div>
-              <div><p className="font-bold">{p.user}</p><p className="text-xs text-muted-foreground">2 hours ago</p></div>
+          <div key={p.id} className="glass-card p-8 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group space-y-6 border-l-4 border-l-transparent hover:border-l-primary">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center font-black text-primary border border-primary/20 text-xl group-hover:rotate-6 transition-transform">
+                  {p.user[0]}
+                </div>
+                <div>
+                  <p className="font-bold text-lg group-hover:text-primary transition-colors">{p.user}</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-tighter opacity-60">Posted 2 hours ago</p>
+                </div>
+              </div>
+              <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-muted-foreground">General</div>
             </div>
-            <p className="text-foreground leading-relaxed">{p.content}</p>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground translate-y-2">
-              <button className="flex items-center gap-1 hover:text-primary transition decoration-transparent font-medium">Like ({p.likes})</button>
-              <button className="flex items-center gap-1 hover:text-primary transition font-medium"><MessageSquare className="w-4 h-4" /> Reply ({p.replies})</button>
+            <p className="text-foreground text-base leading-relaxed opacity-90">{p.content}</p>
+            <div className="flex items-center gap-8 pt-4 border-t border-white/5">
+              <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors group/btn">
+                <Trophy className="w-4 h-4 group-hover/btn:scale-125 transition-transform" /> 
+                Insightful ({p.likes})
+              </button>
+              <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors group/btn">
+                <MessageSquare className="w-4 h-4 group-hover/btn:scale-125 transition-transform" /> 
+                Reply ({p.replies})
+              </button>
             </div>
           </div>
         ))}
       </div>
-      <button className="w-full py-4 border border-dashed border-muted rounded-xl text-muted-foreground hover:text-primary hover:border-primary transition font-medium">{t.loadMore}</button>
+      <button className="w-full py-6 rounded-2xl border-2 border-dashed border-white/5 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all font-black uppercase tracking-widest text-xs shadow-inner">
+        {t.loadMore}
+      </button>
     </div>
   );
 }
