@@ -1,471 +1,492 @@
 "use client";
 
 import { useState } from "react";
-import { Switch } from "@/components/ui/switch";
-import { Trophy, Activity, TrendingUp, ShieldAlert, BarChart3, Users, Languages, MessageSquare, Microscope, Calendar } from "lucide-react";
+import Link from "next/link";
+import {
+  Trophy, Activity, TrendingUp, ShieldAlert, BarChart3, Users,
+  MessageSquare, Calendar, Star, BookOpen, Bell, AlertTriangle,
+  ChevronRight, Eye, ThumbsUp, Flame, Zap, Clock, ArrowUpRight,
+  Shield, Award, Swords, Target, HelpCircle, FileText, Megaphone,
+  CheckCircle2, XCircle, TrendingDown
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Language = "ko" | "en";
-type ActiveTab = "live" | "analysis" | "community";
-
-const translations = {
-  ko: {
-    title: "피나클 커뮤니티",
-    beginner: "초보자",
-    pro: "전문가",
-    liveOdds: "라이브 배당",
-    matchAnalysis: "경기 분석",
-    community: "커뮤니티",
-    bannerTitle: {
-      beginner: "스마트한 베팅의 시작",
-      pro: "고급 마켓 및 데이터 분석"
-    },
-    bannerSub: {
-      beginner: "당신이 좋아하는 스포츠를 위한 AI 기반 경기 요약과 시각적 인사이트.",
-      pro: "아시안 핸디캡 변동, 오버/언더 격차 및 실시간 피나클 API 스트림 심층 분석."
-    },
-    activeCommunity: "활성 커뮤니티",
-    predictionShared: "유저{id}님이 예측을 공유했습니다",
-    predictionText: "경기 시작 전 배당이 떨어지는 추세를 볼 때 아스널의 승리가 유력해 보입니다.",
-    aiSummary: "AI 경기 요약",
-    liveNow: "라이브 중",
-    upcoming: "예정됨",
-    aiVerdict: "AI 진단:",
-    realtimeOdds: "실시간 배당 흐름",
-    match: "경기",
-    moneyline: "머니라인 (1X2)",
-    asianHandicap: "아시안 핸디캡",
-    overUnder: "오버/언더",
-    trend: "트렌드",
-    analysisTitle: "전문가 경기 분석",
-    analysisSubtitle: "상세 통계 및 심층 분석 리포트",
-    communityTitle: "커뮤니티 포럼",
-    communitySubtitle: "베터들 간의 자유로운 전략 공유",
-    writePost: "게시글 작성",
-    loadMore: "더 보기"
-  },
-  en: {
-    title: "Pinnacle Community",
-    beginner: "Beginner",
-    pro: "Pro",
-    liveOdds: "Live Odds",
-    matchAnalysis: "Match Analysis",
-    community: "Community",
-    bannerTitle: {
-      beginner: "Smart Betting Made Simple",
-      pro: "Advanced Markets & Analytics"
-    },
-    bannerSub: {
-      beginner: "AI-powered match summaries and visual insights for your favorite sports.",
-      pro: "Deep dive into Asian Handicap movements, over/under disparities, and real-time Pinnacle API streams."
-    },
-    activeCommunity: "Active Community",
-    predictionShared: "User{id} shared a prediction",
-    predictionText: "Arsenal looks strong on standard lines given the current odds dropping before kickoff.",
-    aiSummary: "AI Match Summary",
-    liveNow: "Live Now",
-    upcoming: "Upcoming",
-    aiVerdict: "AI Verdict:",
-    realtimeOdds: "Real-time Odds Flow",
-    match: "Match",
-    moneyline: "Moneyline (1X2)",
-    asianHandicap: "Asian Handicap",
-    overUnder: "Over/Under",
-    trend: "Trend",
-    analysisTitle: "Expert Match Analysis",
-    analysisSubtitle: "Detailed statistics and deep analysis reports",
-    communityTitle: "Community Forum",
-    communitySubtitle: "Share strategies with fellow bettors",
-    writePost: "Write Post",
-    loadMore: "Load More"
-  }
-};
-
-const MOCK_MATCHES = [
-  { id: 1, home: "Arsenal", away: "Chelsea", league: "EPL", time: "23:00", live: true, odds: { ml: [1.85, 3.65, 4.10], ah: "-0.5 @ 1.88", ou: "O 2.5 @ 1.95" }, trend: "ARS dropping", verdict: "Arsenal has a 65% win probability based on current momentum." },
-  { id: 2, home: "Man City", away: "Liverpool", league: "EPL", time: "01:30", live: false, odds: { ml: [2.10, 3.80, 3.25], ah: "-0.25 @ 1.95", ou: "O 3.0 @ 1.90" }, trend: "Steady", verdict: "High-scoring game expected. Over 2.5 is a solid statistics-based pick." },
-  { id: 3, home: "Real Madrid", away: "Barcelona", league: "La Liga", time: "04:00", live: false, odds: { ml: [2.05, 3.50, 3.45], ah: "-0.5 @ 2.05", ou: "U 2.5 @ 2.10" }, trend: "BAR rising", verdict: "Real Madrid's home advantage and recent form give them a slight edge." },
-  { id: 4, home: "Bayern", away: "Dortmund", league: "Bundesliga", time: "22:30", live: true, odds: { ml: [1.55, 4.50, 5.20], ah: "-1.25 @ 1.92", ou: "O 3.5 @ 2.05" }, trend: "BAY dropping", verdict: "Bayern usually dominates 'Der Klassiker' at home. High probability of Home win." },
-  { id: 5, home: "Inter", away: "AC Milan", league: "Serie A", time: "03:45", live: false, odds: { ml: [2.30, 3.20, 3.10], ah: "0 @ 1.85", ou: "U 2.5 @ 1.88" }, trend: "Draw rising", verdict: "A tight tactical battle. Prediction leans toward a low-scoring draw." },
-  { id: 6, home: "PSG", away: "Monaco", league: "Ligue 1", time: "05:00", live: false, odds: { ml: [1.40, 4.80, 6.50], ah: "-1.5 @ 2.02", ou: "O 2.5 @ 1.75" }, trend: "PSG steady", verdict: "Monaco's weak defense might struggle against PSG's star-studded frontline." },
-  { id: 7, home: "Tottenham", away: "Man Utd", league: "EPL", time: "21:00", live: false, odds: { ml: [2.45, 3.40, 2.75], ah: "0 @ 1.98", ou: "O 2.5 @ 1.85" }, trend: "MUN dropping", verdict: "United's counter-attacking style could exploit Spurs' high defensive line." },
+/* ─── Mock Data ─── */
+const NOTICES = [
+  { id: 1, type: "scam", title: "피나클 사칭 텔레그램 채널 주의", date: "2026-04-20", urgent: true },
+  { id: 2, type: "maintenance", title: "4/21 새벽 2-4시 서버 정기점검 안내", date: "2026-04-19", urgent: false },
+  { id: 3, type: "policy", title: "KYC 인증 절차 변경 안내 (5월 적용)", date: "2026-04-18", urgent: false },
 ];
 
-const MOCK_ANALYSIS = [
-  { id: 1, title: "ARS vs CHE: Tactical Breakdown", author: "Coach Kim", date: "2024-04-17", views: 1240, comments: 24, summary: "Focusing on Arsenal's midfield control versus Chelsea's transition speed..." },
-  { id: 2, title: "The 'Over' Trend in Bundesliga", author: "DataWiz", date: "2024-04-16", views: 890, comments: 15, summary: "Why scoring rates in Germany are hitting a 5-year high this season..." },
-  { id: 3, title: "Asian Handicap Secrets", author: "ProBettor", date: "2024-04-15", views: 2300, comments: 56, summary: "Mastering the +0.25 and -0.75 lines for consistent value..." },
+const TODAY_MATCHES = [
+  { id: 1, home: "울산 HD", away: "전북 현대", league: "K리그1", time: "19:00", live: true, homeOdds: 1.95, drawOdds: 3.60, awayOdds: 3.85, prevHome: 1.98, ahLine: "-0.5", ahOdds: 1.92, ou: "2.5", ouOdds: 1.88 },
+  { id: 2, home: "Arsenal", away: "Chelsea", league: "EPL", time: "23:00", live: false, homeOdds: 1.85, drawOdds: 3.65, awayOdds: 4.10, prevHome: 1.90, ahLine: "-0.5", ahOdds: 1.88, ou: "2.5", ouOdds: 1.95 },
+  { id: 3, home: "Real Madrid", away: "Barcelona", league: "La Liga", time: "04:00", live: false, homeOdds: 2.05, drawOdds: 3.50, awayOdds: 3.45, prevHome: 2.10, ahLine: "PK", ahOdds: 1.95, ou: "2.5", ouOdds: 2.10 },
+  { id: 4, home: "Bayern", away: "Dortmund", league: "Bundesliga", time: "22:30", live: true, homeOdds: 1.55, drawOdds: 4.50, awayOdds: 5.20, prevHome: 1.58, ahLine: "-1.25", ahOdds: 1.92, ou: "3.5", ouOdds: 2.05 },
+  { id: 5, home: "T1", away: "Gen.G", league: "LCK", time: "17:00", live: false, homeOdds: 1.75, drawOdds: 0, awayOdds: 2.05, prevHome: 1.80, ahLine: "-1.5", ahOdds: 2.15, ou: "2.5", ouOdds: 1.85 },
 ];
 
-const MOCK_POSTS = [
-  { id: 1, user: "ValueSeeker", content: "Anyone else seeing the value on Monaco +1.5? PSG is missing two key defenders tonight.", likes: 12, replies: 5 },
-  { id: 2, user: "StatsGuru", content: "Lazio's corners stats have been incredible lately. Definitely something to watch for live betting.", likes: 8, replies: 2 },
-  { id: 3, user: "GlobalBet", content: "Great community here! Thanks for the tips on the EPL matches earlier.", likes: 25, replies: 0 },
+const ODDS_CHANGES = [
+  { id: 1, match: "울산 HD vs 전북", market: "1X2 홈승", from: 1.98, to: 1.95, direction: "down", time: "12분 전" },
+  { id: 2, match: "Arsenal vs Chelsea", market: "오버 2.5", from: 1.90, to: 1.95, direction: "up", time: "25분 전" },
+  { id: 3, match: "T1 vs Gen.G", market: "홈승", from: 1.80, to: 1.75, direction: "down", time: "1시간 전" },
+  { id: 4, match: "Bayern vs Dortmund", market: "AH -1.25", from: 1.88, to: 1.92, direction: "up", time: "2시간 전" },
 ];
 
-export default function DashboardPage() {
-  const [isProMode, setIsProMode] = useState(false);
-  const [lang, setLang] = useState<Language>("ko");
-  const [activeTab, setActiveTab] = useState<ActiveTab>("live");
+const HOT_POSTS = [
+  { id: 1, title: "K리그 울산 vs 전북 프리뷰: 이번 시즌 핵심 맞대결", author: "분석왕", category: "경기 토론", views: 1240, comments: 34, likes: 89, hot: true },
+  { id: 2, title: "피나클 입금 가이드 - 2026년 최신 업데이트", author: "가이드마스터", category: "가이드", views: 3500, comments: 67, likes: 156, hot: true },
+  { id: 3, title: "아시안핸디캡 완전정복: -0.5와 -0.75의 차이", author: "ProBettor", category: "분석", views: 2100, comments: 45, likes: 112, hot: false },
+  { id: 4, title: "이번 주 EPL 배당 흐름 분석", author: "DataWiz", category: "칼럼", views: 890, comments: 23, likes: 67, hot: false },
+  { id: 5, title: "피나클 출금 3시간 만에 완료 - 후기", author: "빠른출금", category: "후기", views: 760, comments: 18, likes: 42, hot: false },
+];
 
-  const t = translations[lang];
+const NEW_REVIEWS = [
+  { id: 1, author: "축구매니아", sport: "축구", rating: 4.5, title: "EPL 배당이 확실히 높습니다", summary: "타 사이트 대비 항상 2-3% 높은 배당을 확인했습니다. 특히 1X2 시장에서 차이가 큽니다.", date: "2시간 전", category: "배당 만족도", verified: true },
+  { id: 2, author: "뉴비", sport: "야구", rating: 3.5, title: "가입은 쉬운데 KYC가 좀 번거로움", summary: "가입 자체는 5분이면 되는데, 신분증 인증에 이틀 걸렸습니다.", date: "5시간 전", category: "가입 후기", verified: true },
+  { id: 3, author: "글로벌배터", sport: "e스포츠", rating: 5, title: "LoL 배당은 피나클이 최고", summary: "LCK 경기 라인업이 가장 풍부하고, 라이브 베팅도 빠릅니다.", date: "8시간 전", category: "종목별 후기", verified: false },
+];
 
+const POPULAR_GUIDES = [
+  { id: 1, title: "피나클 가입 방법 (2026년 최신)", icon: FileText, views: 12400, difficulty: "초급" },
+  { id: 2, title: "첫 입금하기: 입금 방법 총정리", icon: Zap, views: 8900, difficulty: "초급" },
+  { id: 3, title: "배당률 읽는 법: 머니라인 vs 핸디캡", icon: BarChart3, views: 6500, difficulty: "초급" },
+  { id: 4, title: "출금 가이드 & 소요시간 안내", icon: Clock, views: 5200, difficulty: "초급" },
+  { id: 5, title: "계정 보안 강화: 2FA 설정법", icon: Shield, views: 3100, difficulty: "중급" },
+];
+
+const QNA_RECENT = [
+  { id: 1, question: "피나클 가입 시 VPN이 필요한가요?", answers: 12, solved: true, category: "가입/인증" },
+  { id: 2, question: "출금 신청 후 48시간 넘게 처리 안 됩니다", answers: 8, solved: false, category: "결제/입출금" },
+  { id: 3, question: "아시안핸디캡 정산 기준이 궁금합니다", answers: 15, solved: true, category: "배당/정산" },
+];
+
+/* ─── Helper Components ─── */
+function SectionHeader({ icon: Icon, title, href, badge }: { icon: any; title: string; href?: string; badge?: string }) {
   return (
-    <div className="min-h-screen bg-background flex flex-col mesh-gradient overflow-x-hidden">
-      {/* Navigation Layer */}
-      <header className="border-b border-white/5 bg-secondary/10 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setActiveTab("live")}>
-            <div className="bg-primary/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
-              <Trophy className="h-6 w-6 text-primary animate-pulse-slow" />
-            </div>
-            <h1 className="font-bold text-2xl tracking-tighter text-glow">{t.title}</h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setLang(prev => prev === "ko" ? "en" : "ko")}
-              className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-semibold group"
-            >
-              <Languages className="w-4 h-4 text-primary group-hover:rotate-12 transition-transform" />
-              <span className="uppercase">{lang === "ko" ? "English" : "한국어"}</span>
-            </button>
+    <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center gap-2.5">
+        <div className="bg-primary/15 p-1.5 rounded-lg">
+          <Icon className="w-4 h-4 text-primary" />
+        </div>
+        <h3 className="section-title text-lg">{title}</h3>
+        {badge && <span className="badge-primary">{badge}</span>}
+      </div>
+      {href && (
+        <Link href={href} className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary transition-colors group">
+          전체보기
+          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+      )}
+    </div>
+  );
+}
 
-            <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
-              <span className={cn("text-sm font-bold transition-colors", !isProMode ? "text-primary" : "text-muted-foreground")}>{t.beginner}</span>
-              <Switch checked={isProMode} onCheckedChange={setIsProMode} />
-              <span className={cn("text-sm font-bold transition-colors", isProMode ? "text-primary" : "text-muted-foreground")}>{t.pro}</span>
+function OddsChange({ value, prev }: { value: number; prev: number }) {
+  const diff = value - prev;
+  if (Math.abs(diff) < 0.001) return <span className="text-muted-foreground font-mono text-xs">{value.toFixed(2)}</span>;
+  return (
+    <span className={cn("font-mono text-xs font-bold", diff < 0 ? "text-red-400" : "text-emerald-400")}>
+      {value.toFixed(2)}
+      <span className="text-[9px] ml-0.5">{diff < 0 ? "↓" : "↑"}</span>
+    </span>
+  );
+}
+
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map(i => (
+        <Star key={i} className={cn("w-3 h-3", i <= rating ? "text-[hsl(var(--gold))] fill-[hsl(var(--gold))]" : i - 0.5 <= rating ? "text-[hsl(var(--gold))]" : "text-white/10")} />
+      ))}
+    </div>
+  );
+}
+
+/* ─── Main Page ─── */
+export default function HomePage() {
+  return (
+    <div className="mesh-gradient overflow-x-hidden">
+      {/* Abstract background */}
+      <div className="fixed top-20 left-0 w-72 h-72 bg-primary/10 rounded-full blur-[120px] -z-10 animate-float pointer-events-none" />
+      <div className="fixed bottom-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[150px] -z-10 pointer-events-none" />
+
+      {/* Hero */}
+      <section className="relative py-12 md:py-16 overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto space-y-5 animate-fade-in-up">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-bold">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              </span>
+              피나클 사용자 정보 허브
             </div>
-            
-            <nav className="hidden lg:flex items-center gap-2 text-sm font-medium ml-6">
-              {[
-                { id: "live", label: t.liveOdds, icon: Activity },
-                { id: "analysis", label: t.matchAnalysis, icon: BarChart3 },
-                { id: "community", label: t.community, icon: Users }
-              ].map((item) => (
-                <button 
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id as ActiveTab)} 
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
-                    activeTab === item.id 
-                      ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(59,130,246,0.3)]" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                  )}
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
-                </button>
-              ))}
-            </nav>
+            <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[1.1]">
+              모든 정보를 <span className="text-primary italic">한곳</span>에서
+            </h1>
+            <p className="text-muted-foreground text-lg md:text-xl leading-relaxed">
+              가입 가이드부터 배당 분석, 실사용 후기, 사기주의 안내까지.<br className="hidden md:block" />
+              신뢰할 수 있는 피나클 커뮤니티에 오신 것을 환영합니다.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Link href="/guide" className="btn-primary flex items-center gap-2">
+                <BookOpen className="w-4 h-4" /> 초보자 가이드
+              </Link>
+              <Link href="/odds" className="btn-outline flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" /> 오늘의 배당
+              </Link>
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 max-w-4xl mx-auto stagger-children">
+            {[
+              { icon: Users, label: "활성 회원", value: "12,847", color: "text-primary" },
+              { icon: BarChart3, label: "오늘 경기", value: `${TODAY_MATCHES.length}개`, color: "text-emerald-400" },
+              { icon: Star, label: "평균 평점", value: "4.3 / 5", color: "text-[hsl(var(--gold))]" },
+              { icon: MessageSquare, label: "오늘 게시글", value: "234건", color: "text-purple-400" },
+            ].map((stat) => (
+              <div key={stat.label} className="stat-card rounded-xl">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
+                  <stat.icon className={cn("w-3.5 h-3.5", stat.color)} />
+                  {stat.label}
+                </div>
+                <span className={cn("text-2xl font-black tracking-tight", stat.color)}>{stat.value}</span>
+              </div>
+            ))}
           </div>
         </div>
-      </header>
+      </section>
 
-      <main className="flex-1 container mx-auto px-4 py-12 relative">
-        {/* Abstract Background Elements */}
-        <div className="absolute top-20 left-0 w-72 h-72 bg-primary/10 rounded-full blur-[120px] -z-10 animate-float" />
-        <div className="absolute bottom-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[150px] -z-10" />
+      {/* Notice Alert Bar */}
+      <section className="border-y border-white/[0.04] bg-secondary/10">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Megaphone className="w-4 h-4 text-[hsl(var(--gold))]" />
+              <span className="text-xs font-bold text-[hsl(var(--gold))] uppercase tracking-wider">공지</span>
+            </div>
+            <div className="flex items-center gap-6 text-sm">
+              {NOTICES.map(n => (
+                <Link key={n.id} href="/notices" className="flex items-center gap-2 shrink-0 hover:text-primary transition-colors group">
+                  {n.urgent && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />}
+                  <span className={cn("font-medium", n.urgent ? "text-red-400" : "text-muted-foreground")}>
+                    {n.title}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/50">{n.date}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
-        {activeTab === "live" && (
-          <>
-            <section className="mb-16 text-center space-y-6 relative">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-bold animate-fade-in">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                </span>
-                LIVE UPDATES
+      {/* Main Content Grid */}
+      <div className="container mx-auto px-4 py-10">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          {/* Left: Main Content */}
+          <div className="xl:col-span-8 space-y-10">
+            {/* Today's Matches */}
+            <section>
+              <SectionHeader icon={Swords} title="오늘의 경기" href="/odds" badge={`${TODAY_MATCHES.filter(m => m.live).length} LIVE`} />
+              <div className="glass-card rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-white/[0.06] bg-white/[0.02]">
+                        <th className="text-left px-5 py-3.5 font-bold">경기</th>
+                        <th className="text-center px-3 py-3.5 font-bold">1</th>
+                        <th className="text-center px-3 py-3.5 font-bold">X</th>
+                        <th className="text-center px-3 py-3.5 font-bold">2</th>
+                        <th className="text-center px-3 py-3.5 font-bold hidden md:table-cell">핸디캡</th>
+                        <th className="text-center px-3 py-3.5 font-bold hidden md:table-cell">오버/언더</th>
+                        <th className="text-right px-5 py-3.5 font-bold">시간</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.04]">
+                      {TODAY_MATCHES.map((m) => (
+                        <tr key={m.id} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0 uppercase">{m.league}</span>
+                              <div>
+                                <span className="font-bold text-foreground group-hover:text-primary transition-colors text-[13px]">{m.home}</span>
+                                <span className="text-muted-foreground mx-1.5 text-xs">vs</span>
+                                <span className="font-bold text-foreground text-[13px]">{m.away}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="text-center px-3 py-4">
+                            <OddsChange value={m.homeOdds} prev={m.prevHome} />
+                          </td>
+                          <td className="text-center px-3 py-4">
+                            <span className="font-mono text-xs text-muted-foreground">{m.drawOdds > 0 ? m.drawOdds.toFixed(2) : "-"}</span>
+                          </td>
+                          <td className="text-center px-3 py-4">
+                            <span className="font-mono text-xs text-muted-foreground">{m.awayOdds.toFixed(2)}</span>
+                          </td>
+                          <td className="text-center px-3 py-4 hidden md:table-cell">
+                            <span className="font-mono text-[11px] text-muted-foreground">{m.ahLine} @ {m.ahOdds}</span>
+                          </td>
+                          <td className="text-center px-3 py-4 hidden md:table-cell">
+                            <span className="font-mono text-[11px] text-muted-foreground">O{m.ou} @ {m.ouOdds}</span>
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            {m.live ? (
+                              <span className="badge-live">
+                                <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
+                                LIVE
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground font-mono">{m.time}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-5 py-3 border-t border-white/[0.04] bg-white/[0.02] flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">배당은 실시간 변동됩니다 • 참고용</span>
+                  <Link href="/odds" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+                    전체 경기 보기 <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+                </div>
               </div>
-              <h2 className="text-4xl md:text-7xl font-black tracking-tighter leading-none">
-                {isProMode ? (
-                  <>ADVANCED <span className="text-primary italic">MARKETS</span></>
-                ) : (
-                  <>SMART <span className="text-primary italic">BETTING</span></>
-                )}
-              </h2>
-              <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-                {isProMode ? t.bannerSub.pro : t.bannerSub.beginner}
-              </p>
             </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-8 space-y-8">
-                {!isProMode ? <BeginnerView t={t} /> : <ProView t={t} />}
+            {/* Odds Changes */}
+            <section>
+              <SectionHeader icon={TrendingUp} title="배당 변동 하이라이트" href="/odds" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {ODDS_CHANGES.map(oc => (
+                  <div key={oc.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                    <div className={cn(
+                      "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                      oc.direction === "down" ? "bg-red-500/15" : "bg-emerald-500/15"
+                    )}>
+                      {oc.direction === "down" 
+                        ? <TrendingDown className="w-5 h-5 text-red-400" />  
+                        : <TrendingUp className="w-5 h-5 text-emerald-400" />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{oc.match}</p>
+                      <p className="text-[11px] text-muted-foreground">{oc.market}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground font-mono line-through">{oc.from.toFixed(2)}</span>
+                        <span className="text-xs text-muted-foreground">→</span>
+                        <span className={cn("text-sm font-bold font-mono", oc.direction === "down" ? "text-red-400" : "text-emerald-400")}>{oc.to.toFixed(2)}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/60">{oc.time}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="lg:col-span-4">
-                <Sidebar t={t} />
-              </div>
-            </div>
-          </>
-        )}
+            </section>
 
-        {activeTab === "analysis" && <AnalysisView t={t} />}
-        {activeTab === "community" && <CommunityForumView t={t} />}
-      </main>
-
-      <footer className="border-t border-white/5 py-12 bg-secondary/20">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Trophy className="h-5 w-5 text-primary" />
-            <span className="font-bold text-lg">{t.title}</span>
-          </div>
-          <p className="text-muted-foreground text-sm">© 2024 Pinnacle Community. All rights reserved.</p>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function Sidebar({ t }: { t: any }) {
-  return (
-    <div className="space-y-6">
-      <div className="glass-card rounded-2xl p-6 flex flex-col gap-6">
-        <h3 className="font-bold text-lg flex items-center gap-2 px-2">
-          <Users className="w-5 h-5 text-primary" /> 
-          {t.activeCommunity}
-        </h3>
-        <div className="space-y-2">
-          {[102, 455, 789, 12].map((id) => (
-            <div key={id} className="flex gap-4 items-start p-3 rounded-xl transition-all hover:bg-white/5 cursor-pointer group">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                U
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                  {t.predictionShared.replace("{id}", id.toString())}
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed italic">
-                  "{t.predictionText}"
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button className="w-full py-3 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-primary-foreground transition-all uppercase tracking-widest">
-          View All Feed
-        </button>
-      </div>
-      
-      {/* Featured Insight Card */}
-      <div className="glass-card rounded-2xl p-6 bg-primary/5 border-primary/20 overflow-hidden relative group">
-        <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl group-hover:bg-primary/40 transition-colors" />
-        <h4 className="font-bold mb-2 relative z-10 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-primary" />
-          Market Insight
-        </h4>
-        <p className="text-sm text-muted-foreground relative z-10 mb-4">
-          Asian Handicap lines for upcoming EPL matches are showing significant movement. Log in to see detailed flow.
-        </p>
-        <button className="text-xs font-bold text-primary hover:underline relative z-10">Read Analysis →</button>
-      </div>
-    </div>
-  );
-}
-
-function BeginnerView({ t }: { t: any }) {
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/20 p-2 rounded-lg">
-            <Activity className="text-primary w-5 h-5" />
-          </div>
-          <h3 className="text-2xl font-black tracking-tight">{t.aiSummary}</h3>
-        </div>
-        <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">
-          {MOCK_MATCHES.length} Matches Found
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {MOCK_MATCHES.map((m) => (
-          <div key={m.id} className="glass-card rounded-2xl overflow-hidden transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10 group">
-            <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
-              <span className="text-[10px] font-black tracking-widest text-primary uppercase bg-primary/10 px-2 py-0.5 rounded border border-primary/20">{m.league}</span>
-              <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1.5 bg-background/50 px-2 py-0.5 rounded-full">
-                {m.live ? (
-                  <>
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            {/* Hot Posts */}
+            <section>
+              <SectionHeader icon={Flame} title="인기 게시글" href="/community" badge="HOT" />
+              <div className="space-y-2">
+                {HOT_POSTS.map((post, idx) => (
+                  <div key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                    <span className={cn(
+                      "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0",
+                      idx < 3 ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground"
+                    )}>
+                      {idx + 1}
                     </span>
-                    <span className="text-red-500">{t.liveNow}</span>
-                  </>
-                ) : (
-                  <>{t.upcoming} • {m.time}</>
-                )}
-              </span>
-            </div>
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-8">
-                <div className="flex flex-col items-center gap-2 flex-1">
-                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center font-bold text-lg border border-white/5 group-hover:scale-110 transition-transform">
-                    {m.home[0]}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        {post.hot && <Flame className="w-3 h-3 text-orange-400 shrink-0" />}
+                        <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post.title}</h4>
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                        <span className="bg-white/5 px-1.5 py-0.5 rounded text-[9px] font-bold">{post.category}</span>
+                        <span>{post.author}</span>
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-4 text-[10px] text-muted-foreground shrink-0">
+                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{post.views.toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{post.likes}</span>
+                      <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{post.comments}</span>
+                    </div>
                   </div>
-                  <span className="font-bold text-sm text-center line-clamp-1">{m.home}</span>
-                </div>
-                <div className="px-4 text-[10px] font-black text-primary bg-primary/10 rounded-full py-1 border border-primary/10 self-center">VS</div>
-                <div className="flex flex-col items-center gap-2 flex-1">
-                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center font-bold text-lg border border-white/5 group-hover:scale-110 transition-transform">
-                    {m.away[0]}
-                  </div>
-                  <span className="font-bold text-sm text-center line-clamp-1">{m.away}</span>
-                </div>
+                ))}
               </div>
-              <div className="bg-white/5 rounded-xl p-4 flex gap-4 text-sm border border-white/1 flex-col sm:flex-row shadow-inner">
-                <div className="bg-primary/20 w-10 h-10 rounded-lg flex items-center justify-center shrink-0">
-                  <ShieldAlert className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <strong className="block mb-1 text-primary text-xs uppercase tracking-wider">{t.aiVerdict}</strong>
-                  <p className="text-muted-foreground text-xs leading-relaxed italic line-clamp-2">"{m.verdict}"</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+            </section>
 
-function ProView({ t }: { t: any }) {
-  return (
-    <div className="glass-card rounded-2xl overflow-hidden shadow-2xl">
-      <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/20 p-2 rounded-lg">
-            <TrendingUp className="text-primary w-5 h-5" />
+            {/* New Reviews */}
+            <section>
+              <SectionHeader icon={Star} title="최신 후기" href="/reviews" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {NEW_REVIEWS.map(review => (
+                  <div key={review.id} className="glass-card-hover rounded-2xl p-5 space-y-3 cursor-pointer">
+                    <div className="flex items-center justify-between">
+                      <span className="badge-primary">{review.category}</span>
+                      {review.verified && (
+                        <span className="badge-success">
+                          <CheckCircle2 className="w-3 h-3" /> 검증됨
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-bold text-sm leading-snug">{review.title}</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{review.summary}</p>
+                    <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{review.author[0]}</div>
+                        <span className="text-xs font-medium">{review.author}</span>
+                      </div>
+                      <StarRating rating={review.rating} />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground/60">
+                      <span>{review.sport}</span>
+                      <span>{review.date}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
-          <h3 className="text-xl font-bold tracking-tight">{t.realtimeOdds}</h3>
-        </div>
-        <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest">Connected • 42ms</span>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="text-[10px] text-muted-foreground bg-white/5 uppercase tracking-widest border-b border-white/5 font-bold">
-            <tr>
-              <th className="px-6 py-5">{t.match}</th>
-              <th className="px-6 py-5">{t.moneyline}</th>
-              <th className="px-6 py-5 text-center">{t.asianHandicap}</th>
-              <th className="px-6 py-5 text-center">{t.overUnder}</th>
-              <th className="px-6 py-5 text-right font-medium">{t.trend}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {MOCK_MATCHES.map((m) => (
-              <tr key={m.id} className="hover:bg-white/5 transition-colors group">
-                <td className="px-6 py-5">
-                  <div className="font-bold text-foreground group-hover:text-primary transition-colors">{m.home} vs {m.away}</div>
-                  <div className="text-[10px] text-muted-foreground font-mono uppercase mt-1 opacity-70">{m.league} • {m.time}</div>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex gap-1.5">
-                    {m.odds.ml.map((odd, idx) => (
-                      <span key={idx} className="bg-white/5 px-2.5 py-1 rounded text-xs font-mono border border-white/5 hover:border-primary/30 transition-colors cursor-pointer text-primary">
-                        {odd}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-6 py-5 text-center font-mono text-xs text-muted-foreground">{m.odds.ah}</td>
-                <td className="px-6 py-5 text-center font-mono text-xs text-muted-foreground">{m.odds.ou}</td>
-                <td className="px-6 py-5 text-right">
-                  <div className="inline-flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
-                    <TrendingUp className="w-3 h-3 text-primary" />
-                    <span className="text-[10px] font-black text-primary uppercase whitespace-nowrap">{m.trend}</span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
 
-function AnalysisView({ t }: { t: any }) {
-  return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="text-center space-y-4 max-w-2xl mx-auto">
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter">{t.analysisTitle}</h2>
-        <p className="text-muted-foreground text-lg leading-relaxed">{t.analysisSubtitle}</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {MOCK_ANALYSIS.map((a) => (
-          <div key={a.id} className="glass-card rounded-2xl group overflow-hidden hover:-translate-y-2 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
-            <div className="h-48 bg-gradient-to-br from-primary/20 to-secondary/40 relative flex items-center justify-center overflow-hidden">
-               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
-               <Microscope className="w-16 h-16 text-primary/30 group-hover:scale-125 transition-transform duration-700 blur-[1px] group-hover:blur-0" />
-               <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Premium</div>
-            </div>
-            <div className="p-8 space-y-4">
-              <h4 className="font-bold text-xl leading-tight group-hover:text-primary transition-colors line-clamp-2">{a.title}</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 italic opacity-80 decoration-primary/30 underline-offset-4 decoration-1">"{a.summary}"</p>
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-6 border-t border-white/5 font-black uppercase tracking-widest">
-                <div className="flex items-center gap-2"><Calendar className="w-3.5 h-3.5 text-primary" /> {a.date}</div>
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {a.views}</span>
-                  <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" /> {a.comments}</span>
-                </div>
+          {/* Right Sidebar */}
+          <aside className="xl:col-span-4 space-y-6">
+            {/* Popular Guides */}
+            <div className="glass-card rounded-2xl p-5">
+              <SectionHeader icon={BookOpen} title="인기 가이드" href="/guide" />
+              <div className="space-y-2">
+                {POPULAR_GUIDES.map((guide, idx) => (
+                  <Link key={guide.id} href="/guide" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                      <guide.icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold truncate group-hover:text-primary transition-colors">{guide.title}</p>
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <span className="bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded text-[9px] font-bold">{guide.difficulty}</span>
+                        <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{guide.views.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-function CommunityForumView({ t }: { t: any }) {
-  return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="flex items-center justify-between border-b border-white/5 pb-8">
-        <div className="space-y-2">
-          <h2 className="text-4xl font-black tracking-tighter">{t.communityTitle}</h2>
-          <p className="text-muted-foreground text-lg">{t.communitySubtitle}</p>
-        </div>
-        <button className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] uppercase tracking-widest text-xs">
-          {t.writePost}
-        </button>
-      </div>
-      <div className="space-y-6">
-        {MOCK_POSTS.map((p) => (
-          <div key={p.id} className="glass-card p-8 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group space-y-6 border-l-4 border-l-transparent hover:border-l-primary">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center font-black text-primary border border-primary/20 text-xl group-hover:rotate-6 transition-transform">
-                  {p.user[0]}
+            {/* Recent Q&A */}
+            <div className="glass-card rounded-2xl p-5">
+              <SectionHeader icon={HelpCircle} title="최근 Q&A" href="/qna" />
+              <div className="space-y-3">
+                {QNA_RECENT.map(q => (
+                  <Link key={q.id} href="/qna" className="block p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
+                    <div className="flex items-start gap-2.5">
+                      <div className={cn(
+                        "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                        q.solved ? "bg-emerald-500/15" : "bg-[hsl(var(--gold))]/15"
+                      )}>
+                        {q.solved 
+                          ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          : <HelpCircle className="w-3 h-3 text-[hsl(var(--gold))]" />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-2">{q.question}</p>
+                        <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                          <span className="bg-white/5 px-1.5 py-0.5 rounded font-bold">{q.category}</span>
+                          <span className="flex items-center gap-0.5"><MessageSquare className="w-2.5 h-2.5" />답변 {q.answers}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Scam Alert Card */}
+            <div className="glass-card rounded-2xl p-5 border-red-500/20 bg-red-500/[0.03]">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="bg-red-500/15 p-1.5 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
                 </div>
-                <div>
-                  <p className="font-bold text-lg group-hover:text-primary transition-colors">{p.user}</p>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-tighter opacity-60">Posted 2 hours ago</p>
+                <h3 className="font-bold text-red-400">사기주의 알림</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                  <p className="text-xs font-bold text-red-400 mb-1">텔레그램 사칭 주의</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    &ldquo;피나클 공식 대리점&rdquo;을 사칭하는 텔레그램 채널이 확인되었습니다. 
+                    피나클은 대리점 제도를 운영하지 않습니다.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                  <p className="text-xs font-bold text-red-400 mb-1">가짜 도메인 주의</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    pinnac1e.com, pinnakle.com 등 유사 도메인 접속을 주의하세요.
+                    공식 도메인: pinnacle.com
+                  </p>
                 </div>
               </div>
-              <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-muted-foreground">General</div>
+              <Link href="/notices?cat=scam" className="mt-4 block text-center text-xs font-bold text-red-400 hover:underline">
+                사기주의 전체 보기 →
+              </Link>
             </div>
-            <p className="text-foreground text-base leading-relaxed opacity-90">{p.content}</p>
-            <div className="flex items-center gap-8 pt-4 border-t border-white/5">
-              <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors group/btn">
-                <Trophy className="w-4 h-4 group-hover/btn:scale-125 transition-transform" /> 
-                Insightful ({p.likes})
-              </button>
-              <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors group/btn">
-                <MessageSquare className="w-4 h-4 group-hover/btn:scale-125 transition-transform" /> 
-                Reply ({p.replies})
-              </button>
+
+            {/* Community Activity */}
+            <div className="glass-card rounded-2xl p-5">
+              <SectionHeader icon={Users} title="커뮤니티 활동" />
+              <div className="space-y-3">
+                {[
+                  { user: "분석왕", action: "경기 토론에 글을 작성했습니다", time: "3분 전", avatar: "분" },
+                  { user: "빠른출금", action: "출금 후기를 등록했습니다", time: "12분 전", avatar: "빠" },
+                  { user: "ProBettor", action: "Q&A에 답변을 달았습니다", time: "25분 전", avatar: "P" },
+                  { user: "축구매니아", action: "EPL 픽을 공유했습니다", time: "42분 전", avatar: "축" },
+                ].map((activity, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 group-hover:scale-110 transition-transform">
+                      {activity.avatar}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs">
+                        <span className="font-bold text-foreground group-hover:text-primary transition-colors">{activity.user}</span>
+                        <span className="text-muted-foreground">님이 {activity.action}</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/50">{activity.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Link href="/community" className="mt-4 block text-center py-2.5 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all">
+                커뮤니티 바로가기
+              </Link>
             </div>
-          </div>
-        ))}
+
+            {/* Trust Badges */}
+            <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-primary/[0.05] to-transparent">
+              <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
+                <Award className="w-4 h-4 text-[hsl(var(--gold))]" />
+                신뢰 지표
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "검증된 후기", value: "847건", icon: CheckCircle2, color: "text-emerald-400" },
+                  { label: "전문가 칼럼", value: "156편", icon: FileText, color: "text-primary" },
+                  { label: "해결된 Q&A", value: "2,341건", icon: Target, color: "text-purple-400" },
+                  { label: "사기 신고", value: "23건", icon: Shield, color: "text-red-400" },
+                ].map(badge => (
+                  <div key={badge.label} className="text-center p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+                    <badge.icon className={cn("w-5 h-5 mx-auto mb-1.5", badge.color)} />
+                    <p className={cn("text-lg font-black", badge.color)}>{badge.value}</p>
+                    <p className="text-[10px] text-muted-foreground font-medium">{badge.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
-      <button className="w-full py-6 rounded-2xl border-2 border-dashed border-white/5 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all font-black uppercase tracking-widest text-xs shadow-inner">
-        {t.loadMore}
-      </button>
     </div>
   );
 }
