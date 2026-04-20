@@ -3,82 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Trophy,
-  Activity,
-  TrendingUp,
-  ShieldAlert,
-  BarChart3,
-  Users,
-  MessageSquare,
-  Calendar,
-  Star,
-  BookOpen,
-  Bell,
-  AlertTriangle,
-  ChevronRight,
-  Eye,
-  ThumbsUp,
-  Flame,
-  Zap,
-  Clock,
-  ArrowUpRight,
-  Shield,
-  Award,
-  Swords,
-  Target,
-  HelpCircle,
-  FileText,
-  Megaphone,
-  CheckCircle2,
-  XCircle,
-  TrendingDown,
-  Globe
+  Trophy, Activity, TrendingUp, ShieldAlert, BarChart3, Users,
+  MessageSquare, Calendar, Star, BookOpen, Bell, AlertTriangle,
+  ChevronRight, Eye, ThumbsUp, Flame, Zap, Clock, ArrowUpRight,
+  Shield, Award, Swords, Target, HelpCircle, FileText, Megaphone,
+  CheckCircle2, XCircle, TrendingDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/* ─── i18n 설정 ─── */
-const LANGUAGES = {
-  ko: {
-    heroTitle: "모든 정보를 한곳에서",
-    heroDesc: "가입 가이드부터 배당 분석, 실사용 후기, 사기주의 안내까지. 신뢰할 수 있는 피나클 커뮤니티에 오신 것을 환영합니다.",
-    guideBtn: "초보자 가이드",
-    oddsBtn: "오늘의 배당",
-    notices: "공지",
-    todayMatches: "오늘의 경기",
-    oddsChanges: "배당 변동 하이라이트",
-    hotPosts: "인기 게시글",
-    latestReviews: "최신 후기",
-    recentQna: "최근 Q&A",
-    communityActivity: "커뮤니티 활동",
-    trustMetrics: "신뢰 지표",
-    viewAll: "전체보기",
-    liveBadge: "LIVE",
-    language: "English"
-  },
-  en: {
-    heroTitle: "All Information in One Place",
-    heroDesc: "From sign‑up guides to odds analysis, user reviews, and scam alerts – welcome to the trusted Pinacle community.",
-    guideBtn: "Beginner Guide",
-    oddsBtn: "Today's Odds",
-    notices: "Notices",
-    todayMatches: "Today’s Matches",
-    oddsChanges: "Odds Change Highlights",
-    hotPosts: "Hot Posts",
-    latestReviews: "Latest Reviews",
-    recentQna: "Recent Q&A",
-    communityActivity: "Community Activity",
-    trustMetrics: "Trust Metrics",
-    viewAll: "View All",
-    liveBadge: "LIVE",
-    language: "한국어"
-  }
-};
-
-/* ─── Mock Data (unchanged) ─── */
+/* ─── Mock Data ─── */
 const NOTICES = [
   { id: 1, type: "scam", title: "피나클 사칭 텔레그램 채널 주의", date: "2026-04-20", urgent: true },
   { id: 2, type: "maintenance", title: "4/21 새벽 2-4시 서버 정기점검 안내", date: "2026-04-19", urgent: false },
-  { id: 3, type: "policy", title: "KYC 인증 절차 변경 안내 (5월 적용)", date: "2026-04-18", urgent: false }
+  { id: 3, type: "policy", title: "KYC 인증 절차 변경 안내 (5월 적용)", date: "2026-04-18", urgent: false },
 ];
 
 const TODAY_MATCHES = [
@@ -86,14 +23,14 @@ const TODAY_MATCHES = [
   { id: 2, home: "Arsenal", away: "Chelsea", league: "EPL", time: "23:00", live: false, homeOdds: 1.85, drawOdds: 3.65, awayOdds: 4.10, prevHome: 1.90, ahLine: "-0.5", ahOdds: 1.88, ou: "2.5", ouOdds: 1.95 },
   { id: 3, home: "Real Madrid", away: "Barcelona", league: "La Liga", time: "04:00", live: false, homeOdds: 2.05, drawOdds: 3.50, awayOdds: 3.45, prevHome: 2.10, ahLine: "PK", ahOdds: 1.95, ou: "2.5", ouOdds: 2.10 },
   { id: 4, home: "Bayern", away: "Dortmund", league: "Bundesliga", time: "22:30", live: true, homeOdds: 1.55, drawOdds: 4.50, awayOdds: 5.20, prevHome: 1.58, ahLine: "-1.25", ahOdds: 1.92, ou: "3.5", ouOdds: 2.05 },
-  { id: 5, home: "T1", away: "Gen.G", league: "LCK", time: "17:00", live: false, homeOdds: 1.75, drawOdds: 0, awayOdds: 2.05, prevHome: 1.80, ahLine: "-1.5", ahOdds: 2.15, ou: "2.5", ouOdds: 1.85 }
+  { id: 5, home: "T1", away: "Gen.G", league: "LCK", time: "17:00", live: false, homeOdds: 1.75, drawOdds: 0, awayOdds: 2.05, prevHome: 1.80, ahLine: "-1.5", ahOdds: 2.15, ou: "2.5", ouOdds: 1.85 },
 ];
 
 const ODDS_CHANGES = [
   { id: 1, match: "울산 HD vs 전북", market: "1X2 홈승", from: 1.98, to: 1.95, direction: "down", time: "12분 전" },
   { id: 2, match: "Arsenal vs Chelsea", market: "오버 2.5", from: 1.90, to: 1.95, direction: "up", time: "25분 전" },
   { id: 3, match: "T1 vs Gen.G", market: "홈승", from: 1.80, to: 1.75, direction: "down", time: "1시간 전" },
-  { id: 4, match: "Bayern vs Dortmund", market: "AH -1.25", from: 1.88, to: 1.92, direction: "up", time: "2시간 전" }
+  { id: 4, match: "Bayern vs Dortmund", market: "AH -1.25", from: 1.88, to: 1.92, direction: "up", time: "2시간 전" },
 ];
 
 const HOT_POSTS = [
@@ -101,13 +38,13 @@ const HOT_POSTS = [
   { id: 2, title: "피나클 입금 가이드 - 2026년 최신 업데이트", author: "가이드마스터", category: "가이드", views: 3500, comments: 67, likes: 156, hot: true },
   { id: 3, title: "아시안핸디캡 완전정복: -0.5와 -0.75의 차이", author: "ProBettor", category: "분석", views: 2100, comments: 45, likes: 112, hot: false },
   { id: 4, title: "이번 주 EPL 배당 흐름 분석", author: "DataWiz", category: "칼럼", views: 890, comments: 23, likes: 67, hot: false },
-  { id: 5, title: "피나클 출금 3시간 만에 완료 - 후기", author: "빠른출금", category: "후기", views: 760, comments: 12, likes: 42, hot: false }
+  { id: 5, title: "피나클 출금 3시간 만에 완료 - 후기", author: "빠른출금", category: "후기", views: 760, comments: 18, likes: 42, hot: false },
 ];
 
 const NEW_REVIEWS = [
   { id: 1, author: "축구매니아", sport: "축구", rating: 4.5, title: "EPL 배당이 확실히 높습니다", summary: "타 사이트 대비 항상 2-3% 높은 배당을 확인했습니다. 특히 1X2 시장에서 차이가 큽니다.", date: "2시간 전", category: "배당 만족도", verified: true },
   { id: 2, author: "뉴비", sport: "야구", rating: 3.5, title: "가입은 쉬운데 KYC가 좀 번거로움", summary: "가입 자체는 5분이면 되는데, 신분증 인증에 이틀 걸렸습니다.", date: "5시간 전", category: "가입 후기", verified: true },
-  { id: 3, author: "글로벌배터", sport: "e스포츠", rating: 5, title: "LoL 배당은 피나클이 최고", summary: "LCK 경기 라인업이 가장 풍부하고, 라이브 베팅도 빠릅니다.", date: "8시간 전", category: "종목별 후기", verified: false }
+  { id: 3, author: "글로벌배터", sport: "e스포츠", rating: 5, title: "LoL 배당은 피나클이 최고", summary: "LCK 경기 라인업이 가장 풍부하고, 라이브 베팅도 빠릅니다.", date: "8시간 전", category: "종목별 후기", verified: false },
 ];
 
 const POPULAR_GUIDES = [
@@ -115,13 +52,13 @@ const POPULAR_GUIDES = [
   { id: 2, title: "첫 입금하기: 입금 방법 총정리", icon: Zap, views: 8900, difficulty: "초급" },
   { id: 3, title: "배당률 읽는 법: 머니라인 vs 핸디캡", icon: BarChart3, views: 6500, difficulty: "초급" },
   { id: 4, title: "출금 가이드 & 소요시간 안내", icon: Clock, views: 5200, difficulty: "초급" },
-  { id: 5, title: "계정 보안 강화: 2FA 설정법", icon: Shield, views: 3100, difficulty: "중급" }
+  { id: 5, title: "계정 보안 강화: 2FA 설정법", icon: Shield, views: 3100, difficulty: "중급" },
 ];
 
 const QNA_RECENT = [
   { id: 1, question: "피나클 가입 시 VPN이 필요한가요?", answers: 12, solved: true, category: "가입/인증" },
   { id: 2, question: "출금 신청 후 48시간 넘게 처리 안 됩니다", answers: 8, solved: false, category: "결제/입출금" },
-  { id: 3, question: "아시안핸디캡 정산 기준이 궁금합니다", answers: 15, solved: true, category: "배당/정산" }
+  { id: 3, question: "아시안핸디캡 정산 기준이 궁금합니다", answers: 15, solved: true, category: "배당/정산" },
 ];
 
 /* ─── Helper Components ─── */
@@ -160,7 +97,7 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map(i => (
-        <Star key={i} className={cn("w-3 h-3", i <= rating ? "text-[hsl(var(--gold))] fill-[hsl(var(--gold))]" : "text-white/10")} />
+        <Star key={i} className={cn("w-3 h-3", i <= rating ? "text-[hsl(var(--gold))] fill-[hsl(var(--gold))]" : i - 0.5 <= rating ? "text-[hsl(var(--gold))]" : "text-white/10")} />
       ))}
     </div>
   );
@@ -168,21 +105,8 @@ function StarRating({ rating }: { rating: number }) {
 
 /* ─── Main Page ─── */
 export default function HomePage() {
-  const [lang, setLang] = useState<'ko' | 'en'>('ko');
-  const t = LANGUAGES[lang];
-
   return (
-    <div className="mesh-gradient overflow-x-hidden min-h-screen">
-      {/* Language Toggle */}
-      <div className="fixed top-4 right-4 z-20">
-        <button
-          onClick={() => setLang(prev => (prev === 'ko' ? 'en' : 'ko'))}
-          className="btn-primary px-3 py-1 text-sm rounded-full shadow-lg"
-        >
-          {t.language}
-        </button>
-      </div>
-
+    <div className="mesh-gradient overflow-x-hidden">
       {/* Abstract background */}
       <div className="fixed top-20 left-0 w-72 h-72 bg-primary/10 rounded-full blur-[120px] -z-10 animate-float pointer-events-none" />
       <div className="fixed bottom-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[150px] -z-10 pointer-events-none" />
@@ -193,25 +117,44 @@ export default function HomePage() {
           <div className="text-center max-w-3xl mx-auto space-y-5 animate-fade-in-up">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-bold">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
-              {t.notices}
+              피나클 사용자 정보 허브
             </div>
             <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[1.1]">
-              {t.heroTitle}
+              모든 정보를 <span className="text-primary italic">한곳</span>에서
             </h1>
             <p className="text-muted-foreground text-lg md:text-xl leading-relaxed">
-              {t.heroDesc}
+              가입 가이드부터 배당 분석, 실사용 후기, 사기주의 안내까지.<br className="hidden md:block" />
+              신뢰할 수 있는 피나클 커뮤니티에 오신 것을 환영합니다.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link href="/guide" className="btn-primary flex items-center gap-2">
-                <BookOpen className="w-4 h-4" /> {t.guideBtn}
+                <BookOpen className="w-4 h-4" /> 초보자 가이드
               </Link>
               <Link href="/odds" className="btn-outline flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" /> {t.oddsBtn}
+                <TrendingUp className="w-4 h-4" /> 오늘의 배당
               </Link>
             </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 max-w-4xl mx-auto stagger-children">
+            {[
+              { icon: Users, label: "활성 회원", value: "12,847", color: "text-primary" },
+              { icon: BarChart3, label: "오늘 경기", value: `${TODAY_MATCHES.length}개`, color: "text-emerald-400" },
+              { icon: Star, label: "평균 평점", value: "4.3 / 5", color: "text-[hsl(var(--gold))]" },
+              { icon: MessageSquare, label: "오늘 게시글", value: "234건", color: "text-purple-400" },
+            ].map((stat) => (
+              <div key={stat.label} className="stat-card rounded-xl">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
+                  <stat.icon className={cn("w-3.5 h-3.5", stat.color)} />
+                  {stat.label}
+                </div>
+                <span className={cn("text-2xl font-black tracking-tight", stat.color)}>{stat.value}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -222,13 +165,15 @@ export default function HomePage() {
           <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
             <div className="flex items-center gap-1.5 shrink-0">
               <Megaphone className="w-4 h-4 text-[hsl(var(--gold))]" />
-              <span className="text-xs font-bold text-[hsl(var(--gold))] uppercase tracking-wider">{t.notices}</span>
+              <span className="text-xs font-bold text-[hsl(var(--gold))] uppercase tracking-wider">공지</span>
             </div>
             <div className="flex items-center gap-6 text-sm">
               {NOTICES.map(n => (
                 <Link key={n.id} href="/notices" className="flex items-center gap-2 shrink-0 hover:text-primary transition-colors group">
                   {n.urgent && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />}
-                  <span className={cn("font-medium", n.urgent ? "text-red-400" : "text-muted-foreground")}>{n.title}</span>
+                  <span className={cn("font-medium", n.urgent ? "text-red-400" : "text-muted-foreground")}>
+                    {n.title}
+                  </span>
                   <span className="text-[10px] text-muted-foreground/50">{n.date}</span>
                 </Link>
               ))}
@@ -244,12 +189,7 @@ export default function HomePage() {
           <div className="xl:col-span-8 space-y-10">
             {/* Today's Matches */}
             <section>
-              <SectionHeader
-                icon={Swords}
-                title={t.todayMatches}
-                href="/odds"
-                badge={`${TODAY_MATCHES.filter(m => m.live).length} ${t.liveBadge}`}
-              />
+              <SectionHeader icon={Swords} title="오늘의 경기" href="/odds" badge={`${TODAY_MATCHES.filter(m => m.live).length} LIVE`} />
               <div className="glass-card rounded-2xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -265,7 +205,7 @@ export default function HomePage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.04]">
-                      {TODAY_MATCHES.map(m => (
+                      {TODAY_MATCHES.map((m) => (
                         <tr key={m.id} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
@@ -277,15 +217,25 @@ export default function HomePage() {
                               </div>
                             </div>
                           </td>
-                          <td className="text-center px-3 py-4"><OddsChange value={m.homeOdds} prev={m.prevHome} /></td>
-                          <td className="text-center px-3 py-4"><span className="font-mono text-xs text-muted-foreground">{m.drawOdds > 0 ? m.drawOdds.toFixed(2) : "-"}</span></td>
-                          <td className="text-center px-3 py-4"><span className="font-mono text-xs text-muted-foreground">{m.awayOdds.toFixed(2)}</span></td>
-                          <td className="text-center px-3 py-4 hidden md:table-cell"><span className="font-mono text-[11px] text-muted-foreground">{m.ahLine} @ {m.ahOdds}</span></td>
-                          <td className="text-center px-3 py-4 hidden md:table-cell"><span className="font-mono text-[11px] text-muted-foreground">O{m.ou} @ {m.ouOdds}</span></td>
+                          <td className="text-center px-3 py-4">
+                            <OddsChange value={m.homeOdds} prev={m.prevHome} />
+                          </td>
+                          <td className="text-center px-3 py-4">
+                            <span className="font-mono text-xs text-muted-foreground">{m.drawOdds > 0 ? m.drawOdds.toFixed(2) : "-"}</span>
+                          </td>
+                          <td className="text-center px-3 py-4">
+                            <span className="font-mono text-xs text-muted-foreground">{m.awayOdds.toFixed(2)}</span>
+                          </td>
+                          <td className="text-center px-3 py-4 hidden md:table-cell">
+                            <span className="font-mono text-[11px] text-muted-foreground">{m.ahLine} @ {m.ahOdds}</span>
+                          </td>
+                          <td className="text-center px-3 py-4 hidden md:table-cell">
+                            <span className="font-mono text-[11px] text-muted-foreground">O{m.ou} @ {m.ouOdds}</span>
+                          </td>
                           <td className="px-5 py-4 text-right">
                             {m.live ? (
                               <span className="badge-live">
-                                <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" /></span>
+                                <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
                                 LIVE
                               </span>
                             ) : (
@@ -308,12 +258,18 @@ export default function HomePage() {
 
             {/* Odds Changes */}
             <section>
-              <SectionHeader icon={TrendingUp} title={t.oddsChanges} href="/odds" />
+              <SectionHeader icon={TrendingUp} title="배당 변동 하이라이트" href="/odds" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {ODDS_CHANGES.map(oc => (
                   <div key={oc.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
-                    <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", oc.direction === "down" ? "bg-red-500/15" : "bg-emerald-500/15")}>
-                      {oc.direction === "down" ? <TrendingDown className="w-5 h-5 text-red-400" /> : <TrendingUp className="w-5 h-5 text-emerald-400" />}
+                    <div className={cn(
+                      "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                      oc.direction === "down" ? "bg-red-500/15" : "bg-emerald-500/15"
+                    )}>
+                      {oc.direction === "down" 
+                        ? <TrendingDown className="w-5 h-5 text-red-400" />  
+                        : <TrendingUp className="w-5 h-5 text-emerald-400" />
+                      }
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{oc.match}</p>
@@ -334,15 +290,20 @@ export default function HomePage() {
 
             {/* Hot Posts */}
             <section>
-              <SectionHeader icon={Flame} title={t.hotPosts} href="/community" badge="HOT" />
+              <SectionHeader icon={Flame} title="인기 게시글" href="/community" badge="HOT" />
               <div className="space-y-2">
                 {HOT_POSTS.map((post, idx) => (
                   <div key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
-                    <span className={cn("w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0", idx < 3 ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground")}>{idx + 1}</span>
+                    <span className={cn(
+                      "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0",
+                      idx < 3 ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground"
+                    )}>
+                      {idx + 1}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         {post.hot && <Flame className="w-3 h-3 text-orange-400 shrink-0" />}
-                        <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post.title}</h4>
+                        <span className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post.title}</span>
                       </div>
                       <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                         <span className="bg-white/5 px-1.5 py-0.5 rounded text-[9px] font-bold">{post.category}</span>
@@ -359,20 +320,22 @@ export default function HomePage() {
               </div>
             </section>
 
-            {/* Latest Reviews */}
+            {/* New Reviews */}
             <section>
-              <SectionHeader icon={Star} title={t.latestReviews} href="/reviews" />
+              <SectionHeader icon={Star} title="최신 후기" href="/reviews" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {NEW_REVIEWS.map(review => (
                   <div key={review.id} className="glass-card-hover rounded-2xl p-5 space-y-3 cursor-pointer">
                     <div className="flex items-center justify-between">
                       <span className="badge-primary">{review.category}</span>
                       {review.verified && (
-                        <span className="badge-success"><CheckCircle2 className="w-3 h-3" /> 검증됨</span>
+                        <span className="badge-success">
+                          <CheckCircle2 className="w-3 h-3" /> 검증됨
+                        </span>
                       )}
                     </div>
                     <h4 className="font-bold text-sm leading-snug">{review.title}</h4>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{review.summary}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{review.summary}</p>
                     <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{review.author[0]}</div>
@@ -394,10 +357,10 @@ export default function HomePage() {
           <aside className="xl:col-span-4 space-y-6">
             {/* Popular Guides */}
             <div className="glass-card rounded-2xl p-5">
-              <SectionHeader icon={BookOpen} title={t.guideBtn} href="/guide" />
+              <SectionHeader icon={BookOpen} title="인기 가이드" href="/guide" />
               <div className="space-y-2">
                 {POPULAR_GUIDES.map((guide, idx) => (
-                  <Link key={guide.id} href="/guide" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors group">
+                  <Link key={guide.id} href="/guide" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
                       <guide.icon className="w-4 h-4 text-primary" />
                     </div>
@@ -415,19 +378,25 @@ export default function HomePage() {
 
             {/* Recent Q&A */}
             <div className="glass-card rounded-2xl p-5">
-              <SectionHeader icon={HelpCircle} title={t.recentQna} href="/qna" />
+              <SectionHeader icon={HelpCircle} title="최근 Q&A" href="/qna" />
               <div className="space-y-3">
                 {QNA_RECENT.map(q => (
-                  <Link key={q.id} href="/qna" className="block p-3 rounded-xl hover:bg-white/[0.04] transition-colors group">
+                  <Link key={q.id} href="/qna" className="block p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
                     <div className="flex items-start gap-2.5">
-                      <div className={cn("w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5", q.solved ? "bg-emerald-500/15" : "bg-[hsl(var(--gold))]/15")}>
-                        {q.solved ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <HelpCircle className="w-3 h-3 text-[hsl(var(--gold))]" />}
+                      <div className={cn(
+                        "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                        q.solved ? "bg-emerald-500/15" : "bg-[hsl(var(--gold))]/15"
+                      )}>
+                        {q.solved 
+                          ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          : <HelpCircle className="w-3 h-3 text-[hsl(var(--gold))]" />
+                        }
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold line-clamp-2 group-hover:text-primary transition-colors">{q.question}</p>
+                        <p className="text-[13px] font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-2">{q.question}</p>
                         <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
                           <span className="bg-white/5 px-1.5 py-0.5 rounded font-bold">{q.category}</span>
-                          <span className="flex items-center gap-0.5">답변 {q.answers}</span>
+                          <span className="flex items-center gap-0.5"><MessageSquare className="w-2.5 h-2.5" />답변 {q.answers}</span>
                         </div>
                       </div>
                     </div>
@@ -436,22 +405,83 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Trust Metrics */}
+            {/* Scam Alert Card */}
+            <div className="glass-card rounded-2xl p-5 border-red-500/20 bg-red-500/[0.03]">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="bg-red-500/15 p-1.5 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                </div>
+                <h3 className="font-bold text-red-400">사기주의 알림</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                  <p className="text-xs font-bold text-red-400 mb-1">텔레그램 사칭 주의</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    &ldquo;피나클 공식 대리점&rdquo;을 사칭하는 텔레그램 채널이 확인되었습니다. 
+                    피나클은 대리점 제도를 운영하지 않습니다.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                  <p className="text-xs font-bold text-red-400 mb-1">가짜 도메인 주의</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    pinnac1e.com, pinnakle.com 등 유사 도메인 접속을 주의하세요.
+                    공식 도메인: pinnacle.com
+                  </p>
+                </div>
+              </div>
+              <Link href="/notices?cat=scam" className="mt-4 block text-center text-xs font-bold text-red-400 hover:underline">
+                사기주의 전체 보기 →
+              </Link>
+            </div>
+
+            {/* Community Activity */}
+            <div className="glass-card rounded-2xl p-5">
+              <SectionHeader icon={Users} title="커뮤니티 활동" />
+              <div className="space-y-3">
+                {[
+                  { user: "분석왕", action: "경기 토론에 글을 작성했습니다", time: "3분 전", avatar: "분" },
+                  { user: "빠른출금", action: "출금 후기를 등록했습니다", time: "12분 전", avatar: "빠" },
+                  { user: "ProBettor", action: "Q&A에 답변을 달았습니다", time: "25분 전", avatar: "P" },
+                  { user: "축구매니아", action: "EPL 픽을 공유했습니다", time: "42분 전", avatar: "축" },
+                ].map((activity, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 group-hover:scale-110 transition-transform">
+                      {activity.avatar}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs">
+                        <span className="font-bold text-foreground group-hover:text-primary transition-colors">{activity.user}</span>
+                        <span className="text-muted-foreground">님이 {activity.action}</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/50">{activity.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Link href="/community" className="mt-4 block text-center py-2.5 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all">
+                커뮤니티 바로가기
+              </Link>
+            </div>
+
+            {/* Trust Badges */}
             <div className="glass-card rounded-2xl p-5 bg-gradient-to-br from-primary/[0.05] to-transparent">
               <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-                <Award className="w-4 h-4 text-[hsl(var(--gold))]" /> {t.trustMetrics}
+                <Award className="w-4 h-4 text-[hsl(var(--gold))]" />
+                신뢰 지표
               </h3>
               <div className="grid grid-cols-2 gap-3">
-                {[{ label: "검증된 후기", value: "847건", icon: CheckCircle2, color: "text-emerald-400" },
+                {[
+                  { label: "검증된 후기", value: "847건", icon: CheckCircle2, color: "text-emerald-400" },
                   { label: "전문가 칼럼", value: "156편", icon: FileText, color: "text-primary" },
                   { label: "해결된 Q&A", value: "2,341건", icon: Target, color: "text-purple-400" },
-                  { label: "사기 신고", value: "23건", icon: Shield, color: "text-red-400" }].map(badge => (
-                    <div key={badge.label} className="text-center p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
-                      <badge.icon className={cn("w-5 h-5 mx-auto mb-1.5", badge.color)} />
-                      <p className={cn("text-lg font-black", badge.color)}>{badge.value}</p>
-                      <p className="text-[10px] text-muted-foreground font-medium">{badge.label}</p>
-                    </div>
-                  ))}
+                  { label: "사기 신고", value: "23건", icon: Shield, color: "text-red-400" },
+                ].map(badge => (
+                  <div key={badge.label} className="text-center p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+                    <badge.icon className={cn("w-5 h-5 mx-auto mb-1.5", badge.color)} />
+                    <p className={cn("text-lg font-black", badge.color)}>{badge.value}</p>
+                    <p className="text-[10px] text-muted-foreground font-medium">{badge.label}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </aside>
