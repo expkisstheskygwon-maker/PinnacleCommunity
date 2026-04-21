@@ -7,8 +7,12 @@ const nextConfig = {
   // Enable strict mode and SWC minification
   reactStrictMode: true,
   swcMinify: true,
-  experimental: {
-    serverComponentsExternalPackages: ['@cloudflare/next-on-pages'],
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      async_hooks: 'node:async_hooks',
+    };
+    return config;
   },
 };
 
