@@ -6,10 +6,10 @@ pages_build_output_dir = ".vercel/output/static"
 # Edge limits
 limits = { cpu_ms = 50 }
 
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "pinnacle_db"
-# database_id = "YOUR_D1_DATABASE_ID_HERE"
+[[d1_databases]]
+binding = "DB"
+database_name = "pinnacle_db"
+database_id = "ae8aa34b-ccde-4a6b-803e-1353f3354121"
 
 [vars]
 NEXT_PUBLIC_APP_ENV = "production"

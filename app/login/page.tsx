@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { User, Lock, ArrowRight, LogIn, Github, Chrome } from 'lucide-react';
+import { User, Lock, ArrowRight, LogIn, Github, Chrome, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
@@ -13,6 +13,7 @@ export default function LoginPage() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -20,18 +21,37 @@ export default function LoginPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    if (error) setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
     
-    // Simulate login
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsLoading(false);
-    // Redirect logic would go here
-    window.location.href = '/';
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: formData.userId,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '로그인 중 오류가 발생했습니다.');
+      }
+      
+      // Success! Refresh or redirect
+      window.location.href = '/';
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -51,6 +71,12 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 stagger-children">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm font-medium animate-fade-in flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
           {/* User ID */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-primary uppercase tracking-widest ml-1">
