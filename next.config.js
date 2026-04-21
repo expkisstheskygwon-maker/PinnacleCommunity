@@ -7,8 +7,6 @@ const nextConfig = {
   // Enable strict mode and SWC minification
   reactStrictMode: true,
   swcMinify: true,
-  // Optional: customize output directory for Cloudflare Pages
-  output: "standalone",
 };
 
 module.exports = nextConfig;
