@@ -208,10 +208,10 @@ export default function Header() {
                 <span>{lang === "ko" ? "EN" : "한국어"}</span>
               </button>
 
-              <button className="hidden sm:flex items-center gap-1.5 btn-primary text-xs py-2 px-4">
+              <Link href="/login" className="hidden sm:flex items-center gap-1.5 btn-primary text-xs py-2 px-4">
                 <LogIn className="w-3.5 h-3.5" />
                 {lang === "ko" ? "로그인" : "Login"}
-              </button>
+              </Link>
 
               {/* Mobile menu button */}
               <button
@@ -265,10 +265,10 @@ export default function Header() {
               ))}
 
               <div className="pt-4 mt-4 border-t border-white/[0.06]">
-                <button className="w-full btn-primary text-sm py-3 flex items-center justify-center gap-2">
+                <Link href="/login" className="w-full btn-primary text-sm py-3 flex items-center justify-center gap-2">
                   <LogIn className="w-4 h-4" />
                   {lang === "ko" ? "로그인 / 회원가입" : "Login / Sign Up"}
-                </button>
+                </Link>
               </div>
             </div>
           </div>
