@@ -7,6 +7,9 @@ const nextConfig = {
   // Enable strict mode and SWC minification
   reactStrictMode: true,
   swcMinify: true,
+  experimental: {
+    serverComponentsExternalPackages: ['@cloudflare/next-on-pages'],
+  },
 };
 
 module.exports = nextConfig;
