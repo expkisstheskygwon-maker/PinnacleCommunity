@@ -39,7 +39,7 @@ export default function LoginPage() {
         }),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as any;
 
       if (!response.ok) {
         throw new Error(data.error || '로그인 중 오류가 발생했습니다.');
