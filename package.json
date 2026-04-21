@@ -39,5 +39,8 @@
   },
   "overrides": {
     "vercel": "$vercel"
+  },
+  "browser": {
+    "async_hooks": false
   }
 }
