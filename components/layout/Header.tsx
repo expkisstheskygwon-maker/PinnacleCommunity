@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 import {
   Trophy, Home, TrendingUp, BarChart3, Star, HelpCircle,
   BookOpen, Bell, Users, User, Menu, X, ChevronDown,
-  Languages, LogIn, Shield, Zap, Flame
+  Languages, LogIn, Shield, Zap, Flame, LogOut
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface SubItem {
@@ -92,12 +93,34 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  user?: {
+    id: number;
+    userId: string;
+    nickname: string;
+  } | null;
+}
+
+export default function Header({ user }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [lang, setLang] = useState<"ko" | "en">("ko");
   const pathname = usePathname();
+  const router = useRouter();
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      if (response.ok) {
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   const isActive = (item: NavItem) => {
     if (item.href === "/") return pathname === "/";
@@ -208,10 +231,20 @@ export default function Header() {
                 <span>{lang === "ko" ? "EN" : "한국어"}</span>
               </button>
 
-              <Link href="/login" className="hidden sm:flex items-center gap-1.5 btn-primary text-xs py-2 px-4">
-                <LogIn className="w-3.5 h-3.5" />
-                {lang === "ko" ? "로그인" : "Login"}
-              </Link>
+              {user ? (
+                <button 
+                  onClick={handleLogout}
+                  className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 transition-all text-xs font-bold"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  {lang === "ko" ? "로그아웃" : "Logout"}
+                </button>
+              ) : (
+                <Link href="/login" className="hidden sm:flex items-center gap-1.5 btn-primary text-xs py-2 px-4">
+                  <LogIn className="w-3.5 h-3.5" />
+                  {lang === "ko" ? "로그인" : "Login"}
+                </Link>
+              )}
 
               {/* Mobile menu button */}
               <button
@@ -265,10 +298,20 @@ export default function Header() {
               ))}
 
               <div className="pt-4 mt-4 border-t border-white/[0.06]">
-                <Link href="/login" className="w-full btn-primary text-sm py-3 flex items-center justify-center gap-2">
-                  <LogIn className="w-4 h-4" />
-                  {lang === "ko" ? "로그인 / 회원가입" : "Login / Sign Up"}
-                </Link>
+                {user ? (
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 font-bold text-sm"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    {lang === "ko" ? "로그아웃" : "Logout"}
+                  </button>
+                ) : (
+                  <Link href="/login" className="w-full btn-primary text-sm py-3 flex items-center justify-center gap-2">
+                    <LogIn className="w-4 h-4" />
+                    {lang === "ko" ? "로그인 / 회원가입" : "Login / Sign Up"}
+                  </Link>
+                )}
               </div>
             </div>
           </div>
