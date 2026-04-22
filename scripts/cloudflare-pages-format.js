@@ -2,7 +2,19 @@ const fs = require('fs');
 const path = require('path');
 
 const src = '.open-next';
-const dest = path.join('.open-next', 'assets');
+const dest = path.join('.vercel', 'output', 'static');
+
+// Ensure destination exists
+fs.mkdirSync(dest, { recursive: true });
+
+// Copy assets first
+const openNextAssets = path.join('.open-next', 'assets');
+if (fs.existsSync(openNextAssets)) {
+  const assets = fs.readdirSync(openNextAssets);
+  for (const item of assets) {
+    fs.renameSync(path.join(openNextAssets, item), path.join(dest, item));
+  }
+}
 
 try {
   // Read all files/folders in .open-next
