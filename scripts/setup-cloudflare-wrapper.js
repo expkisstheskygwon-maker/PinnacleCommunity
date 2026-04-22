@@ -7,13 +7,21 @@ const isWin = process.platform === "win32";
 try {
   if (fs.existsSync(binPath) || fs.existsSync(binPath + '.cmd')) {
     const realBin = fs.realpathSync(binPath);
+    const origBin = realBin.replace(/\.js$/, '.orig.js');
     
-    // Create the wrapper script
+    // Rename original file if we haven't already
+    if (!fs.existsSync(origBin)) {
+      fs.renameSync(realBin, origBin);
+    }
+    
+    // Create the wrapper script (using ESM syntax since package has "type": "module")
     const wrapper = `#!/usr/bin/env node
-const cp = require('child_process');
+import cp from 'child_process';
+import process from 'process';
+
 try {
   // Run the original OpenNext build
-  cp.execSync('node ' + JSON.stringify(${JSON.stringify(realBin)}) + ' ' + process.argv.slice(2).join(' '), { stdio: 'inherit' });
+  cp.execSync('node ' + JSON.stringify(${JSON.stringify(origBin)}) + ' ' + process.argv.slice(2).join(' '), { stdio: 'inherit' });
   
   // If this was a build command, run our format script
   if (process.argv.includes('build')) {
@@ -25,12 +33,11 @@ try {
 }
 `;
     
-    // Overwrite the original .bin executable (Cloudflare uses Linux so modifying the main file works)
+    // Write the wrapper to the real file location so the symlink points to it
     if (!isWin) {
-      fs.writeFileSync(binPath, wrapper);
-      fs.chmodSync(binPath, 0o755);
+      fs.writeFileSync(realBin, wrapper);
+      fs.chmodSync(realBin, 0o755);
     } else {
-      // On Windows locally, we might need to modify the .cmd file as well, or just skip it since the user's local build already uses pages:build
       console.log('Skipping bin wrapper on Windows local environment');
     }
     console.log('Successfully installed opennextjs-cloudflare wrapper hook!');
