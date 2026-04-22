@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { hashPassword } from '@/lib/auth-utils';
 
-export const runtime = 'edge';
-
 export async function POST(request: NextRequest) {
   try {
     const { userId, password, nickname, email, referralCode } = (await request.json()) as any;

@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { verifyPassword } from '@/lib/auth-utils';
 
-export const runtime = 'edge';
-
 export async function POST(request: NextRequest) {
   try {
     const { userId, password } = (await request.json()) as any;
