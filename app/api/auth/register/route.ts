@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import { hashPassword } from '@/lib/auth-utils';
 
@@ -13,7 +14,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = process.env.DB as any;
+    const { env } = getCloudflareContext();
+    const db = env.DB as any;
 
     // Check if user already exists
     const existingUser = await db

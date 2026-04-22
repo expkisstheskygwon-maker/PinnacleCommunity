@@ -1,4 +1,6 @@
+import { SignJWT } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import { verifyPassword } from '@/lib/auth-utils';
 
@@ -13,7 +15,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = process.env.DB as any;
+    const { env } = getCloudflareContext();
+    const db = env.DB as any;
 
     // Find user
     const user: any = await db
