@@ -1,6 +1,8 @@
-"use client";
-
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+
 import {
   User, FileText, Star, Bell, Shield, Award,
   MessageSquare, Eye, Heart, Trophy, Flame, Target,
@@ -8,18 +10,16 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const USER_PROFILE = {
-  name: "SportsAnalyst",
-  email: "user@example.com",
-  level: 15,
-  score: 1850,
-  badge: "Analyst",
-  joined: "2025-11-20",
-  postCount: 42,
-  commentCount: 156,
-  reviewCount: 8,
-  likeReceived: 324,
-  accuracy: 68,
+// Default fallback profile
+const DEFAULT_PROFILE = {
+  level: 1,
+  score: 0,
+  badge: "Newbie",
+  postCount: 0,
+  commentCount: 0,
+  reviewCount: 0,
+  likeReceived: 0,
+  accuracy: 0,
 };
 
 const MY_POSTS = [
@@ -41,15 +41,44 @@ const WATCHED_MATCHES = [
   { id: 3, home: "T1", away: "Gen.G", league: "LCK", time: "오늘 17:00", live: false },
 ];
 
-const MENU_ITEMS = [
-  { id: "posts", label: "내 글/댓글", icon: FileText, count: USER_PROFILE.postCount + USER_PROFILE.commentCount },
-  { id: "matches", label: "관심 경기", icon: Star, count: WATCHED_MATCHES.length },
-  { id: "notifications", label: "알림 설정", icon: Bell, count: MY_NOTIFICATIONS.filter(n => !n.read).length },
-  { id: "reports", label: "신고 내역", icon: Shield, count: 0 },
-  { id: "activity", label: "활동 점수", icon: Award, count: USER_PROFILE.score },
-];
+export default async function MyPage() {
+  const cookieStore = await cookies();
+  const authSession = cookieStore.get("auth_session");
 
-export default function MyPage() {
+  if (!authSession?.value) {
+    redirect("/login");
+  }
+
+  const sessionData = JSON.parse(authSession.value);
+
+  const { env } = getCloudflareContext();
+  const db = env.DB as any;
+
+  // Fetch full user data from DB
+  const user: any = await db
+    .prepare("SELECT * FROM users WHERE id = ?")
+    .bind(sessionData.id)
+    .first();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const USER_PROFILE = {
+    ...DEFAULT_PROFILE,
+    name: user.nickname,
+    email: user.email,
+    joined: new Date(user.createdAt).toLocaleDateString("ko-KR"),
+  };
+
+  const MENU_ITEMS = [
+    { id: "posts", label: "내 글/댓글", icon: FileText, count: USER_PROFILE.postCount + USER_PROFILE.commentCount },
+    { id: "matches", label: "관심 경기", icon: Star, count: WATCHED_MATCHES.length },
+    { id: "notifications", label: "알림 설정", icon: Bell, count: MY_NOTIFICATIONS.filter(n => !n.read).length },
+    { id: "reports", label: "신고 내역", icon: Shield, count: 0 },
+    { id: "activity", label: "활동 점수", icon: Award, count: USER_PROFILE.score },
+  ];
+
   return (
     <div className="mesh-gradient min-h-screen">
       <div className="container mx-auto px-4 py-10">
