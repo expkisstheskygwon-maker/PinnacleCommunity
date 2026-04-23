@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionData = JSON.parse(authSession.value);
-    const { title, content, category, tags } = (await request.json()) as any;
+    const { title, content, category, tags, image } = (await request.json()) as any;
 
     if (!title || !content || !category) {
       return NextResponse.json(
@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
     // 1. Insert post
     const result = await db
       .prepare(
-        'INSERT INTO posts (title, content, authorId, category, tags) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO posts (title, content, authorId, category, tags, image) VALUES (?, ?, ?, ?, ?, ?)'
       )
-      .bind(title, content, sessionData.id, category, tags || null)
+      .bind(title, content, sessionData.id, category, tags || null, image || null)
       .run();
 
     if (!result.success) {

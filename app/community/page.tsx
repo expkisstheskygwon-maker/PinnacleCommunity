@@ -142,9 +142,16 @@ export default function CommunityPage() {
                       </div>
 
                       {/* Title */}
-                      <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2">
-                        {post.title}
-                      </h3>
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2 flex-1">
+                          {post.title}
+                        </h3>
+                        {post.image && (
+                          <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-white/5 bg-white/5">
+                            <img src={post.image} className="w-full h-full object-cover" alt="Thumbnail" />
+                          </div>
+                        )}
+                      </div>
 
                       {/* Author & Stats */}
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
@@ -255,7 +262,7 @@ export default function CommunityPage() {
               <PenLine className="w-8 h-8 text-primary mx-auto mb-3" />
               <h4 className="font-bold mb-1">커뮤니티에 참여하세요</h4>
               <p className="text-xs text-muted-foreground mb-4">경기 분석, 픽 공유, 질문 등</p>
-              <button className="btn-primary w-full text-sm py-3">글쓰기</button>
+              <Link href="/community/write" className="btn-primary w-full text-sm py-3 block">글쓰기</Link>
             </div>
           </aside>
         </div>

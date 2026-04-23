@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -19,6 +19,7 @@ const CATEGORIES = [
 
 export default function WritePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -27,12 +28,37 @@ export default function WritePage() {
     category: 'free',
     content: '',
     tags: '',
+    image: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (error) setError('');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('이미지 크기는 5MB 이하여야 합니다.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, image: reader.result as string }));
+        if (error) setError('');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData(prev => ({ ...prev, image: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -147,11 +173,42 @@ export default function WritePage() {
               <div className="flex items-center justify-between ml-1">
                 <label className="text-[10px] font-black text-primary uppercase tracking-widest">Content</label>
                 <div className="flex gap-2">
-                  <button type="button" className="p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground transition-colors">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleImageUpload} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 text-xs font-bold"
+                  >
                     <ImageIcon className="w-4 h-4" />
+                    <span>이미지 첨부</span>
                   </button>
                 </div>
               </div>
+              
+              {/* Image Preview */}
+              {formData.image && (
+                <div className="relative inline-block mb-3 animate-fade-in group">
+                  <img 
+                    src={formData.image} 
+                    alt="첨부 이미지 미리보기" 
+                    className="max-h-64 rounded-xl border border-white/10 object-contain bg-black/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-500/80 text-white rounded-lg backdrop-blur-sm transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               <textarea
                 required
                 name="content"
