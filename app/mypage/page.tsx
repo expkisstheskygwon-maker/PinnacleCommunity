@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import ProfileSection from "./ProfileSection";
+
 // Default fallback profile
 const DEFAULT_PROFILE = {
   level: 1,
@@ -92,58 +94,7 @@ export default async function MyPage() {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           {/* Left - Profile */}
           <div className="xl:col-span-4 space-y-6">
-            {/* Profile Card */}
-            <div className="glass-card rounded-2xl p-6 text-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-primary/15 to-transparent" />
-              <div className="relative z-10">
-                <div className="w-20 h-20 rounded-2xl bg-primary/20 mx-auto mb-3 flex items-center justify-center text-3xl font-black text-primary border-2 border-primary/20">
-                  {USER_PROFILE.name[0]}
-                </div>
-                <h2 className="text-xl font-black">{USER_PROFILE.name}</h2>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">Lv.{USER_PROFILE.level}</span>
-                  <span className="badge-primary text-[8px]">
-                    <Award className="w-2.5 h-2.5" /> {USER_PROFILE.badge}
-                  </span>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-1">가입일: {USER_PROFILE.joined}</p>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 mt-6">
-                {[
-                  { label: "게시글", value: USER_PROFILE.postCount, icon: FileText, color: "text-primary" },
-                  { label: "댓글", value: USER_PROFILE.commentCount, icon: MessageSquare, color: "text-emerald-400" },
-                  { label: "후기", value: USER_PROFILE.reviewCount, icon: Star, color: "text-[hsl(var(--gold))]" },
-                  { label: "받은 추천", value: USER_PROFILE.likeReceived, icon: Heart, color: "text-red-400" },
-                ].map(stat => (
-                  <div key={stat.label} className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
-                    <stat.icon className={cn("w-4 h-4 mx-auto mb-1", stat.color)} />
-                    <p className={cn("text-lg font-black", stat.color)}>{stat.value}</p>
-                    <p className="text-[9px] text-muted-foreground">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Activity Score */}
-              <div className="mt-6 bg-gradient-to-r from-primary/10 to-transparent rounded-xl p-4 border border-primary/10">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-[hsl(var(--gold))]" /> 활동 점수</span>
-                  <span className="text-lg font-black text-primary">{USER_PROFILE.score.toLocaleString()}</span>
-                </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full" style={{ width: "62%" }} />
-                </div>
-                <div className="flex justify-between mt-1 text-[9px] text-muted-foreground">
-                  <span>다음 레벨까지 150점</span>
-                  <span>Lv.16</span>
-                </div>
-              </div>
-
-              <button className="mt-4 w-full btn-outline text-xs py-2.5 flex items-center justify-center gap-2">
-                <Settings className="w-3.5 h-3.5" /> 프로필 설정
-              </button>
-            </div>
+            <ProfileSection user={user} profile={USER_PROFILE} />
 
             {/* Menu */}
             <div className="glass-card rounded-2xl overflow-hidden">
