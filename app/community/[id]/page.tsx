@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   ChevronLeft, Clock, Eye, ThumbsUp, MessageSquare, 
   Share2, AlertTriangle, Loader2, User as UserIcon,
-  Award, Hash, Heart, MoreVertical, Flag
+  Award, Hash, Heart, MoreVertical, Flag, Target
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
