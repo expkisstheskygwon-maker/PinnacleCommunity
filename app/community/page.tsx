@@ -117,66 +117,68 @@ export default function CommunityPage() {
               ))
             ) : posts.length > 0 ? (
               posts.map((post) => (
-                <div key={post.id} className="glass-card rounded-xl p-5 hover:bg-white/[0.03] transition-colors cursor-pointer group">
-                  <div className="flex items-start gap-4">
-                    {/* Avatar */}
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-primary text-lg shrink-0 group-hover:scale-105 transition-transform">
-                      {post.authorAvatar ? (
-                        <img src={post.authorAvatar} className="w-full h-full object-cover" alt={post.author} />
-                      ) : (
-                        post.author[0]
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      {/* Meta */}
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className="text-[9px] font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">
-                          {CATEGORIES.find(c => c.id === post.category)?.label}
-                        </span>
-                        {post.views > 1000 && (
-                          <span className="badge-danger text-[8px]">
-                            <Flame className="w-2.5 h-2.5" /> HOT
-                          </span>
+                <Link key={post.id} href={`/community/${post.id}`}>
+                  <div className="glass-card rounded-xl p-5 hover:bg-white/[0.03] transition-all hover:scale-[1.01] hover:shadow-2xl border-white/5 hover:border-primary/20 cursor-pointer group mb-3">
+                    <div className="flex items-start gap-4">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-primary text-lg shrink-0 group-hover:scale-105 transition-transform">
+                        {post.authorAvatar ? (
+                          <img src={post.authorAvatar} className="w-full h-full object-cover" alt={post.author} />
+                        ) : (
+                          post.author[0]
                         )}
                       </div>
 
-                      {/* Title */}
-                      <div className="flex items-start justify-between gap-4">
-                        <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2 flex-1">
-                          {post.title}
-                        </h3>
-                        {post.image && (
-                          <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-white/5 bg-white/5">
-                            <img src={post.image} className="w-full h-full object-cover" alt="Thumbnail" />
+                      <div className="flex-1 min-w-0">
+                        {/* Meta */}
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="text-[9px] font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">
+                            {CATEGORIES.find(c => c.id === post.category)?.label}
+                          </span>
+                          {post.views > 1000 && (
+                            <span className="badge-danger text-[8px]">
+                              <Flame className="w-2.5 h-2.5" /> HOT
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title */}
+                        <div className="flex items-start justify-between gap-4">
+                          <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2 flex-1">
+                            {post.title}
+                          </h3>
+                          {post.image && (
+                            <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-white/5 bg-white/5">
+                              <img src={post.image} className="w-full h-full object-cover" alt="Thumbnail" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Author & Stats */}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-foreground">{post.author}</span>
+                            <span className="text-muted-foreground/40">Lv.{post.level || 1}</span>
+                          </div>
+                          <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{new Date(post.createdAt).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1"><Eye className="w-2.5 h-2.5" />{post.views.toLocaleString()}</span>
+                          <span className="flex items-center gap-1"><ThumbsUp className="w-2.5 h-2.5" />{post.likes}</span>
+                        </div>
+
+                        {/* Tags */}
+                        {post.tags && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {post.tags.split(',').map((tag: string) => (
+                              <span key={tag} className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5">
+                                <Hash className="w-2 h-2" />{tag.trim()}
+                              </span>
+                            ))}
                           </div>
                         )}
                       </div>
-
-                      {/* Author & Stats */}
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-foreground">{post.author}</span>
-                          <span className="text-muted-foreground/40">Lv.{post.level || 1}</span>
-                        </div>
-                        <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{new Date(post.createdAt).toLocaleDateString()}</span>
-                        <span className="flex items-center gap-1"><Eye className="w-2.5 h-2.5" />{post.views.toLocaleString()}</span>
-                        <span className="flex items-center gap-1"><ThumbsUp className="w-2.5 h-2.5" />{post.likes}</span>
-                      </div>
-
-                      {/* Tags */}
-                      {post.tags && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {post.tags.split(',').map((tag: string) => (
-                            <span key={tag} className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5">
-                              <Hash className="w-2 h-2" />{tag.trim()}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
-                </div>
+                </Link>
               ))
             ) : (
               <div className="glass-card rounded-xl p-10 text-center space-y-4">
