@@ -59,17 +59,24 @@ export async function GET(request: Request) {
     if (oddsResponse.ok) {
       const oddsData = await oddsResponse.json();
       (oddsData.response || []).forEach((item: any) => {
-        // Pinnacle 배당 찾기
-        const pinnacle = item.bookmakers.find((b: any) => b.name.toLowerCase() === 'pinnacle') || item.bookmakers[0];
-        if (pinnacle) {
-          const matchWinner = pinnacle.bets.find((b: any) => b.name === 'Match Winner');
-          const handicap = pinnacle.bets.find((b: any) => b.name.includes('Handicap'));
-          const goals = pinnacle.bets.find((b: any) => b.name.includes('Goals Over/Under'));
+        // 배당사 우선순위: Pinnacle -> Bet365 -> Bwin -> 첫 번째 업체
+        const bookmakers = item.bookmakers || [];
+        const bookmaker = 
+          bookmakers.find((b: any) => b.name.toLowerCase().includes('pinnacle')) || 
+          bookmakers.find((b: any) => b.name.toLowerCase().includes('bet365')) || 
+          bookmakers[0];
+
+        if (bookmaker && bookmaker.bets) {
+          const findBet = (names: string[]) => bookmaker.bets.find((b: any) => names.includes(b.name));
+          
+          const matchWinner = findBet(['Match Winner', '1X2', 'Home/Away']);
+          const handicap = findBet(['Asian Handicap', 'Handicap Result']);
+          const goals = findBet(['Goals Over/Under', 'Total Goals']);
 
           oddsMap[item.fixture.id] = {
-            h: matchWinner?.values.find((v: any) => v.value === 'Home')?.odd || 0,
-            d: matchWinner?.values.find((v: any) => v.value === 'Draw')?.odd || 0,
-            a: matchWinner?.values.find((v: any) => v.value === 'Away')?.odd || 0,
+            h: matchWinner?.values.find((v: any) => ['Home', '1'].includes(v.value))?.odd || 0,
+            d: matchWinner?.values.find((v: any) => ['Draw', 'X'].includes(v.value))?.odd || 0,
+            a: matchWinner?.values.find((v: any) => ['Away', '2'].includes(v.value))?.odd || 0,
             ah: handicap?.values[0] ? `${handicap.values[0].value} @ ${handicap.values[0].odd}` : "-",
             ou: goals?.values[0] ? `${goals.values[0].value} @ ${goals.values[0].odd}` : "-"
           };
