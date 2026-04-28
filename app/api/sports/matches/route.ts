@@ -92,8 +92,8 @@ export async function GET(request: Request) {
       const matchOdds = oddsMap[fixture.id] || { h: 0, d: 0, a: 0, ah: "-", ou: "-" };
       
       const scores = item.goals || item.scores || { home: 0, away: 0 };
-      const homeScore = typeof scores.home === 'object' ? scores.home.total : scores.home;
-      const awayScore = typeof scores.away === 'object' ? scores.away.total : scores.away;
+      const homeScore = scores.home != null ? (typeof scores.home === 'object' ? scores.home?.total ?? 0 : scores.home) : 0;
+      const awayScore = scores.away != null ? (typeof scores.away === 'object' ? scores.away?.total ?? 0 : scores.away) : 0;
 
       return {
         id: fixture.id,
