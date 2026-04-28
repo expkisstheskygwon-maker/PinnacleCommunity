@@ -1,9 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { cookies } from 'next/headers';
 import './globals.css';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,24 +14,10 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const authSession = cookieStore.get("auth_session");
-  let user = null;
-
-  if (authSession?.value) {
-    try {
-      user = JSON.parse(authSession.value);
-    } catch (e) {
-      console.error("Failed to parse auth session", e);
-    }
-  }
-
   return (
     <html lang="ko" className="dark">
       <body className={`${inter.className} min-h-screen flex flex-col`}>
-        <Header user={user} />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );
