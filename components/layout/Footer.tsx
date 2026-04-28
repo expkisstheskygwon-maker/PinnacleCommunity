@@ -3,7 +3,7 @@ import { Trophy, Shield, Mail, MessageCircle } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/[0.04] bg-background/80 mt-auto">
+    <footer className="border-t border-white/[0.04] bg-background/80 mt-auto relative">
       <div className="container mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           {/* Brand */}
@@ -99,6 +99,18 @@ export default function Footer() {
           </div>
         </div>
       </div>
+
+      {/* Admin Floating Button (Temporary) */}
+      <Link 
+        href="/admin/login" 
+        className="fixed bottom-6 right-6 z-[60] group"
+        title="관리자 로그인"
+      >
+        <div className="flex items-center gap-2 px-4 py-2.5 glass-card rounded-full border-red-500/20 bg-red-500/10 hover:bg-red-500/20 transition-all hover:scale-105 active:scale-95 group-hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+          <Shield className="w-4 h-4 text-red-400" />
+          <span className="text-[11px] font-black text-red-400 uppercase tracking-tighter">Admin</span>
+        </div>
+      </Link>
     </footer>
   );
 }
