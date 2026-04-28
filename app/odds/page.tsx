@@ -44,7 +44,13 @@ export default function OddsPage() {
     fetchMatches(activeCat);
   }, [activeCat]);
 
-  const filtered = matches; // API에서 이미 필터링된 데이터를 가져옴
+  const filtered = [...matches].sort((a, b) => {
+    if (a.live && !b.live) return -1;
+    if (!a.live && b.live) return 1;
+    if (a.finished && !b.finished) return -1;
+    if (!a.finished && b.finished) return 1;
+    return 0;
+  });
   const liveCount = matches.filter(m => m.live).length;
 
   return (
