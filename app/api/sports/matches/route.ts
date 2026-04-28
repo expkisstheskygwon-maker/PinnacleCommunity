@@ -84,13 +84,16 @@ export async function GET(request: Request) {
       });
     }
 
-    // API-Sports의 응답 데이터를 우리 사이트 형식으로 통일(Mapping)
     const matches = fixtureData.map((item: any) => {
       const fixture = item.fixture || item;
       const teams = item.teams;
       const league = item.league;
       const status = fixture.status || item.status;
       const matchOdds = oddsMap[fixture.id] || { h: 0, d: 0, a: 0, ah: "-", ou: "-" };
+      
+      const scores = item.goals || item.scores || { home: 0, away: 0 };
+      const homeScore = typeof scores.home === 'object' ? scores.home.total : scores.home;
+      const awayScore = typeof scores.away === 'object' ? scores.away.total : scores.away;
 
       return {
         id: fixture.id,
@@ -98,8 +101,16 @@ export async function GET(request: Request) {
         away: teams.away.name,
         league: league.name,
         sport: sport,
+        status: status.long || status.short,
+        statusCode: status.short,
         time: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-        live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'SUSP', 'INT', 'IN PROGRESS', 'LIVE'].includes(status.short || status.type),
+        date: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }),
+        live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS'].includes(status.short?.toUpperCase()),
+        finished: ['FT', 'AET', 'PEN', 'POST', 'CANC', 'ABD', 'AWD', 'WO'].includes(status.short?.toUpperCase()),
+        scores: {
+          home: homeScore ?? 0,
+          away: awayScore ?? 0
+        },
         odds: {
           h: parseFloat(matchOdds.h),
           d: parseFloat(matchOdds.d),
@@ -107,7 +118,7 @@ export async function GET(request: Request) {
         },
         ah: matchOdds.ah,
         ou: matchOdds.ou,
-        openH: parseFloat(matchOdds.h), // 오픈 배당 대용
+        openH: parseFloat(matchOdds.h),
         movement: "steady"
       };
     });

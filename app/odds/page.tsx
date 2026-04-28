@@ -125,31 +125,70 @@ export default function OddsPage() {
                 <thead>
                   <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-white/[0.06] bg-white/[0.02]">
                     <th className="text-left px-5 py-4 font-bold">리그</th>
-                    <th className="text-left px-3 py-4 font-bold">경기</th>
-                    <th className="text-center px-3 py-4 font-bold">1</th>
-                    {filtered.some(m => m.odds.d > 0) && <th className="text-center px-3 py-4 font-bold">X</th>}
-                    <th className="text-center px-3 py-4 font-bold">2</th>
-                    {showProView && <th className="text-center px-3 py-4 font-bold">오픈 배당</th>}
+                    <th className="text-left px-3 py-4 font-bold">경기 현황</th>
+                    <th className="text-center px-3 py-4 font-bold">승 (1)</th>
+                    {filtered.some(m => m.odds.d > 0) && <th className="text-center px-3 py-4 font-bold">무 (X)</th>}
+                    <th className="text-center px-3 py-4 font-bold">패 (2)</th>
+                    <th className="text-center px-3 py-4 font-bold">결과</th>
                     <th className="text-center px-3 py-4 font-bold hidden md:table-cell">핸디캡</th>
-                    <th className="text-center px-3 py-4 font-bold hidden md:table-cell">오버/언더</th>
-                    <th className="text-right px-5 py-4 font-bold">시간</th>
+                    <th className="text-center px-3 py-4 font-bold hidden md:table-cell">O/U</th>
+                    <th className="text-right px-5 py-4 font-bold">상태/시간</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
                   {filtered.map(m => {
                     const diff = m.odds.h - m.openH;
+                    
+                    // 결과 텍스트 도출
+                    let resultText = "-";
+                    let resultColor = "text-muted-foreground";
+                    
+                    if (m.finished || m.live) {
+                      if (m.scores.home > m.scores.away) {
+                        resultText = "홈승";
+                        resultColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                      } else if (m.scores.home < m.scores.away) {
+                        resultText = "원정승";
+                        resultColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                      } else {
+                        resultText = "무승부";
+                        resultColor = "bg-gray-500/10 text-gray-400 border-gray-500/20";
+                      }
+                    }
+
+                    const getStatusKo = (status: string) => {
+                      const map: any = {
+                        '1H': '전반', '2H': '후반', 'HT': '하프타임', 'ET': '연장', 'BT': '연장휴식', 'P': '승부차기',
+                        'FT': '종료', 'AET': '연장종료', 'PEN': '승부차기종료', 'LIVE': '진행중', 'IN PROGRESS': '진행중',
+                        'POST': '연기', 'CANC': '취소', 'ABD': '중단', 'NS': '예정'
+                      };
+                      return map[status.toUpperCase()] || status;
+                    };
+
                     return (
                       <tr key={m.id} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
                         <td className="px-5 py-4">
-                          <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase">{m.league}</span>
+                          <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block">{m.league}</span>
                         </td>
                         <td className="px-3 py-4">
-                          <span className="font-bold group-hover:text-primary transition-colors">{m.home}</span>
-                          <span className="text-muted-foreground mx-1.5 text-xs">vs</span>
-                          <span className="font-bold">{m.away}</span>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-3">
+                              <span className={cn("font-bold text-sm", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400")}>{m.home}</span>
+                              <div className="flex items-center bg-black/40 rounded-lg px-2 py-0.5 border border-white/5">
+                                <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.home}</span>
+                                <span className="text-muted-foreground/30 px-1 text-[10px]">:</span>
+                                <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.away}</span>
+                              </div>
+                              <span className={cn("font-bold text-sm", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400")}>{m.away}</span>
+                            </div>
+                          </div>
                         </td>
                         <td className="text-center px-3 py-4">
-                          <span className={cn("font-mono text-xs font-bold", diff < 0 ? "text-red-400" : diff > 0 ? "text-emerald-400" : "text-muted-foreground")}>{m.odds.h > 0 ? m.odds.h.toFixed(2) : "-"}</span>
+                          <div className="flex flex-col items-center">
+                            <span className={cn("font-mono text-xs font-bold", diff < 0 ? "text-red-400" : diff > 0 ? "text-emerald-400" : "text-foreground")}>
+                              {m.odds.h > 0 ? m.odds.h.toFixed(2) : "-"}
+                            </span>
+                          </div>
                         </td>
                         {filtered.some(m2 => m2.odds.d > 0) && (
                           <td className="text-center px-3 py-4">
@@ -157,29 +196,29 @@ export default function OddsPage() {
                           </td>
                         )}
                         <td className="text-center px-3 py-4">
-                          <span className="font-mono text-xs text-muted-foreground">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
+                          <span className="font-mono text-xs text-foreground font-bold">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
                         </td>
-                        {showProView && (
-                          <td className="text-center px-3 py-4">
-                            <span className="font-mono text-[11px] text-muted-foreground/60">{m.openH > 0 ? m.openH.toFixed(2) : "-"}</span>
-                            {diff !== 0 && m.openH > 0 && (
-                              <span className={cn("ml-1 text-[9px] font-bold", diff < 0 ? "text-red-400" : "text-emerald-400")}>
-                                ({diff > 0 ? "+" : ""}{diff.toFixed(2)})
-                              </span>
-                            )}
-                          </td>
-                        )}
+                        <td className="text-center px-3 py-4">
+                          <span className={cn("text-[10px] font-black px-2 py-1 rounded border", resultColor)}>
+                            {resultText}
+                          </span>
+                        </td>
                         <td className="text-center px-3 py-4 hidden md:table-cell font-mono text-[11px] text-muted-foreground">{m.ah}</td>
                         <td className="text-center px-3 py-4 hidden md:table-cell font-mono text-[11px] text-muted-foreground">{m.ou}</td>
                         <td className="px-5 py-4 text-right">
-                          {m.live ? (
-                            <span className="badge-live">
-                              <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
-                              LIVE
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground font-mono">{m.time}</span>
-                          )}
+                          <div className="flex flex-col items-end gap-1">
+                            {m.live ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
+                                <span className="text-[10px] font-black text-red-500 uppercase tracking-tighter">{getStatusKo(m.statusCode)}</span>
+                              </div>
+                            ) : m.finished ? (
+                              <span className="text-[10px] font-bold text-muted-foreground/60 bg-white/5 px-2 py-0.5 rounded uppercase">{getStatusKo(m.statusCode)}</span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-muted-foreground/80 uppercase">{getStatusKo(m.statusCode)}</span>
+                            )}
+                            <span className="text-[10px] text-muted-foreground/40 font-mono">{m.time}</span>
+                          </div>
                         </td>
                       </tr>
                     );
