@@ -259,6 +259,58 @@ function CommunityView() {
 function PostEditorView({ category }: { category: string }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [subCategory, setSubCategory] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  // Map category to backend category ID
+  const getCategoryMap = () => {
+    switch(category) {
+      case "가이드": return { main: "guide", subOptions: ["가입 가이드", "입출금 가이드", "배팅 가이드", "기타"] };
+      case "Q&A": return { main: "qna", subOptions: ["가입/인증", "결제/입출금", "배당/정산", "계정/보안"] };
+      case "공지/이슈": return { main: "notices", subOptions: ["점검 공지", "사기주의", "장애/지연", "정책 변경"] };
+      case "분석/칼럼": return { main: "analysis", subOptions: ["초보 가이드", "배당 이해", "라인 변동", "전략/리스크"] };
+      default: return { main: "free", subOptions: [] };
+    }
+  };
+
+  const catMap = getCategoryMap();
+
+  const handlePublish = async () => {
+    if (!title || !content) {
+      alert("제목과 내용을 모두 입력해주세요.");
+      return;
+    }
+
+    try {
+      setIsPublishing(true);
+      const response = await fetch("/api/admin/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          content,
+          category: catMap.main,
+          subCategory: subCategory || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("게시글이 성공적으로 발행되었습니다.");
+        setTitle("");
+        setContent("");
+        setSubCategory("");
+      } else {
+        alert(`오류: ${data.error}`);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("서버 통신 중 오류가 발생했습니다.");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -272,19 +324,21 @@ function PostEditorView({ category }: { category: string }) {
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder={`${category} 제목을 입력하세요`} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all" />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">카테고리</label>
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">세부 카테고리 (선택)</label>
           <div className="flex items-center gap-2 flex-wrap">
-            {category === "가이드" && ["가입 가이드", "입출금 가이드", "배팅 가이드", "기타"].map(c => (
-              <button key={c} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-all">{c}</button>
-            ))}
-            {category === "Q&A" && ["가입/인증", "결제/입출금", "배당/정산", "계정/보안"].map(c => (
-              <button key={c} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-all">{c}</button>
-            ))}
-            {category === "공지/이슈" && ["점검 공지", "사기주의", "장애/지연", "정책 변경"].map(c => (
-              <button key={c} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-all">{c}</button>
-            ))}
-            {category === "분석/칼럼" && ["초보 가이드", "배당 이해", "라인 변동", "전략/리스크"].map(c => (
-              <button key={c} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-all">{c}</button>
+            {catMap.subOptions.map(c => (
+              <button 
+                key={c} 
+                onClick={() => setSubCategory(c)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
+                  subCategory === c 
+                    ? "bg-primary/20 text-primary border-primary/50" 
+                    : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20"
+                )}
+              >
+                {c}
+              </button>
             ))}
           </div>
         </div>
@@ -293,9 +347,16 @@ function PostEditorView({ category }: { category: string }) {
           <textarea value={content} onChange={e => setContent(e.target.value)} rows={14} placeholder="내용을 입력하세요..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all resize-none" />
         </div>
         <div className="flex items-center justify-end gap-3 pt-2">
-          <button className="btn-outline py-2.5 px-6 text-xs">임시 저장</button>
-          <button className="py-2.5 px-6 rounded-xl font-bold text-sm bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-            <span className="flex items-center gap-1.5"><Plus className="w-3.5 h-3.5" /> 발행하기</span>
+          <button className="btn-outline py-2.5 px-6 text-xs" onClick={() => alert("임시저장 기능은 현재 미구현입니다.")}>임시 저장</button>
+          <button 
+            onClick={handlePublish}
+            disabled={isPublishing}
+            className="py-2.5 px-6 rounded-xl font-bold text-sm bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)] disabled:opacity-50 disabled:pointer-events-none"
+          >
+            <span className="flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> 
+              {isPublishing ? "발행 중..." : "발행하기"}
+            </span>
           </button>
         </div>
       </div>
