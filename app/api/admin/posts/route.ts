@@ -27,10 +27,14 @@ export async function POST(request: NextRequest) {
     const db = env.DB as any;
 
     // 관리자 유저(id=0)가 없으면 생성 (글 작성 시 JOIN을 위해 필요)
-    await db.prepare(`
-      INSERT OR IGNORE INTO users (id, userId, nickname, password, role) 
-      VALUES (0, 'admin', '관리자', 'admin_pass', 'admin')
-    `).run();
+    try {
+      await db.prepare(`
+        INSERT OR IGNORE INTO users (id, userId, nickname, passwordHash, email) 
+        VALUES (0, 'admin', '관리자', 'admin_pass_hash', 'admin@pinnacle.com')
+      `).run();
+    } catch(e) {
+      console.warn("Failed to insert dummy admin user:", e);
+    }
 
     // 관리자 글 등록
     // category는 대분류 (예: notices), subCategory는 소분류 (예: maintenance)
