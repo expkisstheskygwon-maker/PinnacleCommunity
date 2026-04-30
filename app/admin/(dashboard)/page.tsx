@@ -376,48 +376,139 @@ function MembersView({ search, setSearch }: { search: string; setSearch: (v: str
 }
 
 function CommunityView() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchPosts = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/admin/posts');
+      const data = await res.json();
+      if (data.success) {
+        setPosts(data.posts);
+      } else {
+        alert(data.error || "게시글 목록을 불러오지 못했습니다.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const handleToggleStatus = async (postId: number, currentStatus: string) => {
+    const newStatus = currentStatus === 'public' ? 'hidden' : 'public';
+    try {
+      const res = await fetch('/api/admin/posts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId, status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchPosts();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("상태 변경 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleDelete = async (postId: number) => {
+    if (!confirm("정말 이 게시글을 삭제하시겠습니까? 복구할 수 없습니다.")) return;
+    try {
+      const res = await fetch(`/api/admin/posts?id=${postId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        fetchPosts();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-black tracking-tight">커뮤니티 관리</h1>
-        <p className="text-sm text-muted-foreground mt-1">게시글 및 댓글을 관리합니다</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">커뮤니티 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">게시글 및 댓글을 관리합니다</p>
+        </div>
+        <button onClick={fetchPosts} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold transition-all">
+          새로고침
+        </button>
       </div>
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-white/[0.06] bg-white/[0.02]">
-              <th className="text-left px-5 py-4 font-bold">제목</th>
-              <th className="text-left px-3 py-4 font-bold">작성자</th>
-              <th className="text-center px-3 py-4 font-bold">카테고리</th>
-              <th className="text-center px-3 py-4 font-bold">조회</th>
-              <th className="text-center px-3 py-4 font-bold">상태</th>
-              <th className="text-right px-5 py-4 font-bold">관리</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/[0.04]">
-            {DUMMY_POSTS.map(p => (
-              <tr key={p.id} className="hover:bg-white/[0.03] transition-colors">
-                <td className="px-5 py-4 font-bold">{p.title}</td>
-                <td className="px-3 py-4 text-muted-foreground">{p.author}</td>
-                <td className="px-3 py-4 text-center"><span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">{p.cat}</span></td>
-                <td className="px-3 py-4 text-center text-muted-foreground">{p.views}</td>
-                <td className="px-3 py-4 text-center">
-                  <span className={cn("text-[10px] font-bold px-2 py-1 rounded border", p.status === "public" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20")}>
-                    {p.status === "public" ? "공개" : "숨김"}
-                  </span>
-                </td>
-                <td className="px-5 py-4 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <button className="p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors"><Eye className="w-3.5 h-3.5" /></button>
-                    <button className="p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors"><Edit className="w-3.5 h-3.5" /></button>
-                    <button className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                  </div>
-                </td>
+
+      {isLoading ? (
+        <div className="py-10 text-center text-muted-foreground text-sm font-bold animate-pulse">
+          게시글을 불러오는 중...
+        </div>
+      ) : (
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-white/[0.06] bg-white/[0.02]">
+                <th className="text-left px-5 py-4 font-bold">제목</th>
+                <th className="text-left px-3 py-4 font-bold">작성자</th>
+                <th className="text-center px-3 py-4 font-bold">카테고리</th>
+                <th className="text-center px-3 py-4 font-bold">조회</th>
+                <th className="text-center px-3 py-4 font-bold">상태</th>
+                <th className="text-right px-5 py-4 font-bold">관리</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04]">
+              {posts.map(p => (
+                <tr key={p.id} className="hover:bg-white/[0.03] transition-colors">
+                  <td className="px-5 py-4 font-bold max-w-[200px] truncate" title={p.title}>{p.title}</td>
+                  <td className="px-3 py-4 text-muted-foreground">{p.author}</td>
+                  <td className="px-3 py-4 text-center">
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                      {p.category}
+                    </span>
+                  </td>
+                  <td className="px-3 py-4 text-center text-muted-foreground">{p.views || 0}</td>
+                  <td className="px-3 py-4 text-center">
+                    <button 
+                      onClick={() => handleToggleStatus(p.id, p.status || 'public')}
+                      className={cn("text-[10px] font-bold px-2 py-1 rounded border hover:opacity-80 transition-opacity", 
+                        (!p.status || p.status === "public") 
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                          : "bg-red-500/10 text-red-400 border-red-500/20"
+                      )}
+                    >
+                      {(!p.status || p.status === "public") ? "공개" : "숨김"}
+                    </button>
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors" title="삭제">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {posts.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">
+                    등록된 게시글이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -66,3 +66,73 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function GET(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const adminSession = cookieStore.get('admin_session');
+    if (!adminSession?.value) {
+      return NextResponse.json({ success: false, error: '관리자 로그인이 필요합니다.' }, { status: 401 });
+    }
+
+    const { env } = getCloudflareContext();
+    const db = env.DB as any;
+
+    const { results } = await db.prepare(`
+      SELECT p.id, p.title, p.category, p.views, p.createdAt as date, p.status, u.nickname as author
+      FROM posts p
+      JOIN users u ON p.authorId = u.id
+      ORDER BY p.createdAt DESC
+    `).all();
+
+    return NextResponse.json({ success: true, posts: results });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const adminSession = cookieStore.get('admin_session');
+    if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
+
+    const { postId, status } = await request.json();
+    if (!postId || !status) return NextResponse.json({ success: false, error: '잘못된 요청' }, { status: 400 });
+
+    const { env } = getCloudflareContext();
+    const db = env.DB as any;
+
+    const result = await db.prepare('UPDATE posts SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
+      .bind(status, postId)
+      .run();
+
+    if (!result.success) throw new Error('업데이트 실패');
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const adminSession = cookieStore.get('admin_session');
+    if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
+
+    const { searchParams } = new URL(request.url);
+    const postId = searchParams.get('id');
+    if (!postId) return NextResponse.json({ success: false, error: '잘못된 요청' }, { status: 400 });
+
+    const { env } = getCloudflareContext();
+    const db = env.DB as any;
+
+    const result = await db.prepare('DELETE FROM posts WHERE id = ?').bind(postId).run();
+    if (!result.success) throw new Error('삭제 실패');
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
