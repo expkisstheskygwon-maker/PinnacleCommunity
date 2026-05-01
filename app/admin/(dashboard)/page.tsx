@@ -520,6 +520,7 @@ function PostEditorView({ category }: { category: string }) {
   const [content, setContent] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
   // Map category to backend category ID
   const getCategoryType = () => {
@@ -548,7 +549,7 @@ function PostEditorView({ category }: { category: string }) {
       }
     };
     fetchCats();
-  }, [type]);
+  }, [type, isManageModalOpen]); // Re-fetch when modal closes
 
   const handlePublish = async () => {
     if (!title || !content) {
@@ -599,24 +600,57 @@ function PostEditorView({ category }: { category: string }) {
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder={`${category} 제목을 입력하세요`} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all" />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">세부 카테고리 (선택)</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">세부 카테고리 (선택)</label>
+            <button 
+              onClick={() => setIsManageModalOpen(true)}
+              className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-lg"
+            >
+              <Edit className="w-2.5 h-2.5" /> 카테고리 편집
+            </button>
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {subOptions.map(c => (
-              <button 
-                key={c.id} 
-                onClick={() => setSubCategory(c.name)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
-                  subCategory === c.name 
-                    ? "bg-primary/20 text-primary border-primary/50" 
-                    : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20"
-                )}
-              >
-                {c.name}
-              </button>
-            ))}
+            {subOptions.length > 0 ? (
+              subOptions.map(c => (
+                <button 
+                  key={c.id} 
+                  onClick={() => setSubCategory(c.name)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
+                    subCategory === c.name 
+                      ? "bg-primary/20 text-primary border-primary/50" 
+                      : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20"
+                  )}
+                >
+                  {c.name}
+                </button>
+              ))
+            ) : (
+              <p className="text-[10px] text-muted-foreground py-1">등록된 카테고리가 없습니다. [카테고리 편집] 버튼을 눌러 추가해 주세요.</p>
+            )}
           </div>
         </div>
+
+        {/* Category Manage Modal */}
+        {isManageModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in">
+              <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                <div>
+                  <h3 className="font-black text-lg">{category} 카테고리 관리</h3>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">글 작성 시 선택 가능한 세부 분류를 관리합니다</p>
+                </div>
+                <button onClick={() => setIsManageModalOpen(false)} className="text-muted-foreground hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all">✕</button>
+              </div>
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <CategoryManagementView initialType={type} hideHeader={true} />
+              </div>
+              <div className="p-4 border-t border-white/10 flex justify-end bg-black/20">
+                <button onClick={() => setIsManageModalOpen(false)} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all">닫기</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="space-y-2">
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">본문</label>
           <textarea value={content} onChange={e => setContent(e.target.value)} rows={14} placeholder="내용을 입력하세요..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all resize-none" />
@@ -639,9 +673,9 @@ function PostEditorView({ category }: { category: string }) {
   );
 }
 
-function CategoryManagementView() {
+function CategoryManagementView({ initialType, hideHeader }: { initialType?: string; hideHeader?: boolean }) {
   const [categories, setCategories] = useState<any[]>([]);
-  const [activeType, setActiveType] = useState("notices");
+  const [activeType, setActiveType] = useState(initialType || "notices");
   const [isLoading, setIsLoading] = useState(true);
   const [newCatName, setNewCatName] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -730,28 +764,32 @@ function CategoryManagementView() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-black tracking-tight">카테고리 관리</h1>
-        <p className="text-sm text-muted-foreground mt-1">각 메뉴별 세부 카테고리를 관리합니다</p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">카테고리 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">각 메뉴별 세부 카테고리를 관리합니다</p>
+        </div>
+      )}
 
-      <div className="flex items-center gap-2 border-b border-white/[0.06] pb-1">
-        {TYPES.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveType(t.id)}
-            className={cn(
-              "px-4 py-2 text-sm font-bold transition-all relative",
-              activeType === t.id ? "text-primary" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {t.label}
-            {activeType === t.id && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-            )}
-          </button>
-        ))}
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center gap-2 border-b border-white/[0.06] pb-1">
+          {TYPES.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveType(t.id)}
+              className={cn(
+                "px-4 py-2 text-sm font-bold transition-all relative",
+                activeType === t.id ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {t.label}
+              {activeType === t.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="glass-card rounded-2xl p-6 space-y-6">
         <div className="flex gap-2">
