@@ -18,6 +18,7 @@ const SIDEBAR_ITEMS = [
   { id: "qna", label: "Q&A 관리", icon: HelpCircle },
   { id: "notices", label: "공지/이슈 작성", icon: Bell },
   { id: "analysis", label: "분석/칼럼 작성", icon: TrendingUp },
+  { id: "categories", label: "카테고리 관리", icon: Edit },
 ];
 
 // --- 더미 데이터 ---
@@ -107,6 +108,7 @@ export default function AdminDashboard() {
           {activeTab === "qna" && <PostEditorView category="Q&A" />}
           {activeTab === "notices" && <PostEditorView category="공지/이슈" />}
           {activeTab === "analysis" && <PostEditorView category="분석/칼럼" />}
+          {activeTab === "categories" && <CategoryManagementView />}
         </div>
       </main>
     </div>
@@ -520,17 +522,33 @@ function PostEditorView({ category }: { category: string }) {
   const [isPublishing, setIsPublishing] = useState(false);
 
   // Map category to backend category ID
-  const getCategoryMap = () => {
+  const getCategoryType = () => {
     switch(category) {
-      case "가이드": return { main: "guide", subOptions: ["가입 가이드", "입출금 가이드", "배팅 가이드", "기타"] };
-      case "Q&A": return { main: "qna", subOptions: ["가입/인증", "결제/입출금", "배당/정산", "계정/보안"] };
-      case "공지/이슈": return { main: "notices", subOptions: ["점검 공지", "사기주의", "장애/지연", "정책 변경"] };
-      case "분석/칼럼": return { main: "analysis", subOptions: ["초보 가이드", "배당 이해", "라인 변동", "전략/리스크"] };
-      default: return { main: "free", subOptions: [] };
+      case "가이드": return "guide";
+      case "Q&A": return "qna";
+      case "공지/이슈": return "notices";
+      case "분석/칼럼": return "analysis";
+      default: return "free";
     }
   };
 
-  const catMap = getCategoryMap();
+  const type = getCategoryType();
+  const [subOptions, setSubOptions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const res = await fetch(`/api/admin/categories?type=${type}`);
+        const data = await res.json();
+        if (data.success) {
+          setSubOptions(data.categories);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchCats();
+  }, [type]);
 
   const handlePublish = async () => {
     if (!title || !content) {
@@ -546,7 +564,7 @@ function PostEditorView({ category }: { category: string }) {
         body: JSON.stringify({
           title,
           content,
-          category: catMap.main,
+          category: type,
           subCategory: subCategory || undefined,
         }),
       });
@@ -583,18 +601,18 @@ function PostEditorView({ category }: { category: string }) {
         <div className="space-y-2">
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">세부 카테고리 (선택)</label>
           <div className="flex items-center gap-2 flex-wrap">
-            {catMap.subOptions.map(c => (
+            {subOptions.map(c => (
               <button 
-                key={c} 
-                onClick={() => setSubCategory(c)}
+                key={c.id} 
+                onClick={() => setSubCategory(c.name)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
-                  subCategory === c 
+                  subCategory === c.name 
                     ? "bg-primary/20 text-primary border-primary/50" 
                     : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20"
                 )}
               >
-                {c}
+                {c.name}
               </button>
             ))}
           </div>
@@ -616,6 +634,183 @@ function PostEditorView({ category }: { category: string }) {
             </span>
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function CategoryManagementView() {
+  const [categories, setCategories] = useState<any[]>([]);
+  const [activeType, setActiveType] = useState("notices");
+  const [isLoading, setIsLoading] = useState(true);
+  const [newCatName, setNewCatName] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+
+  const TYPES = [
+    { id: "notices", label: "공지/이슈" },
+    { id: "guide", label: "가이드" },
+    { id: "qna", label: "Q&A" },
+    { id: "analysis", label: "분석/칼럼" },
+  ];
+
+  const fetchCategories = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/categories?type=${activeType}`);
+      const data = await res.json();
+      if (data.success) {
+        setCategories(data.categories);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, [activeType]);
+
+  const handleAdd = async () => {
+    if (!newCatName) return;
+    try {
+      const res = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: activeType, name: newCatName }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewCatName("");
+        fetchCategories();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpdate = async (id: number) => {
+    if (!editName) return;
+    try {
+      const res = await fetch("/api/admin/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: editName }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditingId(null);
+        fetchCategories();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("정말 이 카테고리를 삭제하시겠습니까?")) return;
+    try {
+      const res = await fetch(`/api/admin/categories?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        fetchCategories();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-2xl font-black tracking-tight">카테고리 관리</h1>
+        <p className="text-sm text-muted-foreground mt-1">각 메뉴별 세부 카테고리를 관리합니다</p>
+      </div>
+
+      <div className="flex items-center gap-2 border-b border-white/[0.06] pb-1">
+        {TYPES.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveType(t.id)}
+            className={cn(
+              "px-4 py-2 text-sm font-bold transition-all relative",
+              activeType === t.id ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {t.label}
+            {activeType === t.id && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="glass-card rounded-2xl p-6 space-y-6">
+        <div className="flex gap-2">
+          <input
+            value={newCatName}
+            onChange={e => setNewCatName(e.target.value)}
+            placeholder="새 카테고리 이름..."
+            className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+            onKeyDown={e => e.key === "Enter" && handleAdd()}
+          />
+          <button
+            onClick={handleAdd}
+            className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+          >
+            추가
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-10 text-muted-foreground animate-pulse">불러오는 중...</div>
+        ) : (
+          <div className="space-y-2">
+            {categories.map(cat => (
+              <div key={cat.id} className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl hover:bg-white/[0.04] transition-all group">
+                {editingId === cat.id ? (
+                  <input
+                    autoFocus
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    className="flex-1 px-3 py-1 bg-black/40 border border-primary/30 rounded-lg text-sm focus:outline-none"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") handleUpdate(cat.id);
+                      if (e.key === "Escape") setEditingId(null);
+                    }}
+                  />
+                ) : (
+                  <span className="font-bold text-sm">{cat.name}</span>
+                )}
+
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {editingId === cat.id ? (
+                    <>
+                      <button onClick={() => handleUpdate(cat.id)} className="p-1.5 text-emerald-400 hover:bg-emerald-400/10 rounded-lg"><Plus className="w-4 h-4" /></button>
+                      <button onClick={() => setEditingId(null)} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg"><LogOut className="w-4 h-4 rotate-180" /></button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); }} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+            {categories.length === 0 && (
+              <div className="text-center py-10 text-muted-foreground text-sm">등록된 카테고리가 없습니다.</div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
