@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Trophy, Activity, TrendingUp, ShieldAlert, BarChart3, Users,
   MessageSquare, Calendar, Star, BookOpen, Bell, AlertTriangle,
   ChevronRight, Eye, ThumbsUp, Flame, Zap, Clock, ArrowUpRight,
   Shield, Award, Swords, Target, HelpCircle, FileText, Megaphone,
-  CheckCircle2, XCircle, TrendingDown
+  CheckCircle2, XCircle, TrendingDown, Settings, Plus, X, Globe, Trophy as LeagueIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,13 +18,7 @@ const NOTICES = [
   { id: 3, type: "policy", title: "KYC 인증 절차 변경 안내 (5월 적용)", date: "2026-04-18", urgent: false },
 ];
 
-const TODAY_MATCHES = [
-  { id: 1, home: "울산 HD", away: "전북 현대", league: "K리그1", time: "19:00", live: true, homeOdds: 1.95, drawOdds: 3.60, awayOdds: 3.85, prevHome: 1.98, ahLine: "-0.5", ahOdds: 1.92, ou: "2.5", ouOdds: 1.88 },
-  { id: 2, home: "Arsenal", away: "Chelsea", league: "EPL", time: "23:00", live: false, homeOdds: 1.85, drawOdds: 3.65, awayOdds: 4.10, prevHome: 1.90, ahLine: "-0.5", ahOdds: 1.88, ou: "2.5", ouOdds: 1.95 },
-  { id: 3, home: "Real Madrid", away: "Barcelona", league: "La Liga", time: "04:00", live: false, homeOdds: 2.05, drawOdds: 3.50, awayOdds: 3.45, prevHome: 2.10, ahLine: "PK", ahOdds: 1.95, ou: "2.5", ouOdds: 2.10 },
-  { id: 4, home: "Bayern", away: "Dortmund", league: "Bundesliga", time: "22:30", live: true, homeOdds: 1.55, drawOdds: 4.50, awayOdds: 5.20, prevHome: 1.58, ahLine: "-1.25", ahOdds: 1.92, ou: "3.5", ouOdds: 2.05 },
-  { id: 5, home: "T1", away: "Gen.G", league: "LCK", time: "17:00", live: false, homeOdds: 1.75, drawOdds: 0, awayOdds: 2.05, prevHome: 1.80, ahLine: "-1.5", ahOdds: 2.15, ou: "2.5", ouOdds: 1.85 },
-];
+// const TODAY_MATCHES = [ ... moved to state ... ]
 
 const ODDS_CHANGES = [
   { id: 1, match: "울산 HD vs 전북", market: "1X2 홈승", from: 1.98, to: 1.95, direction: "down", time: "12분 전" },
@@ -105,6 +99,135 @@ function StarRating({ rating }: { rating: number }) {
 
 /* ─── Main Page ─── */
 export default function HomePage() {
+  const [matches, setMatches] = useState<any[]>([]);
+  const [userPrefs, setUserPrefs] = useState<{ favorites: string[], bets: string[], interests: any[] }>({
+    favorites: [],
+    bets: [],
+    interests: []
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [showInterestModal, setShowInterestModal] = useState(false);
+
+  const handleInterestChange = async (category: string, value: string, action: 'add' | 'remove') => {
+    try {
+      const res = await fetch("/api/user/interests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, value, action })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const intRes = await fetch("/api/user/interests");
+        const intData = await intRes.json();
+        setUserPrefs(prev => ({ ...prev, interests: intData.interests || [] }));
+      } else {
+        if (data.error === '로그인이 필요합니다.') {
+          alert("로그인이 필요한 기능입니다.");
+        } else {
+          alert(data.error);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to update interest", err);
+    }
+  };
+
+  // Fetch matches
+  useEffect(() => {
+    const fetchMatches = async () => {
+      try {
+        const res = await fetch("/api/sports/matches?sport=soccer");
+        const data = await res.json();
+        if (data.matches) setMatches(data.matches);
+      } catch (err) {
+        console.error("Failed to fetch matches", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const fetchUserPrefs = async () => {
+      try {
+        const [intRes, matRes] = await Promise.all([
+          fetch("/api/user/interests"),
+          fetch("/api/user/matches")
+        ]);
+        const intData = await intRes.json();
+        const matData = await matRes.json();
+        
+        setUserPrefs({
+          interests: intData.interests || [],
+          favorites: matData.favorites || [],
+          bets: matData.bets || []
+        });
+      } catch (err) {
+        console.error("Failed to fetch user preferences", err);
+      }
+    };
+
+    fetchMatches();
+    fetchUserPrefs();
+  }, []);
+
+  // Personalized Sorting and Filtering
+  const processedMatches = useMemo(() => {
+    let list = [...matches].map(m => ({
+      ...m,
+      isFavorite: userPrefs.favorites.includes(m.id.toString()),
+      isBet: userPrefs.bets.includes(m.id.toString()),
+      interestScore: 0
+    }));
+
+    // Calculate interest score
+    list.forEach(m => {
+      userPrefs.interests.forEach(pref => {
+        if (pref.category === 'sport' && m.sport === pref.value) m.interestScore += 10;
+        if (pref.category === 'league' && m.league === pref.value) m.interestScore += 50;
+        if (pref.category === 'team' && (m.home === pref.value || m.away === pref.value)) m.interestScore += 100;
+        // Priority added from preference table
+        m.interestScore += (pref.priority || 0);
+      });
+      
+      if (m.isFavorite) m.interestScore += 500;
+      if (m.isBet) m.interestScore += 300;
+    });
+
+    // Sort by score
+    list.sort((a, b) => b.interestScore - a.interestScore);
+
+    // Filter by tab
+    if (activeTab === "interest") return list.filter(m => m.interestScore > 0);
+    if (activeTab === "favorite") return list.filter(m => m.isFavorite);
+    if (activeTab === "bet") return list.filter(m => m.isBet);
+
+    return list;
+  }, [matches, userPrefs, activeTab]);
+
+  const togglePreference = async (matchId: number | string, type: 'favorite' | 'bet') => {
+    const isCurrentlySet = type === 'favorite' 
+      ? userPrefs.favorites.includes(matchId.toString()) 
+      : userPrefs.bets.includes(matchId.toString());
+    
+    const action = isCurrentlySet ? 'remove' : 'add';
+
+    // Optimistic UI update
+    setUserPrefs(prev => ({
+      ...prev,
+      [type === 'favorite' ? 'favorites' : 'bets']: action === 'add' 
+        ? [...prev[type === 'favorite' ? 'favorites' : 'bets'], matchId.toString()]
+        : prev[type === 'favorite' ? 'favorites' : 'bets'].filter(id => id !== matchId.toString())
+    }));
+
+    try {
+      await fetch("/api/user/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId, type, action })
+      });
+    } catch (err) {
+      console.error("Failed to update preference", err);
+    }
+  };
   return (
     <div className="mesh-gradient overflow-x-hidden">
       {/* Abstract background */}
@@ -143,7 +266,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 max-w-4xl mx-auto stagger-children">
             {[
               { icon: Users, label: "활성 회원", value: "12,847", color: "text-primary" },
-              { icon: BarChart3, label: "오늘 경기", value: `${TODAY_MATCHES.length}개`, color: "text-emerald-400" },
+              { icon: BarChart3, label: "오늘 경기", value: `${matches.length}개`, color: "text-emerald-400" },
               { icon: Star, label: "평균 평점", value: "4.3 / 5", color: "text-[hsl(var(--gold))]" },
               { icon: MessageSquare, label: "오늘 게시글", value: "234건", color: "text-purple-400" },
             ].map((stat) => (
@@ -189,7 +312,42 @@ export default function HomePage() {
           <div className="xl:col-span-8 space-y-10">
             {/* Today's Matches */}
             <section>
-              <SectionHeader icon={Swords} title="오늘의 경기" href="/odds" badge={`${TODAY_MATCHES.filter(m => m.live).length} LIVE`} />
+              <div className="flex flex-col md:flex-row md:items-end justify-between mb-5 gap-4">
+                <SectionHeader icon={Swords} title="오늘의 경기" href="/odds" badge={`${matches.filter(m => m.live).length} LIVE`} />
+                
+                {/* Tabs & Settings */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/[0.06]">
+                    {[
+                      { id: "all", label: "전체" },
+                      { id: "interest", label: "관심" },
+                      { id: "favorite", label: "즐겨찾기" },
+                      { id: "bet", label: "배팅" },
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                          activeTab === tab.id 
+                            ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setShowInterestModal(true)}
+                    className="p-2 rounded-xl bg-white/5 border border-white/[0.06] text-muted-foreground hover:text-primary hover:bg-white/10 transition-all"
+                    title="관심 설정"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
               <div className="glass-card rounded-2xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -205,45 +363,67 @@ export default function HomePage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.04]">
-                      {TODAY_MATCHES.map((m) => (
-                        <tr key={m.id} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0 uppercase">{m.league}</span>
-                              <div>
-                                <span className="font-bold text-foreground group-hover:text-primary transition-colors text-[13px]">{m.home}</span>
-                                <span className="text-muted-foreground mx-1.5 text-xs">vs</span>
-                                <span className="font-bold text-foreground text-[13px]">{m.away}</span>
+                      {processedMatches.length > 0 ? (
+                        processedMatches.map((m) => (
+                          <tr key={m.id} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex flex-col gap-1 shrink-0">
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); togglePreference(m.id, 'favorite'); }}
+                                    className={cn("hover:scale-110 transition-transform", m.isFavorite ? "text-[hsl(var(--gold))]" : "text-white/10 hover:text-white/30")}
+                                  >
+                                    <Star className={cn("w-3.5 h-3.5", m.isFavorite && "fill-current")} />
+                                  </button>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); togglePreference(m.id, 'bet'); }}
+                                    className={cn("hover:scale-110 transition-transform", m.isBet ? "text-primary" : "text-white/10 hover:text-white/30")}
+                                  >
+                                    <Target className={cn("w-3.5 h-3.5", m.isBet && "fill-current")} />
+                                  </button>
+                                </div>
+                                <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0 uppercase truncate max-w-[60px]">{m.league}</span>
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-bold text-foreground group-hover:text-primary transition-colors text-[13px]">{m.home}</span>
+                                  <span className="text-muted-foreground mx-1.5 text-xs">vs</span>
+                                  <span className="font-bold text-foreground text-[13px]">{m.away}</span>
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="text-center px-3 py-4">
-                            <OddsChange value={m.homeOdds} prev={m.prevHome} />
-                          </td>
-                          <td className="text-center px-3 py-4">
-                            <span className="font-mono text-xs text-muted-foreground">{m.drawOdds > 0 ? m.drawOdds.toFixed(2) : "-"}</span>
-                          </td>
-                          <td className="text-center px-3 py-4">
-                            <span className="font-mono text-xs text-muted-foreground">{m.awayOdds.toFixed(2)}</span>
-                          </td>
-                          <td className="text-center px-3 py-4 hidden md:table-cell">
-                            <span className="font-mono text-[11px] text-muted-foreground">{m.ahLine} @ {m.ahOdds}</span>
-                          </td>
-                          <td className="text-center px-3 py-4 hidden md:table-cell">
-                            <span className="font-mono text-[11px] text-muted-foreground">O{m.ou} @ {m.ouOdds}</span>
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            {m.live ? (
-                              <span className="badge-live">
-                                <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
-                                LIVE
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground font-mono">{m.time}</span>
-                            )}
+                            </td>
+                            <td className="text-center px-3 py-4">
+                              <span className="font-mono text-xs font-bold text-emerald-400">{m.odds?.h?.toFixed(2) || "0.00"}</span>
+                            </td>
+                            <td className="text-center px-3 py-4">
+                              <span className="font-mono text-xs text-muted-foreground">{m.odds?.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
+                            </td>
+                            <td className="text-center px-3 py-4">
+                              <span className="font-mono text-xs text-muted-foreground">{m.odds?.a?.toFixed(2) || "0.00"}</span>
+                            </td>
+                            <td className="text-center px-3 py-4 hidden md:table-cell">
+                              <span className="font-mono text-[11px] text-muted-foreground">{m.ah || "-"}</span>
+                            </td>
+                            <td className="text-center px-3 py-4 hidden md:table-cell">
+                              <span className="font-mono text-[11px] text-muted-foreground">{m.ou || "-"}</span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              {m.live ? (
+                                <span className="badge-live">
+                                  <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
+                                  LIVE
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground font-mono">{m.time}</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">
+                            {isLoading ? "경기를 불러오는 중..." : "해당되는 경기가 없습니다."}
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -487,6 +667,178 @@ export default function HomePage() {
           </aside>
         </div>
       </div>
+
+      {/* Interest Management Modal */}
+      {showInterestModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowInterestModal(false)} />
+          <div className="relative w-full max-w-lg glass-card rounded-3xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-2.5">
+                <div className="bg-primary/15 p-1.5 rounded-lg">
+                  <Star className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg">관심 설정 관리</h3>
+              </div>
+              <button onClick={() => setShowInterestModal(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Sport Selection */}
+              <div>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5" /> 종목
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: "soccer", label: "축구" },
+                    { id: "baseball", label: "야구" },
+                    { id: "basketball", label: "농구" },
+                    { id: "tennis", label: "테니스" },
+                    { id: "esports", label: "e스포츠" }
+                  ].map(sport => {
+                    const isSelected = userPrefs.interests.some(i => i.category === 'sport' && i.value === sport.id);
+                    return (
+                      <button
+                        key={sport.id}
+                        onClick={() => handleInterestChange('sport', sport.id, isSelected ? 'remove' : 'add')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-2",
+                          isSelected 
+                            ? "bg-primary/20 border-primary/40 text-primary" 
+                            : "bg-white/5 border-white/[0.06] text-muted-foreground hover:border-white/20"
+                        )}
+                      >
+                        {sport.label}
+                        {isSelected ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* League Selection */}
+              <div>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <LeagueIcon className="w-3.5 h-3.5" /> 주요 리그
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {["Premier League", "La Liga", "K League 1", "Bundesliga", "Serie A", "NBA", "MLB", "LCK"].map(league => {
+                    const isSelected = userPrefs.interests.some(i => i.category === 'league' && i.value === league);
+                    return (
+                      <button
+                        key={league}
+                        onClick={() => handleInterestChange('league', league, isSelected ? 'remove' : 'add')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-2",
+                          isSelected 
+                            ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" 
+                            : "bg-white/5 border-white/[0.06] text-muted-foreground hover:border-white/20"
+                        )}
+                      >
+                        {league}
+                        {isSelected ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Country Selection */}
+              <div>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <Globe className="w-3.5 h-3.5" /> 국가 / 팀
+                </h4>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {["대한민국", "영국", "스페인", "독일", "미국", "일본"].map(country => {
+                    const isSelected = userPrefs.interests.some(i => i.category === 'country' && i.value === country);
+                    return (
+                      <button
+                        key={country}
+                        onClick={() => handleInterestChange('country', country, isSelected ? 'remove' : 'add')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-2",
+                          isSelected 
+                            ? "bg-purple-500/20 border-purple-500/40 text-purple-400" 
+                            : "bg-white/5 border-white/[0.06] text-muted-foreground hover:border-white/20"
+                        )}
+                      >
+                        {country}
+                        {isSelected ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input 
+                      type="text" 
+                      placeholder="팀명 직접 입력 (예: 울산 HD, Arsenal)"
+                      className="w-full bg-white/5 border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 transition-colors"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = e.currentTarget.value.trim();
+                          if (val) {
+                            handleInterestChange('team', val, 'add');
+                            e.currentTarget.value = '';
+                          }
+                        }
+                      }}
+                    />
+                    <Plus className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Current Interests List */}
+              {userPrefs.interests.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">나의 관심 목록</h4>
+                    <span className="text-[10px] text-muted-foreground">{userPrefs.interests.length}개 설정됨</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {userPrefs.interests.map((interest, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.04] group/item">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className={cn(
+                            "text-[8px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0",
+                            interest.category === 'sport' ? "bg-primary/10 text-primary" :
+                            interest.category === 'league' ? "bg-emerald-500/10 text-emerald-400" :
+                            "bg-purple-500/10 text-purple-400"
+                          )}>
+                            {interest.category === 'sport' ? '종목' : interest.category === 'league' ? '리그' : interest.category === 'country' ? '국가' : '팀'}
+                          </span>
+                          <span className="text-xs font-bold truncate">{interest.value}</span>
+                        </div>
+                        <button 
+                          onClick={() => handleInterestChange(interest.category, interest.value, 'remove')}
+                          className="text-muted-foreground hover:text-red-400 transition-colors opacity-0 group-hover/item:opacity-100"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-white/[0.02] border-t border-white/[0.06] flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground">관심도가 높은 경기가 목록 상단에 노출됩니다.</p>
+              <button 
+                onClick={() => setShowInterestModal(false)}
+                className="btn-primary text-xs px-6 py-2 h-auto"
+              >
+                설정 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
