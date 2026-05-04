@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
   ChevronDown, Filter, Star, Zap, Gamepad2, Trophy,
   ChevronRight, Info, Users, History, TrendingUp as Up, TrendingDown as Down,
-  MapPin, User, Clock, AlertCircle
+  MapPin, User, Clock, AlertCircle, X, Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,29 @@ export default function OddsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedMatches, setExpandedMatches] = useState<Record<number, boolean>>({});
+  
+  // Full Markets States
+  const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
+  const [marketData, setMarketData] = useState<any[]>([]);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketSearch, setMarketSearch] = useState("");
+
+  const handleOpenMarkets = async (match: any) => {
+    setSelectedMatch(match);
+    setMarketLoading(true);
+    setMarketData([]);
+    try {
+      const res = await fetch(`/api/sports/markets?fixtureId=${match.id}&sport=${match.sport}`);
+      const data = await res.json();
+      if (data.success) {
+        setMarketData(data.markets);
+      }
+    } catch (err) {
+      console.error("Failed to fetch full markets", err);
+    } finally {
+      setMarketLoading(false);
+    }
+  };
 
   // Mock data for Detailed Mode
   const getMockStats = (id: number) => ({
@@ -390,7 +413,10 @@ export default function OddsPage() {
                                       <p className="text-xs font-bold text-primary">Pinnacle Official</p>
                                     </div>
                                   </div>
-                                  <button className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black hover:bg-primary hover:text-white transition-all uppercase tracking-widest">
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); handleOpenMarkets(m); }}
+                                    className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black hover:bg-primary hover:text-white transition-all uppercase tracking-widest"
+                                  >
                                     전체 마켓 보기 (45+)
                                   </button>
                                 </div>
@@ -410,6 +436,111 @@ export default function OddsPage() {
           </div>
         </div>
       </div>
+      {/* Full Markets Modal */}
+      {selectedMatch && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 overflow-hidden">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectedMatch(null)} />
+          
+          <div className="relative w-full max-w-4xl glass-card rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300">
+            {/* Modal Header */}
+            <div className="px-8 py-6 border-b border-white/[0.06] bg-white/[0.02] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="bg-primary/20 p-2.5 rounded-2xl">
+                  <Zap className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black tracking-tight">{selectedMatch.home} vs {selectedMatch.away}</h3>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">{selectedMatch.league} • 전체 마켓 현황</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedMatch(null)}
+                className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-colors group"
+              >
+                <X className="w-6 h-6 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-black/20">
+              {marketLoading ? (
+                <div className="flex flex-col items-center justify-center p-32 space-y-4">
+                  <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                  <p className="text-sm font-bold text-muted-foreground animate-pulse">마켓 데이터를 분석하는 중...</p>
+                </div>
+              ) : (
+                <div className="p-8">
+                  {/* Search and Filters */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+                    <div className="relative w-full sm:w-80">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input 
+                        type="text" 
+                        placeholder="마켓 이름 검색..." 
+                        value={marketSearch}
+                        onChange={(e) => setMarketSearch(e.target.value)}
+                        className="w-full bg-white/5 border border-white/[0.08] rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-all"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
+                      {["인기", "득점", "전반", "핸디캡"].map(f => (
+                        <button key={f} className="px-4 py-2 rounded-xl bg-white/5 border border-white/[0.06] text-[11px] font-bold hover:bg-white/10 transition-colors whitespace-nowrap">
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Market Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {marketData
+                      .filter(m => m.name.toLowerCase().includes(marketSearch.toLowerCase()))
+                      .map((market, idx) => (
+                        <div key={idx} className="glass-card rounded-[24px] overflow-hidden border border-white/[0.04] bg-white/[0.02] hover:border-white/[0.08] transition-colors">
+                          <div className="px-5 py-3.5 border-b border-white/[0.04] bg-white/[0.02] flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">{market.name}</span>
+                            <Info className="w-3.5 h-3.5 text-muted-foreground/30" />
+                          </div>
+                          <div className="p-5">
+                            <div className="grid grid-cols-2 gap-2.5">
+                              {market.values.map((v: any, vIdx: number) => (
+                                <button key={vIdx} className="flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-primary/20 rounded-2xl border border-white/[0.04] hover:border-primary/30 transition-all group/opt">
+                                  <span className="text-[11px] font-bold text-muted-foreground group-hover/opt:text-foreground transition-colors">{v.value}</span>
+                                  <span className="text-sm font-black font-mono text-primary group-hover/opt:scale-110 transition-transform">{v.odd}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  {marketData.length === 0 && (
+                    <div className="text-center py-20">
+                      <AlertCircle className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+                      <p className="text-muted-foreground font-medium">검색 결과와 일치하는 마켓이 없습니다.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-8 py-5 border-t border-white/[0.06] bg-white/[0.02] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">배당 실시간 연동 중 • Pinnacle Official</span>
+              </div>
+              <button 
+                onClick={() => setSelectedMatch(null)}
+                className="btn-primary py-2.5 px-8 text-xs h-auto"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
