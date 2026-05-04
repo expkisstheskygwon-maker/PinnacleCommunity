@@ -108,6 +108,17 @@ export default function Header({ user }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [currentDate, setCurrentDate] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+    setCurrentDate(new Date().toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(/\//g, '.'));
+  }, [lang]);
 
   const handleLogout = async () => {
     try {
@@ -145,21 +156,23 @@ export default function Header({ user }: HeaderProps) {
     <>
       <header className="border-b border-white/[0.06] bg-background/80 backdrop-blur-2xl sticky top-0 z-50">
         {/* Top bar - alerts */}
-        <div className="bg-gradient-to-r from-red-500/10 via-transparent to-[hsl(var(--gold))]/10 border-b border-white/[0.04]">
+        <div className="bg-gradient-to-r from-primary/10 via-transparent to-[hsl(var(--gold))]/10 border-b border-white/[0.04]">
           <div className="container mx-auto px-4 h-8 flex items-center justify-between text-[11px]">
-            <div className="flex items-center gap-2 text-red-400">
-              <Shield className="w-3 h-3" />
-              <span className="font-medium">
-                {lang === "ko" ? "⚠️ 사기주의: 피나클 공식 도메인 외 사칭 사이트를 주의하세요" : "⚠️ Scam Alert: Beware of phishing sites impersonating Pinnacle"}
+            <div className="flex items-center gap-2 text-primary font-bold">
+              <Zap className="w-3 h-3 animate-pulse" />
+              <span>
+                {lang === "ko" ? "✨ Insight Hub: 피나클 커뮤니티는 24시간 가장 빠르고 정확한 실시간 정보를 제공합니다" : "✨ Insight Hub: Providing the fastest and most accurate real-time information 24/7"}
               </span>
             </div>
             <div className="hidden md:flex items-center gap-4 text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Zap className="w-3 h-3 text-emerald-400" />
-                {lang === "ko" ? "서버 정상" : "Server OK"}
+                <Shield className="w-3 h-3 text-emerald-400" />
+                {lang === "ko" ? "보안 인증됨" : "Security Verified"}
               </span>
               <span>|</span>
-              <span>{lang === "ko" ? "2026.04.20" : "Apr 20, 2026"}</span>
+              <span className="font-mono">
+                {mounted ? currentDate : "2026.05.04"}
+              </span>
             </div>
           </div>
         </div>
