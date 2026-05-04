@@ -197,6 +197,7 @@ export default function HomePage() {
     list.sort((a, b) => b.interestScore - a.interestScore);
 
     // Filter by tab
+    if (activeTab === "all") return list.slice(0, 8);
     if (activeTab === "interest") return list.filter(m => m.interestScore > 0);
     if (activeTab === "favorite") return list.filter(m => m.isFavorite);
     if (activeTab === "bet") return list.filter(m => m.isBet);
