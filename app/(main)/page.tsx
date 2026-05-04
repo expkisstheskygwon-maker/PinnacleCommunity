@@ -107,6 +107,7 @@ export default function HomePage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showInterestModal, setShowInterestModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("all"); // all, interest, favorite, bet
 
   const handleInterestChange = async (category: string, value: string, action: 'add' | 'remove') => {
     try {
