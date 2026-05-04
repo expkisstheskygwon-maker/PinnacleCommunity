@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
-  ChevronDown, Filter, Star, Zap, Gamepad2, Trophy
+  ChevronDown, Filter, Star, Zap, Gamepad2, Trophy,
+  ChevronRight, Info, Users, History, TrendingUp as Up, TrendingDown as Down,
+  MapPin, User, Clock, AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +25,17 @@ export default function OddsPage() {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedMatches, setExpandedMatches] = useState<Record<number, boolean>>({});
+
+  // Mock data for Detailed Mode
+  const getMockStats = (id: number) => ({
+    possession: { home: 45 + (id % 15), away: 55 - (id % 15) },
+    shots: { home: 2 + (id % 5), away: 3 + (id % 4) },
+    corners: { home: 1 + (id % 3), away: 2 + (id % 3) },
+    yellowCards: { home: id % 2, away: (id + 1) % 3 },
+    form: ["W", "D", "W", "L", "W"].map(f => f),
+    lineup: "4-3-3"
+  });
 
   // 데이터 가져오는 함수
   const fetchMatches = async (sport: string) => {
@@ -71,9 +84,17 @@ export default function OddsPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowProView(!showProView)}
-                className={cn("btn-outline text-xs py-2", showProView && "bg-primary/10 border-primary/20 text-primary")}
+                className={cn(
+                  "btn-outline text-xs py-2 px-4 flex items-center gap-2 transition-all duration-300",
+                  showProView 
+                    ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(59,130,246,0.4)]" 
+                    : "hover:bg-white/5"
+                )}
               >
-                <BarChart3 className="w-3.5 h-3.5 inline mr-1.5" />
+                <div className="relative">
+                  <BarChart3 className={cn("w-3.5 h-3.5 transition-transform", showProView && "scale-110")} />
+                  {showProView && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+                </div>
                 {showProView ? "상세 모드 ON" : "상세 모드"}
               </button>
               {liveCount > 0 && (
@@ -171,62 +192,213 @@ export default function OddsPage() {
                       return map[status.toUpperCase()] || status;
                     };
 
+                    const stats = getMockStats(m.id);
+                    const isExpanded = expandedMatches[m.id] || showProView;
+
                     return (
-                      <tr key={m.id} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
-                        <td className="px-5 py-4">
-                          <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block">{m.league}</span>
-                        </td>
-                        <td className="px-3 py-4">
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-3">
-                              <span className={cn("font-bold text-sm", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400")}>{m.home}</span>
-                              <div className="flex items-center bg-black/40 rounded-lg px-2 py-0.5 border border-white/5">
-                                <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.home}</span>
-                                <span className="text-muted-foreground/30 px-1 text-[10px]">:</span>
-                                <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.away}</span>
-                              </div>
-                              <span className={cn("font-bold text-sm", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400")}>{m.away}</span>
+                      <>
+                        <tr 
+                          key={m.id} 
+                          onClick={() => setExpandedMatches(prev => ({ ...prev, [m.id]: !prev[m.id] }))}
+                          className={cn(
+                            "hover:bg-white/[0.03] transition-colors group cursor-pointer border-l-2 border-transparent",
+                            isExpanded && "bg-white/[0.02] border-primary"
+                          )}
+                        >
+                          <td className="px-5 py-4">
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">{m.league}</span>
+                              {showProView && (
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="w-2.5 h-2.5 text-muted-foreground/40" />
+                                  <span className="text-[9px] text-muted-foreground/40 font-medium">Stadion Arena</span>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        </td>
-                        <td className="text-center px-3 py-4">
-                          <div className="flex flex-col items-center">
-                            <span className={cn("font-mono text-xs font-bold", diff < 0 ? "text-red-400" : diff > 0 ? "text-emerald-400" : "text-foreground")}>
-                              {m.odds.h > 0 ? m.odds.h.toFixed(2) : "-"}
-                            </span>
-                          </div>
-                        </td>
-                        {filtered.some(m2 => m2.odds.d > 0) && (
-                          <td className="text-center px-3 py-4">
-                            <span className="font-mono text-xs text-muted-foreground">{m.odds.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
                           </td>
-                        )}
-                        <td className="text-center px-3 py-4">
-                          <span className="font-mono text-xs text-foreground font-bold">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
-                        </td>
-                        <td className="text-center px-3 py-4">
-                          <span className={cn("text-[10px] font-black px-2 py-1 rounded border", resultColor)}>
-                            {resultText}
-                          </span>
-                        </td>
-                        <td className="text-center px-3 py-4 hidden md:table-cell font-mono text-[11px] text-muted-foreground">{m.ah}</td>
-                        <td className="text-center px-3 py-4 hidden md:table-cell font-mono text-[11px] text-muted-foreground">{m.ou}</td>
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex flex-col items-end gap-1">
-                            {m.live ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
-                                <span className="text-[10px] font-black text-red-500 uppercase tracking-tighter">{getStatusKo(m.statusCode)}</span>
+                          <td className="px-3 py-4">
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 min-w-[120px] justify-end">
+                                  <span className={cn("font-bold text-sm", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400")}>{m.home}</span>
+                                  {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" title="라인업 확인됨" />}
+                                </div>
+                                <div className="flex items-center bg-black/40 rounded-lg px-2 py-1 border border-white/5 min-w-[50px] justify-center">
+                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.home}</span>
+                                  <span className="text-muted-foreground/30 px-1 text-[10px]">:</span>
+                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.away}</span>
+                                </div>
+                                <div className="flex items-center gap-2 min-w-[120px]">
+                                  {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />}
+                                  <span className={cn("font-bold text-sm", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400")}>{m.away}</span>
+                                </div>
                               </div>
-                            ) : m.finished ? (
-                              <span className="text-[10px] font-bold text-muted-foreground/60 bg-white/5 px-2 py-0.5 rounded uppercase">{getStatusKo(m.statusCode)}</span>
-                            ) : (
-                              <span className="text-[10px] font-bold text-muted-foreground/80 uppercase">{getStatusKo(m.statusCode)}</span>
-                            )}
-                            <span className="text-[10px] text-muted-foreground/40 font-mono">{m.time}</span>
-                          </div>
-                        </td>
-                      </tr>
+                              {showProView && (
+                                <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground/60 font-medium">
+                                  <div className="flex items-center gap-1"><History className="w-3 h-3" /> W-D-W-L-W</div>
+                                  <div className="flex items-center gap-1"><Users className="w-3 h-3" /> {stats.lineup}</div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="text-center px-3 py-4">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={cn("font-mono text-xs font-bold", diff < 0 ? "text-red-400" : diff > 0 ? "text-emerald-400" : "text-foreground")}>
+                                {m.odds.h > 0 ? m.odds.h.toFixed(2) : "-"}
+                              </span>
+                              {showProView && (
+                                <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.h * 1.02).toFixed(2)}</span>
+                              )}
+                            </div>
+                          </td>
+                          {filtered.some(m2 => m2.odds.d > 0) && (
+                            <td className="text-center px-3 py-4">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="font-mono text-xs text-muted-foreground">{m.odds.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
+                                {showProView && m.odds.d > 0 && (
+                                  <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.d * 0.98).toFixed(2)}</span>
+                                )}
+                              </div>
+                            </td>
+                          )}
+                          <td className="text-center px-3 py-4">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-mono text-xs text-foreground font-bold">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
+                              {showProView && m.odds.a > 0 && (
+                                <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.a * 0.97).toFixed(2)}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="text-center px-3 py-4">
+                            <span className={cn("text-[10px] font-black px-2 py-1 rounded border transition-all", resultColor)}>
+                              {resultText}
+                            </span>
+                          </td>
+                          <td className="text-center px-3 py-4 hidden md:table-cell">
+                            <div className="flex flex-col items-center">
+                              <span className="font-mono text-[11px] text-muted-foreground">{m.ah}</span>
+                              {showProView && m.live && (
+                                <span className="text-[8px] text-emerald-400 font-bold mt-0.5">DANGEROUS ATTACK</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="text-center px-3 py-4 hidden md:table-cell font-mono text-[11px] text-muted-foreground">{m.ou}</td>
+                          <td className="px-5 py-4 text-right">
+                            <div className="flex items-center justify-end gap-3">
+                              <div className="flex flex-col items-end gap-1">
+                                {m.live ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
+                                    <span className="text-[10px] font-black text-red-500 uppercase tracking-tighter">{getStatusKo(m.statusCode)}</span>
+                                  </div>
+                                ) : m.finished ? (
+                                  <span className="text-[10px] font-bold text-muted-foreground/60 bg-white/5 px-2 py-0.5 rounded uppercase">{getStatusKo(m.statusCode)}</span>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-muted-foreground/80 uppercase">{getStatusKo(m.statusCode)}</span>
+                                )}
+                                <span className="text-[10px] text-muted-foreground/40 font-mono">{m.time}</span>
+                              </div>
+                              <ChevronDown className={cn("w-4 h-4 text-muted-foreground/20 transition-transform", isExpanded && "rotate-180 text-primary")} />
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Detail Panel */}
+                        {isExpanded && (
+                          <tr className="bg-white/[0.01] border-l-2 border-primary/40 overflow-hidden animate-in slide-in-from-top-1 duration-200">
+                            <td colSpan={9} className="p-0">
+                              <div className="px-5 py-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {/* Live Stats */}
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 text-xs font-bold text-primary mb-2">
+                                    <BarChart3 className="w-3.5 h-3.5" /> 실시간 경기 데이터
+                                  </div>
+                                  <div className="space-y-3">
+                                    {[
+                                      { label: "점유율", home: stats.possession.home, away: stats.possession.away, suffix: "%" },
+                                      { label: "슈팅", home: stats.shots.home, away: stats.shots.away },
+                                      { label: "코너킥", home: stats.corners.home, away: stats.corners.away },
+                                      { label: "경고", home: stats.yellowCards.home, away: stats.yellowCards.away },
+                                    ].map(stat => (
+                                      <div key={stat.label} className="space-y-1.5">
+                                        <div className="flex justify-between text-[10px] font-bold">
+                                          <span>{stat.home}{stat.suffix || ""}</span>
+                                          <span className="text-muted-foreground font-medium uppercase tracking-widest">{stat.label}</span>
+                                          <span>{stat.away}{stat.suffix || ""}</span>
+                                        </div>
+                                        <div className="h-1 bg-white/5 rounded-full overflow-hidden flex">
+                                          <div className="h-full bg-blue-500/60" style={{ width: `${(stat.home / (stat.home + stat.away)) * 100}%` }} />
+                                          <div className="h-full bg-emerald-500/60" style={{ width: `${(stat.away / (stat.home + stat.away)) * 100}%` }} />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Odds Movement */}
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 text-xs font-bold text-[hsl(var(--gold))] mb-2">
+                                    <TrendingUp className="w-3.5 h-3.5" /> 배당 흐름 분석
+                                  </div>
+                                  <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-3">
+                                    <div className="flex justify-between text-[10px] border-b border-white/5 pb-2 font-bold uppercase text-muted-foreground">
+                                      <span>시장</span>
+                                      <span>초기</span>
+                                      <span>현재</span>
+                                      <span>변동</span>
+                                    </div>
+                                    {[
+                                      { label: "홈 (1)", start: (m.odds.h * 1.02).toFixed(2), current: m.odds.h.toFixed(2), trend: "down" },
+                                      { label: "무 (X)", start: (m.odds.d * 0.98).toFixed(2), current: m.odds.d.toFixed(2), trend: "up" },
+                                      { label: "패 (2)", start: (m.odds.a * 0.97).toFixed(2), current: m.odds.a.toFixed(2), trend: "up" },
+                                    ].map(o => (
+                                      <div key={o.label} className="flex justify-between items-center text-[11px]">
+                                        <span className="font-bold w-12">{o.label}</span>
+                                        <span className="font-mono text-muted-foreground/60">{o.start}</span>
+                                        <span className="font-mono font-bold text-foreground">{o.current}</span>
+                                        <span className={cn(
+                                          "px-1.5 py-0.5 rounded-[4px] text-[9px] font-black uppercase",
+                                          o.trend === "down" ? "bg-red-500/15 text-red-400" : "bg-emerald-500/15 text-emerald-400"
+                                        )}>
+                                          {o.trend === "down" ? "↓ 2.1%" : "↑ 1.4%"}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Match Info & Markets */}
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-2">
+                                    <Zap className="w-3.5 h-3.5" /> 추가 정보
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="glass-card p-3 rounded-xl border-white/5">
+                                      <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">경기장</p>
+                                      <p className="text-xs font-bold truncate">Seoul World Cup Stadium</p>
+                                    </div>
+                                    <div className="glass-card p-3 rounded-xl border-white/5">
+                                      <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">날씨</p>
+                                      <p className="text-xs font-bold">18°C, 맑음</p>
+                                    </div>
+                                    <div className="glass-card p-3 rounded-xl border-white/5">
+                                      <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">심판</p>
+                                      <p className="text-xs font-bold">Kim Cheol-su</p>
+                                    </div>
+                                    <div className="glass-card p-3 rounded-xl border-white/5">
+                                      <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">배당사</p>
+                                      <p className="text-xs font-bold text-primary">Pinnacle Official</p>
+                                    </div>
+                                  </div>
+                                  <button className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black hover:bg-primary hover:text-white transition-all uppercase tracking-widest">
+                                    전체 마켓 보기 (45+)
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     );
                   })}
                 </tbody>
