@@ -40,11 +40,14 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
   if (!res.ok) throw new Error(`API 서버 응답 오류 (${res.status}): ${host}`);
   const data = await res.json();
   
-  // API-level error check: 상세 에러 메시지를 던져서 UI에서 확인 가능하게 함
+  // API-level error check: 데이터가 있으면 에러를 던지지 않고 로그만 기록
   if (data.errors && Object.keys(data.errors).length > 0) {
     const errorMsg = typeof data.errors === 'string' ? data.errors : JSON.stringify(data.errors);
-    console.error(`API-Sports Error (${sport}):`, errorMsg);
-    throw new Error(`API 오류: ${errorMsg}`);
+    console.warn(`API-Sports Warning (${sport}):`, errorMsg);
+    // 데이터가 아예 없는 경우에만 에러를 던짐
+    if (!data.response || data.response.length === 0) {
+      throw new Error(`API 오류: ${errorMsg}`);
+    }
   }
 
   const fixtureData = data.response || [];

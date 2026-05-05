@@ -169,11 +169,15 @@ export default function OddsPage() {
           <SportsSidebar 
             currentSport={sport}
             onSportChange={(s) => {
+              setError(null);
               setSport(s);
               setSelectedLeagueId(null);
               setSearchTerm("");
             }}
-            onLeagueSelect={(id) => setSelectedLeagueId(id)}
+            onLeagueSelect={(id) => {
+              setError(null);
+              setSelectedLeagueId(id);
+            }}
             selectedLeagueId={selectedLeagueId}
           />
 
@@ -255,12 +259,13 @@ export default function OddsPage() {
               <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
               <p className="text-muted-foreground animate-pulse">실시간 데이터를 가져오는 중...</p>
             </div>
-          ) : error ? (
+          ) : (error && matches.length === 0) ? (
             <div className="flex-1 flex flex-col items-center justify-center p-20 space-y-4">
               <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
-                <Activity className="w-6 h-6 text-red-500" />
+                <AlertCircle className="w-6 h-6 text-red-500" />
               </div>
               <p className="text-red-400 font-bold">데이터를 불러오지 못했습니다.</p>
+              {error && <p className="text-[10px] text-muted-foreground/60 max-w-xs text-center">{error}</p>}
               <button onClick={() => fetchMatches()} className="btn-primary py-2 px-6 text-xs">다시 시도</button>
             </div>
           ) : matches.length === 0 ? (
