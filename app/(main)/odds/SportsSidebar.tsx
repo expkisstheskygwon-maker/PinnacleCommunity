@@ -44,7 +44,7 @@ export default function SportsSidebar({
   const fetchLeagues = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/sports/leagues?sport=${currentSport}`);
+      const res = await fetch(`/api/sports/leagues?sport=${currentSport}&t=${Date.now()}`);
       const data = await res.json();
       if (data.countries) {
         setCountries(data.countries);

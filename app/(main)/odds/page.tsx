@@ -64,7 +64,7 @@ export default function OddsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/sports/matches?sport=${sport}`);
+      const res = await fetch(`/api/sports/matches?sport=${sport}&t=${Date.now()}`);
       if (!res.ok) throw new Error("데이터를 불러오지 못했습니다.");
       const data = await res.json();
       setMatches(data.matches || []);

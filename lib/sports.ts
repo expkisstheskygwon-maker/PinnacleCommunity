@@ -34,7 +34,7 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
   const res = await fetch(url, {
     method: 'GET',
     headers: { 'x-apisports-key': apiKey },
-    next: { revalidate: 60 } // 60초 캐싱
+    cache: 'no-store'
   });
 
   if (!res.ok) throw new Error(`API 서버 응답 오류 (${res.status}): ${host}`);
@@ -52,18 +52,15 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
 
   const fixtureData = data.response || [];
 
-  // 2. 배당 정보 가져오기 (축구는 데이터가 많으므로 타임아웃 주의)
+  // 2. 배당 정보 가져오기 (캐싱 제거 및 타임존 추가)
   let oddsMap: Record<number, any> = {};
   
-  // 축구의 경우 경기가 너무 많으면 배당 API 호출이 실패할 수 있으므로 
-  // 우선순위가 높은 리그나 라이브 경기 위주로 가져오는 것이 좋으나, 
-  // 현재는 전체 요청을 시도하되 실패하더라도 경기 목록은 보여주도록 처리
   try {
-    const oddsUrl = `https://${host}/odds?date=${today}`;
+    const oddsUrl = `https://${host}/odds?date=${today}&timezone=Asia/Seoul`;
     const oddsRes = await fetch(oddsUrl, {
       method: 'GET',
       headers: { 'x-apisports-key': apiKey },
-      next: { revalidate: 300 } // 5분 캐싱으로 완화
+      cache: 'no-store'
     });
 
     if (oddsRes.ok) {

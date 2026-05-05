@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const response = await fetch(`https://${host}/leagues`, {
       method: 'GET',
       headers: { 'x-apisports-key': apiKey },
-      next: { revalidate: 3600 } // 리그 정보는 자주 안바뀌므로 1시간 캐싱
+      cache: 'no-store'
     });
 
     if (!response.ok) throw new Error(`API 서버 응답 오류 (${response.status}): ${host}`);
