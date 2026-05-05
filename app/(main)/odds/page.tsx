@@ -23,6 +23,7 @@ export default function OddsPage() {
   const [sport, setSport] = useState('soccer');
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -60,12 +61,15 @@ export default function OddsPage() {
 
   const fetchMatches = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/sports/matches?sport=${sport}`);
+      if (!res.ok) throw new Error("데이터를 불러오지 못했습니다.");
       const data = await res.json();
       setMatches(data.matches || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
