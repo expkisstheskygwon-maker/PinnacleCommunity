@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import Link from "next/link";
 import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
@@ -336,7 +336,7 @@ export default function OddsPage() {
                     const isExpanded = expandedMatches[m.id] || showProView;
 
                     return (
-                      <React.Fragment key={m.id}>
+                      <Fragment key={m.id}>
                         <tr 
                           key={m.id} 
                           onClick={() => setExpandedMatches(prev => ({ ...prev, [m.id]: !prev[m.id] }))}
@@ -594,7 +594,7 @@ export default function OddsPage() {
                             </td>
                           </tr>
                         )}
-                      </React.Fragment>
+                      </Fragment>
                     );
                   })}
                 </tbody>
