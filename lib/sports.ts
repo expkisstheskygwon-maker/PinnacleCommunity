@@ -217,27 +217,34 @@ async function getFlashscoreMatches(apiSportsKey: string) {
     
     // Flashscore API 응답을 우리 시스템 표준 형식으로 변환
     if (data && Array.isArray(data)) {
-      return data.map((m: any) => ({
-        id: `flash-${m.id}`,
-        sport: 'soccer',
-        home: m.home_team?.name || m.home_name || 'Unknown',
-        away: m.away_team?.name || m.away_name || 'Unknown',
-        homeLogo: m.home_team?.logo || '',
-        awayLogo: m.away_team?.logo || '',
-        league: m.league?.name || 'Flashscore League',
-        leagueId: m.league?.id || 0,
-        leagueLogo: m.league?.logo || '',
-        date: m.start_time || '',
-        live: m.status === 'LIVE' || m.status === 'IN_PROGRESS',
-        finished: m.status === 'FINISHED',
-        score: {
-          home: m.home_score ?? 0,
-          away: m.away_score ?? 0
-        },
-        odds: null, // Flashscore 기본 API에는 배당이 없을 수 있음
-        statusText: m.status_name || m.status || 'Scheduled',
-        statusCode: m.status_code || 'NS'
-      }));
+      return data.map((m: any) => {
+        // 다양한 API 필드명 대응 (home_name, homeTeam, t1_name 등)
+        const homeName = m.home_name || m.home_team?.name || m.homeTeam || m.t1_name || m.home || 'Unknown Team';
+        const awayName = m.away_name || m.away_team?.name || m.awayTeam || m.t2_name || m.away || 'Unknown Team';
+        const leagueName = m.league_name || m.league?.name || m.leagueName || m.event_league || 'Flashscore League';
+        
+        return {
+          id: `flash-${m.id || Math.random()}`,
+          sport: 'soccer',
+          home: homeName,
+          away: awayName,
+          homeLogo: m.home_team?.logo || m.t1_logo || '',
+          awayLogo: m.away_team?.logo || m.t2_logo || '',
+          league: leagueName,
+          leagueId: m.league?.id || m.league_id || 0,
+          leagueLogo: m.league?.logo || '',
+          date: m.start_time || m.event_date || '',
+          live: m.status === 'LIVE' || m.status === 'IN_PROGRESS' || m.is_live,
+          finished: m.status === 'FINISHED' || m.is_finished,
+          score: {
+            home: m.home_score ?? m.home_goal ?? 0,
+            away: m.away_score ?? m.away_goal ?? 0
+          },
+          odds: null,
+          statusText: m.status_name || m.status || 'Scheduled',
+          statusCode: m.status_code || 'NS'
+        };
+      });
     }
   } catch (err) {
     console.error('getFlashscoreMatches Error:', err);
