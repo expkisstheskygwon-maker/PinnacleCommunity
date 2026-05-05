@@ -13,19 +13,19 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
     case 'soccer':
     case 'all':
       host = 'v3.football.api-sports.io';
-      endpoint = `/fixtures?date=${today}`;
+      endpoint = `/fixtures?date=${today}&timezone=Asia/Seoul`;
       break;
     case 'baseball':
       host = 'v1.baseball.api-sports.io';
-      endpoint = `/games?date=${today}`;
+      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
       break;
     case 'basketball':
       host = 'v1.basketball.api-sports.io';
-      endpoint = `/games?date=${today}`;
+      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
       break;
     default:
       host = `v1.${sport}.api-sports.io`;
-      endpoint = `/games?date=${today}`;
+      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
   }
 
   const url = `https://${host}${endpoint}`;
@@ -37,17 +37,14 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
     next: { revalidate: 60 } // 60초 캐싱
   });
 
-  if (!res.ok) throw new Error(`Failed to fetch fixtures from ${host}`);
+  if (!res.ok) throw new Error(`API 서버 응답 오류 (${res.status}): ${host}`);
   const data = await res.json();
   
-  // API-level error check
+  // API-level error check: 상세 에러 메시지를 던져서 UI에서 확인 가능하게 함
   if (data.errors && Object.keys(data.errors).length > 0) {
-    const errorMsg = JSON.stringify(data.errors);
+    const errorMsg = typeof data.errors === 'string' ? data.errors : JSON.stringify(data.errors);
     console.error(`API-Sports Error (${sport}):`, errorMsg);
-    // If it's a specific limit error, we might still want to return empty instead of crashing
-    if (errorMsg.includes('limit') || errorMsg.includes('subscription')) {
-      return [];
-    }
+    throw new Error(`API 오류: ${errorMsg}`);
   }
 
   const fixtureData = data.response || [];

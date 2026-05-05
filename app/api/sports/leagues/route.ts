@@ -24,31 +24,46 @@ export async function GET(request: Request) {
       next: { revalidate: 3600 } // 리그 정보는 자주 안바뀌므로 1시간 캐싱
     });
 
-    if (!response.ok) throw new Error('Failed to fetch leagues');
+    if (!response.ok) throw new Error(`API 서버 응답 오류 (${response.status}): ${host}`);
     const data = await response.json();
+    
+    // API-level error check
+    if (data.errors && Object.keys(data.errors).length > 0) {
+      const errorMsg = typeof data.errors === 'string' ? data.errors : JSON.stringify(data.errors);
+      throw new Error(`API 오류: ${errorMsg}`);
+    }
+
     const rawLeagues = data.response || [];
 
     // 국가별로 그룹화
     const grouped: Record<string, any> = {};
     
     rawLeagues.forEach((item: any) => {
-      const country = item.country?.name || (item.league?.type === 'Cup' ? 'International' : 'Unknown');
-      const countryFlag = item.country?.flag || '';
+      if (!item) return;
       
-      if (!grouped[country]) {
-        grouped[country] = {
-          name: country,
+      // Soccer uses nested league object, others might be flat
+      const leagueInfo = item.league || item;
+      const countryInfo = item.country || {};
+      
+      const countryName = countryInfo.name || (leagueInfo.type === 'Cup' ? 'International' : 'Unknown');
+      const countryFlag = countryInfo.flag || '';
+      
+      if (!grouped[countryName]) {
+        grouped[countryName] = {
+          name: countryName,
           flag: countryFlag,
           leagues: []
         };
       }
       
-      grouped[country].leagues.push({
-        id: item.league.id,
-        name: item.league.name,
-        logo: item.league.logo,
-        type: item.league.type
-      });
+      if (leagueInfo.id) {
+        grouped[countryName].leagues.push({
+          id: leagueInfo.id,
+          name: leagueInfo.name || 'Unknown League',
+          logo: leagueInfo.logo || '',
+          type: leagueInfo.type || 'League'
+        });
+      }
     });
 
     // 배열로 변환 및 정렬 (인기 국가 우선 또는 이름순)
