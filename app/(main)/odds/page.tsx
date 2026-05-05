@@ -275,7 +275,7 @@ export default function OddsPage() {
                     <th className="text-left px-5 py-4 font-bold">리그</th>
                     <th className="text-left px-3 py-4 font-bold">경기 현황</th>
                     <th className="text-center px-3 py-4 font-bold">승 (1)</th>
-                    {filtered.some(m => m.odds.d > 0) && <th className="text-center px-3 py-4 font-bold">무 (X)</th>}
+                    {filteredMatches.some(m => m.odds.d > 0) && <th className="text-center px-3 py-4 font-bold">무 (X)</th>}
                     <th className="text-center px-3 py-4 font-bold">패 (2)</th>
                     <th className="text-center px-3 py-4 font-bold">결과</th>
                     <th className="text-center px-3 py-4 font-bold hidden md:table-cell">핸디캡</th>
@@ -284,7 +284,7 @@ export default function OddsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
-                  {filtered.map(m => {
+                  {filteredMatches.map(m => {
                     const diff = m.odds.h - m.openH;
                     
                     // 결과 텍스트 도출
