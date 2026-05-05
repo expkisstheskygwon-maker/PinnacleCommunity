@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
@@ -82,26 +82,28 @@ export default function OddsPage() {
   }, [sport]);
 
   // 필터링 및 정렬 로직
-  const filteredMatches = (matches || [])
-    .filter(m => {
-      if (!m) return false;
-      const matchesLeague = selectedLeagueId ? m.leagueId === selectedLeagueId : true;
-      const matchesSearch = !searchTerm ? true : (
-        (m.home?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
-        (m.away?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-        (m.league?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-      );
-      return matchesLeague && matchesSearch;
-    })
-    .sort((a, b) => {
-      if (!a || !b) return 0;
-      const aFav = favorites.includes(a.id.toString()) ? 1 : 0;
-      const bFav = favorites.includes(b.id.toString()) ? 1 : 0;
-      if (aFav !== bFav) return bFav - aFav;
-      if (a.live && !b.live) return -1;
-      if (!a.live && b.live) return 1;
-      return 0;
-    });
+  const filteredMatches = useMemo(() => {
+    return (matches || [])
+      .filter(m => {
+        if (!m) return false;
+        const matchesLeague = selectedLeagueId ? m.leagueId === selectedLeagueId : true;
+        const matchesSearch = !searchTerm ? true : (
+          (m.home?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
+          (m.away?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+          (m.league?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+        );
+        return matchesLeague && matchesSearch;
+      })
+      .sort((a, b) => {
+        if (!a || !b) return 0;
+        const aFav = favorites.includes(a.id.toString()) ? 1 : 0;
+        const bFav = favorites.includes(b.id.toString()) ? 1 : 0;
+        if (aFav !== bFav) return bFav - aFav;
+        if (a.live && !b.live) return -1;
+        if (!a.live && b.live) return 1;
+        return 0;
+      });
+  }, [matches, selectedLeagueId, searchTerm, favorites]);
 
   const liveCount = (matches || []).filter(m => m?.live).length;
 
@@ -319,6 +321,7 @@ export default function OddsPage() {
                     }
 
                     const getStatusKo = (status: string) => {
+                      if (!status) return "-";
                       const map: any = {
                         '1H': '전반', '2H': '후반', 'HT': '하프타임', 'ET': '연장', 'BT': '연장휴식', 'P': '승부차기',
                         'FT': '종료', 'AET': '연장종료', 'PEN': '승부차기종료', 'LIVE': '진행중', 'IN PROGRESS': '진행중',
