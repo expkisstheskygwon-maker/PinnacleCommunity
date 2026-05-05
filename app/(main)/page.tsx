@@ -136,10 +136,15 @@ export default function HomePage() {
   // Fetch matches
   useEffect(() => {
     const fetchMatches = async () => {
+      setIsLoading(true);
       try {
         const res = await fetch(`/api/sports/matches?sport=soccer&t=${Date.now()}`);
         const data = await res.json();
-        if (data.matches) setMatches(data.matches);
+        if (data.matches) {
+          setMatches(data.matches);
+        } else if (data.error) {
+          console.error("API Error in HomePage:", data.error);
+        }
       } catch (err) {
         console.error("Failed to fetch matches", err);
       } finally {

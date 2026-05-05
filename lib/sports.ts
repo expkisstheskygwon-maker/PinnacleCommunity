@@ -32,20 +32,37 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
   const url = `https://${host}${endpoint}`;
   
   // 1. 경기 정보 가져오기
-  const res = await fetch(url, {
+  let res = await fetch(url, {
     method: 'GET',
     headers: { 'x-apisports-key': apiKey },
-    cache: 'no-store'
+    next: { revalidate: 60 } // 안정적인 로딩을 위해 1분 캐싱 재적용
   });
 
-  if (!res.ok) throw new Error(`API 서버 응답 오류 (${res.status}): ${host}`);
-  const data = await res.json();
+  let data = await res.json();
+
+  // 오늘 날짜 경기가 없으면 라이브 경기 시도 (백업 로직)
+  if ((!data.response || data.response.length === 0) && sport === 'soccer') {
+    console.log('No fixtures for today, trying live matches fallback...');
+    const liveUrl = `https://${host}/fixtures?live=all`;
+    const liveRes = await fetch(liveUrl, {
+      method: 'GET',
+      headers: { 'x-apisports-key': apiKey },
+      next: { revalidate: 30 }
+    });
+    if (liveRes.ok) {
+      const liveData = await liveRes.json();
+      if (liveData.response && liveData.response.length > 0) {
+        data = liveData;
+      }
+    }
+  }
+
+  if (!res.ok && !data.response) throw new Error(`API 서버 응답 오류 (${res.status}): ${host}`);
   
-  // API-level error check: 데이터가 있으면 에러를 던지지 않고 로그만 기록
+  // API-level error check
   if (data.errors && Object.keys(data.errors).length > 0) {
     const errorMsg = typeof data.errors === 'string' ? data.errors : JSON.stringify(data.errors);
     console.warn(`API-Sports Warning (${sport}):`, errorMsg);
-    // 데이터가 아예 없는 경우에만 에러를 던짐
     if (!data.response || data.response.length === 0) {
       throw new Error(`API 오류: ${errorMsg}`);
     }
