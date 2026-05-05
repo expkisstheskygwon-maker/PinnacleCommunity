@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getTodayMatches } from '@/lib/sports';
 
 export async function GET(request: Request) {
@@ -6,7 +7,8 @@ export async function GET(request: Request) {
   const sport = searchParams.get('sport') || 'soccer';
 
   try {
-    const matches = await getTodayMatches(sport);
+    const { env } = getCloudflareContext();
+    const matches = await getTodayMatches(sport, (env as any).APISPORTS_KEY);
     return NextResponse.json({ matches });
   } catch (error: any) {
     console.error('API Error:', error);

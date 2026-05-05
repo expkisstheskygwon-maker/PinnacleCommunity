@@ -1,8 +1,8 @@
 // lib/sports.ts
 // API-Sports 공통 로직 분리
 
-export async function getTodayMatches(sport: string = 'soccer') {
-  const apiKey = process.env.APISPORTS_KEY;
+export async function getTodayMatches(sport: string = 'soccer', providedApiKey?: string) {
+  const apiKey = providedApiKey || process.env.APISPORTS_KEY;
   if (!apiKey) throw new Error('APISPORTS_KEY is missing');
 
   const today = new Date().toISOString().split('T')[0];
