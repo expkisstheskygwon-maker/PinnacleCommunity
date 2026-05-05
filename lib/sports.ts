@@ -39,37 +39,61 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
 
   if (!res.ok) throw new Error(`Failed to fetch fixtures from ${host}`);
   const data = await res.json();
+  
+  // API-level error check
+  if (data.errors && Object.keys(data.errors).length > 0) {
+    const errorMsg = JSON.stringify(data.errors);
+    console.error(`API-Sports Error (${sport}):`, errorMsg);
+    // If it's a specific limit error, we might still want to return empty instead of crashing
+    if (errorMsg.includes('limit') || errorMsg.includes('subscription')) {
+      return [];
+    }
+  }
+
   const fixtureData = data.response || [];
 
-  // 2. 배당 정보 가져오기 (필요시)
-  const oddsUrl = `https://${host}/odds?date=${today}`;
-  const oddsRes = await fetch(oddsUrl, {
-    method: 'GET',
-    headers: { 'x-apisports-key': apiKey },
-    next: { revalidate: 60 }
-  });
-
+  // 2. 배당 정보 가져오기 (축구는 데이터가 많으므로 타임아웃 주의)
   let oddsMap: Record<number, any> = {};
-  if (oddsRes.ok) {
-    const oddsData = await oddsRes.json();
-    (oddsData.response || []).forEach((item: any) => {
-      const bookmakers = item.bookmakers || [];
-      const bookmaker = 
-        bookmakers.find((b: any) => b.name.toLowerCase().includes('pinnacle')) || 
-        bookmakers.find((b: any) => b.name.toLowerCase().includes('bet365')) || 
-        bookmakers[0];
-
-      if (bookmaker && bookmaker.bets) {
-        const findBet = (names: string[]) => bookmaker.bets.find((b: any) => names.includes(b.name));
-        const matchWinner = findBet(['Match Winner', '1X2', 'Home/Away']);
-        
-        oddsMap[item.fixture?.id || item.game?.id] = {
-          h: matchWinner?.values.find((v: any) => ['Home', '1'].includes(v.value))?.odd || 0,
-          d: matchWinner?.values.find((v: any) => ['Draw', 'X'].includes(v.value))?.odd || 0,
-          a: matchWinner?.values.find((v: any) => ['Away', '2'].includes(v.value))?.odd || 0,
-        };
-      }
+  
+  // 축구의 경우 경기가 너무 많으면 배당 API 호출이 실패할 수 있으므로 
+  // 우선순위가 높은 리그나 라이브 경기 위주로 가져오는 것이 좋으나, 
+  // 현재는 전체 요청을 시도하되 실패하더라도 경기 목록은 보여주도록 처리
+  try {
+    const oddsUrl = `https://${host}/odds?date=${today}`;
+    const oddsRes = await fetch(oddsUrl, {
+      method: 'GET',
+      headers: { 'x-apisports-key': apiKey },
+      next: { revalidate: 300 } // 5분 캐싱으로 완화
     });
+
+    if (oddsRes.ok) {
+      const oddsData = await oddsRes.json();
+      if (oddsData.response) {
+        oddsData.response.forEach((item: any) => {
+          const bookmakers = item.bookmakers || [];
+          const bookmaker = 
+            bookmakers.find((b: any) => b.name.toLowerCase().includes('pinnacle')) || 
+            bookmakers.find((b: any) => b.name.toLowerCase().includes('bet365')) || 
+            bookmakers[0];
+
+          if (bookmaker && bookmaker.bets) {
+            const findBet = (names: string[]) => bookmaker.bets.find((b: any) => names.includes(b.name));
+            const matchWinner = findBet(['Match Winner', '1X2', 'Home/Away']);
+            
+            const targetId = item.fixture?.id || item.game?.id;
+            if (targetId) {
+              oddsMap[targetId] = {
+                h: matchWinner?.values.find((v: any) => ['Home', '1'].includes(v.value))?.odd || 0,
+                d: matchWinner?.values.find((v: any) => ['Draw', 'X'].includes(v.value))?.odd || 0,
+                a: matchWinner?.values.find((v: any) => ['Away', '2'].includes(v.value))?.odd || 0,
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Odds fetching failed, continuing without odds", err);
   }
 
   // 3. 데이터 가공
