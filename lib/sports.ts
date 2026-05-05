@@ -89,6 +89,7 @@ export async function getTodayMatches(sport: string = 'soccer') {
       home: teams.home.name,
       away: teams.away.name,
       league: league.name,
+      leagueId: league.id, // 리그 필터링을 위해 ID 추가
       status: status.long || status.short,
       statusCode: status.short,
       time: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),

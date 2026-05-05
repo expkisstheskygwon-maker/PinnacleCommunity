@@ -21,30 +21,26 @@ const CATEGORIES = [
 ];
 
 export default function OddsPage() {
-  const [activeCat, setActiveCat] = useState("all");
-  const [showProView, setShowProView] = useState(false);
+  const [sport, setSport] = useState('soccer');
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [expandedMatches, setExpandedMatches] = useState<Record<number, boolean>>({});
+  const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   
-  // Full Markets States
-  const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
-  const [marketData, setMarketData] = useState<any[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [markets, setMarkets] = useState<any[]>([]);
   const [marketLoading, setMarketLoading] = useState(false);
-  const [marketSearch, setMarketSearch] = useState("");
+  const [showOdds, setShowOdds] = useState(false);
+  const [showProView, setShowProView] = useState(false);
+  const [expandedMatches, setExpandedMatches] = useState<Record<string, boolean>>({});
 
   // ★ Favorites (Matches)
   const [favorites, setFavorites] = useState<string[]>([]);
   // ★ Favorite Teams
   const [favTeams, setFavTeams] = useState<string[]>([]);
 
-  // 배당률 노출 토글 (기본: 비노출)
-  const [showOdds, setShowOdds] = useState(false);
-
   // Load preferences from API on mount
   useEffect(() => {
-    // Favorites Matches
     fetch('/api/user/matches')
       .then(r => r.json())
       .then(data => {
@@ -52,7 +48,6 @@ export default function OddsPage() {
       })
       .catch(() => {});
     
-    // Favorite Teams
     fetch('/api/user/interests')
       .then(r => r.json())
       .then(data => {
@@ -64,30 +59,58 @@ export default function OddsPage() {
       .catch(() => {});
   }, []);
 
+  const fetchMatches = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/sports/matches?sport=${sport}`);
+      const data = await res.json();
+      setMatches(data.matches || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMatches();
+  }, [sport]);
+
+  // 필터링 로직: 리그 선택 + 팀명 검색
+  const filteredMatches = matches
+    .filter(m => {
+      // 리그 필터링 (아이디가 일치하거나 선택되지 않았을 때)
+      const matchesLeague = selectedLeagueId ? m.leagueId === selectedLeagueId : true;
+      // 팀명 검색 필터링
+      const matchesSearch = m.home.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            m.away.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            m.league.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesLeague && matchesSearch;
+    })
+    .sort((a, b) => {
+      // 즐겨찾기 경기 우선
+      const aFav = favorites.includes(a.id.toString()) ? 1 : 0;
+      const bFav = favorites.includes(b.id.toString()) ? 1 : 0;
+      if (aFav !== bFav) return bFav - aFav;
+      // 실시간 경기 우선
+      if (a.live && !b.live) return -1;
+      if (!a.live && b.live) return 1;
+      return 0;
+    });
+
   const toggleFavorite = async (matchId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const isFav = favorites.includes(matchId);
     const action = isFav ? 'remove' : 'add';
-
-    // Optimistic UI update
     setFavorites(prev => isFav ? prev.filter(id => id !== matchId) : [...prev, matchId]);
-
     try {
-      const res = await fetch('/api/user/matches', {
+      await fetch('/api/user/matches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matchId, type: 'favorite', action }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "저장에 실패했습니다.");
-      }
-    } catch (err: any) {
-      console.error("Failed to update favorite", err);
-      // Revert on failure
+    } catch {
       setFavorites(prev => action === 'remove' ? [...prev, matchId] : prev.filter(id => id !== matchId));
-      alert(err.message || "로그인이 필요합니다.");
     }
   };
 
@@ -95,37 +118,27 @@ export default function OddsPage() {
     e.stopPropagation();
     const isFav = favTeams.includes(teamName);
     const action = isFav ? 'remove' : 'add';
-
     setFavTeams(prev => isFav ? prev.filter(t => t !== teamName) : [...prev, teamName]);
-
     try {
-      const res = await fetch('/api/user/interests', {
+      await fetch('/api/user/interests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ category: 'team', value: teamName, action }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error);
-      }
-    } catch (err: any) {
+    } catch {
       setFavTeams(prev => action === 'remove' ? [...prev, teamName] : prev.filter(t => t !== teamName));
-      alert(err.message || "로그인이 필요합니다.");
     }
   };
 
   const handleOpenMarkets = async (match: any) => {
     setSelectedMatch(match);
     setMarketLoading(true);
-    setMarketData([]);
     try {
-      const res = await fetch(`/api/sports/markets?fixtureId=${match.id}&sport=${match.sport}`);
+      const res = await fetch(`/api/sports/markets?fixtureId=${match.id}&sport=${sport}`);
       const data = await res.json();
-      if (data.success) {
-        setMarketData(data.markets);
-      }
+      setMarkets(data.markets || []);
     } catch (err) {
-      console.error("Failed to fetch full markets", err);
+      console.error(err);
     } finally {
       setMarketLoading(false);
     }
@@ -141,78 +154,9 @@ export default function OddsPage() {
     lineup: "4-3-3"
   });
 
-  // 데이터 가져오는 함수
-  const fetchMatches = async (sport: string) => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/sports/matches?sport=${sport === 'all' ? 'soccer' : sport}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setMatches(data.matches || []);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 카테고리 변경 시 데이터 호출 (즐겨찾기일 때는 새로 호출하지 않음)
-  useEffect(() => {
-    if (activeCat !== 'favorites') {
-      fetchMatches(activeCat);
-    }
-  }, [activeCat]);
-
-  const filtered = [...matches]
-    .filter(m => activeCat !== 'favorites' || favorites.includes(m.id.toString()))
-    .sort((a, b) => {
-      // Favorites first
-      const aFav = favorites.includes(a.id.toString()) ? 1 : 0;
-      const bFav = favorites.includes(b.id.toString()) ? 1 : 0;
-      if (aFav !== bFav) return bFav - aFav;
-      if (a.live && !b.live) return -1;
-      if (!a.live && b.live) return 1;
-      if (a.finished && !b.finished) return -1;
-      if (!a.finished && b.finished) return 1;
-      return 0;
-    });
-  const liveCount = matches.filter(m => m.live).length;
-
   return (
     <div className="mesh-gradient min-h-screen">
       <div className="container mx-auto px-4 py-10">
-        {/* Page Header */}
-        <div className="mb-8 space-y-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Link href="/" className="hover:text-primary transition-colors">홈</Link>
-            <span>/</span>
-            <span className="text-foreground font-bold">배당/경기</span>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-black tracking-tighter">배당/경기</h1>
-              <p className="text-muted-foreground mt-1">실시간 배당률과 경기 일정을 확인하세요</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* 배당률 표시 토글 */}
-              <button
-                onClick={() => setShowOdds(!showOdds)}
-                className={cn(
-                  "btn-outline text-xs py-2 px-4 flex items-center gap-2 transition-all duration-300",
-                  showOdds
-                    ? "bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30 shadow-[0_0_20px_rgba(234,179,8,0.2)]"
-                    : "hover:bg-white/5"
-                )}
-              >
-                {showOdds ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                {showOdds ? "배당률 ON" : "배당률 OFF"}
-              </button>
-              <button
-                onClick={() => setShowProView(!showProView)}
-                className={cn(
-                  "btn-outline text-xs py-2 px-4 flex items-center gap-2 transition-all duration-300",
-                  showProView 
-                    ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(59,130,246,0.4)]" 
                     : "hover:bg-white/5"
                 )}
               >
