@@ -185,24 +185,41 @@ export default function HomePage() {
         if (pref.category === 'sport' && m.sport === pref.value) m.interestScore += 10;
         if (pref.category === 'league' && m.league === pref.value) m.interestScore += 50;
         if (pref.category === 'team' && (m.home === pref.value || m.away === pref.value)) m.interestScore += 100;
-        // Priority added from preference table
         m.interestScore += (pref.priority || 0);
       });
       
-      if (m.isFavorite) m.interestScore += 500;
+      if (m.isFavorite) m.interestScore += 1000; // 즐겨찾기 점수 대폭 상향
       if (m.isBet) m.interestScore += 300;
+      if (m.live) m.interestScore += 500; // 실시간 경기 점수 추가 (채우기 용)
     });
 
-    // Sort by score
-    list.sort((a, b) => b.interestScore - a.interestScore);
-
     // Filter by tab
-    if (activeTab === "all") return list.slice(0, 8);
-    if (activeTab === "interest") return list.filter(m => m.interestScore > 0);
-    if (activeTab === "favorite") return list.filter(m => m.isFavorite);
-    if (activeTab === "bet") return list.filter(m => m.isBet);
+    if (activeTab === "all") {
+      // 1. 즐겨찾기 경기 분리
+      const favs = list.filter(m => m.isFavorite).sort((a, b) => b.interestScore - a.interestScore);
+      
+      // 즐겨찾기가 8개 이상이면 바로 반환
+      if (favs.length >= 8) return favs.slice(0, 8);
 
-    return list;
+      // 2. 즐겨찾기 아닌 경기 중 실시간/관심도 순으로 정렬하여 채우기
+      const nonFavs = list
+        .filter(m => !m.isFavorite)
+        .sort((a, b) => {
+          // 실시간 여부 우선
+          if (a.live && !b.live) return -1;
+          if (!a.live && b.live) return 1;
+          // 그 다음은 관심 점수 순
+          return b.interestScore - a.interestScore;
+        });
+
+      return [...favs, ...nonFavs].slice(0, 8);
+    }
+    
+    if (activeTab === "interest") return list.filter(m => m.interestScore > 0).sort((a, b) => b.interestScore - a.interestScore);
+    if (activeTab === "favorite") return list.filter(m => m.isFavorite).sort((a, b) => b.interestScore - a.interestScore);
+    if (activeTab === "bet") return list.filter(m => m.isBet).sort((a, b) => b.interestScore - a.interestScore);
+
+    return list.sort((a, b) => b.interestScore - a.interestScore);
   }, [matches, userPrefs, activeTab]);
 
   const togglePreference = async (matchId: number | string, type: 'favorite' | 'bet') => {
