@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { User, Lock, ArrowRight, LogIn, Github, Chrome, ShieldCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { User, Lock, ArrowRight, LogIn, Github, Chrome, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     userId: '',
     password: '',
@@ -45,10 +47,11 @@ export default function LoginPage() {
         throw new Error(data.error || '로그인 중 오류가 발생했습니다.');
       }
       
-      // Success! Refresh or redirect
-      window.location.href = '/';
+      // Success! Use router for clean transition
+      router.push('/');
+      router.refresh();
     } catch (err: any) {
-      setError(err.message);
+      setError(typeof err.message === 'string' ? err.message : '알 수 없는 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +76,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-5 stagger-children">
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm font-medium animate-fade-in flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <Shield className="w-4 h-4 shrink-0" />
               {error}
             </div>
           )}

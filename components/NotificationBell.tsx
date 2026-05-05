@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bell, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function NotificationBell() {
+  const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [showList, setShowList] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -78,7 +80,7 @@ export default function NotificationBell() {
                     key={n.id}
                     className="group cursor-pointer p-2 rounded-md hover:bg-white/10 transition-colors"
                     onClick={() => {
-                      if (n.link) location.href = n.link;
+                      if (n.link) router.push(n.link);
                       // mark as read instantly
                       fetch('/api/notifications', {
                         method: 'PATCH',

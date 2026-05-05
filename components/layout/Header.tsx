@@ -127,6 +127,7 @@ export default function Header({ user }: HeaderProps) {
         method: "POST",
       });
       if (response.ok) {
+        router.push("/");
         router.refresh();
       }
     } catch (error) {
