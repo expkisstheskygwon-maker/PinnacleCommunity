@@ -95,18 +95,22 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
 
   // 3. 데이터 가공
   return fixtureData.map((item: any) => {
+    if (!item) return null;
     const fixture = item.fixture || item;
-    const teams = item.teams;
-    const league = item.league;
-    const status = fixture.status || item.status;
-    const matchOdds = oddsMap[fixture.id] || { h: 0, d: 0, a: 0 };
+    const teams = item.teams || {};
+    const league = item.league || {};
+    const status = fixture.status || item.status || {};
+    
+    // Some sports use fixture.id, others use item.id or gameId
+    const fixtureId = fixture.id || item.id || item.gameId;
+    const matchOdds = oddsMap[fixtureId] || { h: 0, d: 0, a: 0 };
     
     const scores = item.goals || item.scores || { home: 0, away: 0 };
     const homeScore = scores.home != null ? (typeof scores.home === 'object' ? scores.home?.total ?? 0 : scores.home) : 0;
     const awayScore = scores.away != null ? (typeof scores.away === 'object' ? scores.away?.total ?? 0 : scores.away) : 0;
 
     return {
-      id: fixture.id,
+      id: fixtureId,
       home: teams?.home?.name || 'Unknown',
       away: teams?.away?.name || 'Unknown',
       league: league?.name || 'Unknown League',
@@ -118,5 +122,5 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
       scores: { home: homeScore, away: awayScore },
       odds: matchOdds
     };
-  });
+  }).filter(Boolean);
 }
