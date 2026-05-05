@@ -16,21 +16,15 @@ export default function NotificationBell() {
     fetch('/api/notifications?limit=10')
       .then((r) => r.json())
       .then((data) => {
-        if (data.success) {
-          const unread = data.notifications.filter((n: any) => !n.readAt);
+        if (data && data.success && Array.isArray(data.notifications)) {
+          const unread = data.notifications.filter((n: any) => n && !n.readAt);
           setUnreadCount(unread.length);
           setNotifications(data.notifications);
         }
-      });
+      }).catch(err => console.error("Notification fetch failed", err));
   }, []);
 
-  // Show toast on page entry if there are unread notifications
-  useEffect(() => {
-    if (unreadCount > 0) {
-      const timer = setTimeout(() => setShowList(true), 800);
-      return () => clearTimeout(timer);
-    }
-  }, [unreadCount]);
+  // Removed auto-popup to prevent potential crashes on page load
 
   const markAllRead = async () => {
     const ids = notifications.filter((n) => !n.readAt).map((n) => n.id);
@@ -74,10 +68,10 @@ export default function NotificationBell() {
             </div>
             <ul className="space-y-2 max-h-80 overflow-y-auto">
               {notifications
-                .filter((n) => !n.readAt)
+                .filter((n) => n && !n.readAt)
                 .map((n) => (
                   <li
-                    key={n.id}
+                    key={n.id || Math.random()}
                     className="group cursor-pointer p-2 rounded-md hover:bg-white/10 transition-colors"
                     onClick={() => {
                       if (n.link) router.push(n.link);

@@ -181,16 +181,18 @@ export default function HomePage() {
 
     // Calculate interest score
     list.forEach(m => {
-      userPrefs.interests.forEach(pref => {
+      if (!m) return;
+      (userPrefs?.interests || []).forEach(pref => {
+        if (!pref) return;
         if (pref.category === 'sport' && m.sport === pref.value) m.interestScore += 10;
         if (pref.category === 'league' && m.league === pref.value) m.interestScore += 50;
         if (pref.category === 'team' && (m.home === pref.value || m.away === pref.value)) m.interestScore += 100;
         m.interestScore += (pref.priority || 0);
       });
       
-      if (m.isFavorite) m.interestScore += 1000; // 즐겨찾기 점수 대폭 상향
+      if (m.isFavorite) m.interestScore += 1000;
       if (m.isBet) m.interestScore += 300;
-      if (m.live) m.interestScore += 500; // 실시간 경기 점수 추가 (채우기 용)
+      if (m.live) m.interestScore += 500;
     });
 
     // Filter by tab
