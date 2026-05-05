@@ -16,9 +16,11 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
 
   const { env } = getCloudflareContext();
   const apiKey = providedApiKey || (env as any).APISPORTS_KEY;
-  if (!apiKey) throw new Error('APISPORTS_KEY is missing');
-
   const sportdbKey = (env as any).SPORTDB_API_KEY;
+
+  if (!apiKey) {
+    console.warn('APISPORTS_KEY is missing, attempting fallbacks...');
+  }
 
   // 'all'인 경우 여러 종목을 재귀적으로 호출하여 병합
   if (sport === 'all') {
