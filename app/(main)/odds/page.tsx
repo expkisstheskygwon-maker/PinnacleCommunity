@@ -81,29 +81,29 @@ export default function OddsPage() {
     fetchMatches();
   }, [sport]);
 
-  // 필터링 로직: 리그 선택 + 팀명 검색
-  const filteredMatches = matches
+  // 필터링 및 정렬 로직
+  const filteredMatches = (matches || [])
     .filter(m => {
-      // 리그 필터링 (아이디가 일치하거나 선택되지 않았을 때)
+      if (!m) return false;
       const matchesLeague = selectedLeagueId ? m.leagueId === selectedLeagueId : true;
-      // 팀명 검색 필터링
-      const matchesSearch = m.home.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            m.away.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            m.league.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = !searchTerm ? true : (
+        (m.home?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
+        (m.away?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (m.league?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+      );
       return matchesLeague && matchesSearch;
     })
     .sort((a, b) => {
-      // 즐겨찾기 경기 우선
+      if (!a || !b) return 0;
       const aFav = favorites.includes(a.id.toString()) ? 1 : 0;
       const bFav = favorites.includes(b.id.toString()) ? 1 : 0;
       if (aFav !== bFav) return bFav - aFav;
-      // 실시간 경기 우선
       if (a.live && !b.live) return -1;
       if (!a.live && b.live) return 1;
       return 0;
     });
 
-  const liveCount = matches.filter(m => m.live).length;
+  const liveCount = (matches || []).filter(m => m?.live).length;
 
   const toggleFavorite = async (matchId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -296,7 +296,7 @@ export default function OddsPage() {
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
                   {filteredMatches.map(m => {
-                    const diff = m.odds.h - m.openH;
+                    const diff = (m.odds?.h || 0) - (m.openH || m.odds?.h || 0);
                     
                     // 결과 텍스트 도출
                     let resultText = "-";
@@ -416,30 +416,30 @@ export default function OddsPage() {
                               )}
                             </div>
                           </td>
-                          <td className="text-center px-3 py-4">
+                           <td className="text-center px-3 py-4">
                             <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
                               <span className={cn("font-mono text-xs font-bold", diff < 0 ? "text-red-400" : diff > 0 ? "text-emerald-400" : "text-foreground")}>
-                                {m.odds.h > 0 ? m.odds.h.toFixed(2) : "-"}
+                                {m.odds?.h ? m.odds.h.toFixed(2) : "-"}
                               </span>
-                              {showProView && (
+                              {showProView && m.odds?.h && (
                                 <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.h * 1.02).toFixed(2)}</span>
                               )}
                             </div>
                           </td>
-                          {filteredMatches.some(m2 => m2.odds.d > 0) && (
+                          {sortedMatches.some(m2 => (m2.odds?.d || 0) > 0) && (
                             <td className="text-center px-3 py-4">
                               <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
-                                <span className="font-mono text-xs text-muted-foreground">{m.odds.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
-                                {showProView && m.odds.d > 0 && (
-                                  <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.d * 0.98).toFixed(2)}</span>
+                                <span className="font-mono text-xs text-muted-foreground">{m.odds?.d ? m.odds.d.toFixed(2) : "-"}</span>
+                                {showProView && (m.odds?.d || 0) > 0 && (
+                                  <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds?.d * 0.98).toFixed(2)}</span>
                                 )}
                               </div>
                             </td>
                           )}
                           <td className="text-center px-3 py-4">
                             <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
-                              <span className="font-mono text-xs text-foreground font-bold">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
-                              {showProView && m.odds.a > 0 && (
+                              <span className="font-mono text-xs text-foreground font-bold">{m.odds?.a ? m.odds.a.toFixed(2) : "-"}</span>
+                              {showProView && m.odds?.a && (
                                 <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.a * 0.97).toFixed(2)}</span>
                               )}
                             </div>
