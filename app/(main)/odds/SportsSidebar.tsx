@@ -128,8 +128,8 @@ export default function SportsSidebar({
           </div>
         ) : (
           <div className="space-y-1">
-            {filteredCountries.map(country => (
-              <div key={country.name} className="overflow-hidden">
+            {filteredCountries.map((country, idx) => (
+              <div key={`${country.name}-${idx}`} className="overflow-hidden">
                 <button
                   onClick={() => toggleCountry(country.name)}
                   className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/5 transition-colors group"

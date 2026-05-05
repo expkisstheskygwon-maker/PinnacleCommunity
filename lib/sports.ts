@@ -147,7 +147,8 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
     const goals = item.goals || item.scores || {};
     const status = fixture.status || item.status || {};
     
-    const fid = `${sport}-${fixture.id || item.id || item.gameId || Math.random()}`;
+    const rawFid = fixture.id || item.id || item.gameId || `${teams.home}-${teams.away}-${league.id}`;
+    const fid = `${sport}-${rawFid}`;
 
     return {
       id: fid,
