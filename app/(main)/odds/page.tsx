@@ -411,7 +411,7 @@ export default function OddsPage() {
                               )}
                             </div>
                           </td>
-                          {filtered.some(m2 => m2.odds.d > 0) && (
+                          {filteredMatches.some(m2 => m2.odds.d > 0) && (
                             <td className="text-center px-3 py-4">
                               <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
                                 <span className="font-mono text-xs text-muted-foreground">{m.odds.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
