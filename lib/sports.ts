@@ -14,13 +14,20 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
     );
     
     let allMatches: any[] = [];
+    let successCount = 0;
     results.forEach((res, idx) => {
       if (res.status === 'fulfilled') {
         allMatches = [...allMatches, ...res.value];
+        successCount++;
       } else {
         console.error(`Failed to fetch ${sportsToFetch[idx]}:`, res.reason);
       }
     });
+    
+    if (successCount === 0 && results.length > 0) {
+      throw new Error('모든 종목 데이터를 불러오는 데 실패했습니다.');
+    }
+    
     return allMatches;
   }
 

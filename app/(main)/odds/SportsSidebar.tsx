@@ -70,6 +70,7 @@ export default function SportsSidebar({
   );
 
   const sports = [
+    { id: 'all', label: '전체', icon: '🌐' },
     { id: 'soccer', label: '축구', icon: '⚽' },
     { id: 'baseball', label: '야구', icon: '⚾' },
     { id: 'basketball', label: '농구', icon: '🏀' },
