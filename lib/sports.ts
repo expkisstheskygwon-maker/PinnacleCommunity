@@ -36,24 +36,35 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
   let res = await fetch(url, {
     method: 'GET',
     headers: { 'x-apisports-key': apiKey },
-    next: { revalidate: 60 } // 안정적인 로딩을 위해 1분 캐싱 재적용
+    cache: 'no-store'
   });
 
   let data = await res.json();
 
-  // 오늘 날짜 경기가 없으면 라이브 경기 시도 (백업 로직)
+  // 축구 데이터가 비어있을 경우 강력한 백업 로직 가동
   if ((!data.response || data.response.length === 0) && sport === 'soccer') {
-    console.log('No fixtures for today, trying live matches fallback...');
-    const liveUrl = `https://${host}/fixtures?live=all`;
-    const liveRes = await fetch(liveUrl, {
+    console.log('Soccer fixtures empty, trying live fallback...');
+    // 라이브 경기 시도
+    const liveRes = await fetch(`https://${host}/fixtures?live=all`, {
       method: 'GET',
       headers: { 'x-apisports-key': apiKey },
-      next: { revalidate: 30 }
+      cache: 'no-store'
     });
-    if (liveRes.ok) {
-      const liveData = await liveRes.json();
-      if (liveData.response && liveData.response.length > 0) {
-        data = liveData;
+    const liveData = await liveRes.json();
+    
+    if (liveData.response && liveData.response.length > 0) {
+      data = liveData;
+    } else {
+      // 라이브도 없으면 최근 경기 10개 시도 (API 작동 확인용)
+      console.log('Soccer live empty, trying last 10 fallback...');
+      const lastRes = await fetch(`https://${host}/fixtures?last=10`, {
+        method: 'GET',
+        headers: { 'x-apisports-key': apiKey },
+        cache: 'no-store'
+      });
+      const lastData = await lastRes.json();
+      if (lastData.response && lastData.response.length > 0) {
+        data = lastData;
       }
     }
   }
