@@ -677,5 +677,6 @@ export default function OddsPage() {
       </div>
     </div>
   )}
-  );
+  </div>
+);
 }
