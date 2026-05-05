@@ -104,7 +104,7 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
   const fixtureData = data.response || [];
 
   // 2. 배당 정보 가져오기 (배당 API 호출 실패하더라도 경기 목록은 반환)
-  let oddsMap: Record<number, any> = {};
+  let oddsMap: Record<string, any> = {};
   try {
     const oddsUrl = `https://${host}/odds?date=${today}`;
     const oddsRes = await fetch(oddsUrl, {
@@ -117,7 +117,8 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
       const oddsData = await oddsRes.json();
       if (oddsData.response) {
         oddsData.response.forEach((item: any) => {
-          const fid = item.fixture?.id || item.id;
+          const rawFid = item.fixture?.id || item.id;
+          const fid = `${sport}-${rawFid}`;
           const bms = item.bookmakers || [];
           const bm = bms.find((b: any) => b.name.toLowerCase().includes('pinnacle')) || bms[0];
           if (bm && bm.bets) {
