@@ -8,10 +8,17 @@ export async function GET(request: Request) {
 
   try {
     const { env } = getCloudflareContext();
-    const matches = await getTodayMatches(sport, (env as any).APISPORTS_KEY);
+    const apiKey = (env as any).APISPORTS_KEY;
+    
+    if (!apiKey) {
+      console.warn('[Matches API] APISPORTS_KEY is missing in env');
+    }
+
+    const matches = await getTodayMatches(sport, apiKey);
+    console.log(`[Matches API] Success: ${sport}, Count: ${matches.length}`);
     return NextResponse.json({ matches });
   } catch (error: any) {
-    console.error('API Error:', error);
+    console.error('[Matches API] Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
