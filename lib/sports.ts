@@ -24,7 +24,7 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
     });
     
     if (successCount === 0 && results.length > 0) {
-      throw new Error('모든 종목 데이터를 불러오는 데 실패했습니다.');
+      throw new Error('API 호출 한도 초과 또는 서버 연결 오류입니다. 잠시 후 다시 시도해주세요.');
     }
     
     return allMatches;
