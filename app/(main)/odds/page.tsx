@@ -30,6 +30,7 @@ export default function OddsPage() {
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [markets, setMarkets] = useState<any[]>([]);
   const [marketLoading, setMarketLoading] = useState(false);
+  const [marketSearch, setMarketSearch] = useState("");
   const [showOdds, setShowOdds] = useState(false);
   const [showProView, setShowProView] = useState(false);
   const [expandedMatches, setExpandedMatches] = useState<Record<string, boolean>>({});
