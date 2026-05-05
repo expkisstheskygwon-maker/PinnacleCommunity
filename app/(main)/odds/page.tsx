@@ -5,10 +5,11 @@ import Link from "next/link";
 import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
   ChevronDown, Filter, Star, Zap, Gamepad2, Trophy,
-  ChevronRight, Info, Users, History, TrendingUp as Up, TrendingDown as Down,
-  MapPin, User, Clock, AlertCircle, X, Search, Eye, EyeOff
+  ChevronRight, Info, Users, History, MapPin, User, Clock, 
+  AlertCircle, X, Search, Eye, EyeOff, LayoutGrid
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import SportsSidebar from "./SportsSidebar";
 
 const CATEGORIES = [
   { id: "all", label: "전체", icon: Activity },
@@ -16,8 +17,6 @@ const CATEGORIES = [
   { id: "soccer", label: "축구", icon: Swords },
   { id: "baseball", label: "야구", icon: Trophy },
   { id: "basketball", label: "농구", icon: Activity },
-  { id: "esports", label: "e스포츠", icon: Gamepad2 },
-  { id: "live", label: "라이브", icon: Zap },
 ];
 
 export default function OddsPage() {
@@ -98,6 +97,8 @@ export default function OddsPage() {
       return 0;
     });
 
+  const liveCount = matches.filter(m => m.live).length;
+
   const toggleFavorite = async (matchId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const isFav = favorites.includes(matchId);
@@ -157,43 +158,90 @@ export default function OddsPage() {
   return (
     <div className="mesh-gradient min-h-screen">
       <div className="container mx-auto px-4 py-10">
-                    : "hover:bg-white/5"
-                )}
-              >
-                <div className="relative">
-                  <BarChart3 className={cn("w-3.5 h-3.5 transition-transform", showProView && "scale-110")} />
-                  {showProView && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
-                </div>
-                {showProView ? "상세 모드 ON" : "상세 모드"}
-              </button>
-              {liveCount > 0 && (
-                <div className="badge-live">
-                  <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
-                  {liveCount} LIVE
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Left Sidebar Filter */}
+          <SportsSidebar 
+            currentSport={sport}
+            onSportChange={(s) => {
+              setSport(s);
+              setSelectedLeagueId(null);
+              setSearchTerm("");
+            }}
+            onLeagueSelect={(id) => setSelectedLeagueId(id)}
+            selectedLeagueId={selectedLeagueId}
+          />
 
-        {/* Category Tabs */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCat(cat.id)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
-                activeCat === cat.id
-                  ? "bg-primary text-white shadow-[0_0_16px_rgba(59,130,246,0.3)]"
-                  : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 border border-white/[0.06]"
-              )}
-            >
-              <cat.icon className="w-4 h-4" />
-              {cat.label}
-            </button>
-          ))}
-        </div>
+          {/* Main Content Area */}
+          <div className="flex-1 space-y-6">
+            {/* Header with Team Search */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 glass-card p-6 rounded-3xl border-white/5">
+              <div>
+                <h1 className="text-3xl font-black text-glow flex items-center gap-3">
+                  <Activity className="w-8 h-8 text-primary animate-pulse" />
+                  실시간 배당 분석
+                </h1>
+                <p className="text-xs text-muted-foreground mt-1 font-medium opacity-60">
+                  {selectedLeagueId ? `${matches.find(m => m.leagueId === selectedLeagueId)?.league || '선택된 리그'}의 경기` : "전 세계 주요 리그의 배당 흐름을 실시간으로 분석합니다."}
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                  <input 
+                    type="text" 
+                    placeholder="팀명으로 경기 검색..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-10 pr-4 outline-none focus:border-primary/50 transition-all text-sm font-bold"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setShowOdds(!showOdds)}
+                    className={cn(
+                      "p-3 rounded-2xl transition-all border",
+                      showOdds ? "bg-primary text-primary-foreground border-primary" : "bg-white/5 text-muted-foreground border-white/10 hover:border-primary/40"
+                    )}
+                    title={showOdds ? "배당 숨기기" : "배당 보기"}
+                  >
+                    {showOdds ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                  <button 
+                    onClick={() => setShowProView(!showProView)}
+                    className={cn(
+                      "p-3 rounded-2xl transition-all border",
+                      showProView ? "bg-blue-500 text-white border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]" : "bg-white/5 text-muted-foreground border-white/10 hover:border-blue-500/40"
+                    )}
+                    title="상세 분석 모드"
+                  >
+                    <LayoutGrid className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Status Bar */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "전체 경기", value: matches.length, icon: Trophy, color: "text-primary" },
+                { label: "실시간 중", value: liveCount, icon: Zap, color: "text-red-500" },
+                { label: "종료된 경기", value: matches.filter(m => m.finished).length, icon: History, color: "text-emerald-400" },
+                { label: "즐겨찾기", value: favorites.length, icon: Star, color: "text-[hsl(var(--gold))]" },
+              ].map((stat, i) => (
+                <div key={i} className="glass-card-hover p-4 rounded-2xl border-white/5 flex items-center gap-4">
+                  <div className={cn("p-2.5 rounded-xl bg-white/5", stat.color)}>
+                    <stat.icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{stat.label}</p>
+                    <p className="text-xl font-black">{stat.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
         {/* Matches Table */}
         <div className="glass-card rounded-2xl overflow-hidden min-h-[400px] flex flex-col">
