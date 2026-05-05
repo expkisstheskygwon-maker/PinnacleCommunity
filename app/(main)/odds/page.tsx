@@ -152,14 +152,17 @@ export default function OddsPage() {
   };
 
   // Mock data for Detailed Mode
-  const getMockStats = (id: number) => ({
-    possession: { home: 45 + (id % 15), away: 55 - (id % 15) },
-    shots: { home: 2 + (id % 5), away: 3 + (id % 4) },
-    corners: { home: 1 + (id % 3), away: 2 + (id % 3) },
-    yellowCards: { home: id % 2, away: (id + 1) % 3 },
-    form: ["W", "D", "W", "L", "W"].map(f => f),
-    lineup: "4-3-3"
-  });
+  const getMockStats = (idRaw: any) => {
+    const id = parseInt(idRaw) || 0;
+    return {
+      possession: { home: 45 + (id % 15), away: 55 - (id % 15) },
+      shots: { home: 2 + (id % 5), away: 3 + (id % 4) },
+      corners: { home: 1 + (id % 3), away: 2 + (id % 3) },
+      yellowCards: { home: id % 2, away: (id + 1) % 3 },
+      form: ["W", "D", "W", "L", "W"].map(f => f),
+      lineup: "4-3-3"
+    };
+  };
 
   return (
     <div className="mesh-gradient min-h-screen">
@@ -303,10 +306,10 @@ export default function OddsPage() {
                     let resultColor = "text-muted-foreground";
                     
                     if (m.finished || m.live) {
-                      if (m.score.home > m.score.away) {
+                      if ((m.score?.home ?? 0) > (m.score?.away ?? 0)) {
                         resultText = "홈승";
                         resultColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-                      } else if (m.score.home < m.score.away) {
+                      } else if ((m.score?.home ?? 0) < (m.score?.away ?? 0)) {
                         resultText = "원정승";
                         resultColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
                       } else {
@@ -381,19 +384,19 @@ export default function OddsPage() {
                                   >
                                     <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.home) && "fill-current")} />
                                   </button>
-                                  <span className={cn("font-bold text-sm", m.score.home > m.score.away && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.home) && "text-[hsl(var(--gold))]")}>
+                                  <span className={cn("font-bold text-sm", (m.score?.home ?? 0) > (m.score?.away ?? 0) && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.home) && "text-[hsl(var(--gold))]")}>
                                     {m.home}
                                   </span>
                                   {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" title="라인업 확인됨" />}
                                 </div>
                                 <div className="flex items-center bg-black/40 rounded-lg px-2 py-1 border border-white/5 min-w-[50px] justify-center">
-                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.score.home}</span>
+                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.score?.home ?? 0}</span>
                                   <span className="text-muted-foreground/30 px-1 text-[10px]">:</span>
-                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.score.away}</span>
+                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.score?.away ?? 0}</span>
                                 </div>
                                 <div className="flex items-center gap-2 min-w-[120px] group/team">
                                   {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />}
-                                  <span className={cn("font-bold text-sm", m.score.away > m.score.home && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.away) && "text-[hsl(var(--gold))]")}>
+                                  <span className={cn("font-bold text-sm", (m.score?.away ?? 0) > (m.score?.home ?? 0) && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.away) && "text-[hsl(var(--gold))]")}>
                                     {m.away}
                                   </span>
                                   {/* Away Team Star */}
@@ -523,10 +526,10 @@ export default function OddsPage() {
                                       <span>변동</span>
                                     </div>
                                     {[
-                                      { label: "홈 (1)", start: (m.odds.h * 1.02).toFixed(2), current: m.odds.h.toFixed(2), trend: "down" },
-                                      { label: "무 (X)", start: (m.odds.d * 0.98).toFixed(2), current: m.odds.d.toFixed(2), trend: "up" },
-                                      { label: "패 (2)", start: (m.odds.a * 0.97).toFixed(2), current: m.odds.a.toFixed(2), trend: "up" },
-                                    ].map(o => (
+                                      { label: "홈 (1)", start: (m.odds?.h ? (m.odds.h * 1.02).toFixed(2) : "-"), current: m.odds?.h ? m.odds.h.toFixed(2) : "-", trend: "down", show: true },
+                                      { label: "무 (X)", start: (m.odds?.d ? (m.odds.d * 0.98).toFixed(2) : "-"), current: m.odds?.d ? m.odds.d.toFixed(2) : "-", trend: "up", show: (m.odds?.d || 0) > 0 },
+                                      { label: "패 (2)", start: (m.odds?.a ? (m.odds.a * 0.97).toFixed(2) : "-"), current: m.odds?.a ? m.odds.a.toFixed(2) : "-", trend: "up", show: true },
+                                    ].filter(o => o.show).map(o => (
                                       <div key={o.label} className="flex justify-between items-center text-[11px]">
                                         <span className="font-bold w-12">{o.label}</span>
                                         <span className="font-mono text-muted-foreground/60">{o.start}</span>
