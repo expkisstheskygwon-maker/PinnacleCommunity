@@ -34,18 +34,32 @@ export default function OddsPage() {
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketSearch, setMarketSearch] = useState("");
 
-  // ★ Favorites
+  // ★ Favorites (Matches)
   const [favorites, setFavorites] = useState<string[]>([]);
+  // ★ Favorite Teams
+  const [favTeams, setFavTeams] = useState<string[]>([]);
 
   // 배당률 노출 토글 (기본: 비노출)
   const [showOdds, setShowOdds] = useState(false);
 
-  // Load favorites from API on mount
+  // Load preferences from API on mount
   useEffect(() => {
+    // Favorites Matches
     fetch('/api/user/matches')
       .then(r => r.json())
       .then(data => {
         if (data.success) setFavorites(data.favorites || []);
+      })
+      .catch(() => {});
+    
+    // Favorite Teams
+    fetch('/api/user/interests')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          const teams = data.interests.filter((i: any) => i.category === 'team').map((i: any) => i.value);
+          setFavTeams(teams);
+        }
       })
       .catch(() => {});
   }, []);
@@ -73,6 +87,29 @@ export default function OddsPage() {
       console.error("Failed to update favorite", err);
       // Revert on failure
       setFavorites(prev => action === 'remove' ? [...prev, matchId] : prev.filter(id => id !== matchId));
+      alert(err.message || "로그인이 필요합니다.");
+    }
+  };
+
+  const toggleTeamFavorite = async (teamName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isFav = favTeams.includes(teamName);
+    const action = isFav ? 'remove' : 'add';
+
+    setFavTeams(prev => isFav ? prev.filter(t => t !== teamName) : [...prev, teamName]);
+
+    try {
+      const res = await fetch('/api/user/interests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: 'team', value: teamName, action }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+    } catch (err: any) {
+      setFavTeams(prev => action === 'remove' ? [...prev, teamName] : prev.filter(t => t !== teamName));
       alert(err.message || "로그인이 필요합니다.");
     }
   };
@@ -322,8 +359,20 @@ export default function OddsPage() {
                           <td className="px-3 py-4">
                             <div className="flex flex-col gap-2">
                               <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 min-w-[120px] justify-end">
-                                  <span className={cn("font-bold text-sm", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400")}>{m.home}</span>
+                                <div className="flex items-center gap-2 min-w-[120px] justify-end group/team">
+                                  {/* Home Team Star */}
+                                  <button
+                                    onClick={(e) => toggleTeamFavorite(m.home, e)}
+                                    className={cn(
+                                      "opacity-0 group-hover/team:opacity-100 transition-opacity p-0.5",
+                                      favTeams.includes(m.home) ? "opacity-100 text-[hsl(var(--gold))]" : "text-white/20 hover:text-white/40"
+                                    )}
+                                  >
+                                    <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.home) && "fill-current")} />
+                                  </button>
+                                  <span className={cn("font-bold text-sm", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.home) && "text-[hsl(var(--gold))]")}>
+                                    {m.home}
+                                  </span>
                                   {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" title="라인업 확인됨" />}
                                 </div>
                                 <div className="flex items-center bg-black/40 rounded-lg px-2 py-1 border border-white/5 min-w-[50px] justify-center">
@@ -331,9 +380,21 @@ export default function OddsPage() {
                                   <span className="text-muted-foreground/30 px-1 text-[10px]">:</span>
                                   <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.away}</span>
                                 </div>
-                                <div className="flex items-center gap-2 min-w-[120px]">
+                                <div className="flex items-center gap-2 min-w-[120px] group/team">
                                   {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />}
-                                  <span className={cn("font-bold text-sm", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400")}>{m.away}</span>
+                                  <span className={cn("font-bold text-sm", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.away) && "text-[hsl(var(--gold))]")}>
+                                    {m.away}
+                                  </span>
+                                  {/* Away Team Star */}
+                                  <button
+                                    onClick={(e) => toggleTeamFavorite(m.away, e)}
+                                    className={cn(
+                                      "opacity-0 group-hover/team:opacity-100 transition-opacity p-0.5",
+                                      favTeams.includes(m.away) ? "opacity-100 text-[hsl(var(--gold))]" : "text-white/20 hover:text-white/40"
+                                    )}
+                                  >
+                                    <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.away) && "fill-current")} />
+                                  </button>
                                 </div>
                               </div>
                               {showProView && (

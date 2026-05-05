@@ -15,6 +15,7 @@ interface MyPageTabsProps {
   profile: any;
   initialMatches: any[];
   initialFavorites: string[];
+  initialFavTeams: string[];
   initialNotifications: any[];
   initialPosts: any[];
 }
@@ -24,14 +25,20 @@ export default function MyPageTabs({
   profile,
   initialMatches,
   initialFavorites,
+  initialFavTeams,
   initialNotifications,
   initialPosts
 }: MyPageTabsProps) {
   const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications
   const [favorites, setFavorites] = useState<string[]>(initialFavorites);
+  const [favTeams, setFavTeams] = useState<string[]>(initialFavTeams);
   
-  // 즐겨찾기 필터링 로직
-  const favoriteMatches = initialMatches.filter(m => favorites.includes(m.id.toString()));
+  // 즐겨찾기 필터링 로직: 즐겨찾기한 경기 ID + 관심 팀이 포함된 경기
+  const favoriteMatches = initialMatches.filter(m => {
+    const isFavMatch = favorites.includes(m.id.toString());
+    const hasFavTeam = favTeams.includes(m.home) || favTeams.includes(m.away);
+    return isFavMatch || hasFavTeam;
+  });
 
   const MENU_ITEMS = [
     { id: "overview", label: "마이페이지 홈", icon: Shield, count: 0 },
@@ -122,8 +129,11 @@ export default function MyPageTabs({
                     </div>
                     <div className="flex items-center justify-between px-2">
                       <div className="text-center flex-1">
-                        <p className="font-black text-base group-hover:text-primary transition-colors">{match.home}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">HOME</p>
+                        <p className={cn("font-black text-base group-hover:text-primary transition-colors flex items-center justify-center gap-1", favTeams.includes(match.home) && "text-[hsl(var(--gold))]")}>
+                          {favTeams.includes(match.home) && <Star className="w-3 h-3 fill-current" />}
+                          {match.home}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1 uppercase">Home</p>
                       </div>
                       <div className="px-4 text-center">
                         <div className="bg-black/40 rounded-xl px-3 py-1.5 border border-white/5 font-mono text-xl font-black text-red-500 shadow-inner">
@@ -132,8 +142,11 @@ export default function MyPageTabs({
                         <span className="text-[10px] text-muted-foreground/40 mt-1 block uppercase font-bold tracking-widest">{match.status}</span>
                       </div>
                       <div className="text-center flex-1">
-                        <p className="font-black text-base group-hover:text-primary transition-colors">{match.away}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">AWAY</p>
+                        <p className={cn("font-black text-base group-hover:text-primary transition-colors flex items-center justify-center gap-1", favTeams.includes(match.away) && "text-[hsl(var(--gold))]")}>
+                          {match.away}
+                          {favTeams.includes(match.away) && <Star className="w-3 h-3 fill-current" />}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1 uppercase">Away</p>
                       </div>
                     </div>
                     <div className="mt-5 pt-4 border-t border-white/[0.04] flex items-center justify-between text-[10px] text-muted-foreground/60 font-medium">

@@ -48,12 +48,14 @@ export default async function MyPage() {
     .bind(user.id, user.id)
     .first();
 
-  // 3. Fetch Favorites (Match IDs)
-  const favResults = await db
-    .prepare("SELECT matchId FROM user_favorites WHERE userId = ?")
-    .bind(user.id)
-    .all();
+  // 3. Fetch Favorites (Match IDs) & Favorite Teams (Interests)
+  const [favResults, interestResults] = await Promise.all([
+    db.prepare("SELECT matchId FROM user_favorites WHERE userId = ?").bind(user.id).all(),
+    db.prepare("SELECT value FROM user_interests WHERE userId = ? AND category = 'team'").bind(user.id).all()
+  ]);
+
   const favoriteIds = favResults.results.map((r: any) => r.matchId.toString());
+  const favoriteTeams = interestResults.results.map((r: any) => r.value);
 
   // 4. Fetch Real Notifications
   const notifResults = await db
@@ -100,6 +102,7 @@ export default async function MyPage() {
           profile={USER_PROFILE}
           initialMatches={todayMatches}
           initialFavorites={favoriteIds}
+          initialFavTeams={favoriteTeams}
           initialNotifications={notifResults.results}
           initialPosts={postResults.results}
         />
