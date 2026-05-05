@@ -5,7 +5,8 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
   const apiKey = providedApiKey || process.env.APISPORTS_KEY;
   if (!apiKey) throw new Error('APISPORTS_KEY is missing');
 
-  const today = new Date().toISOString().split('T')[0];
+  // 한국 시간(KST, UTC+9) 기준으로 오늘 날짜 계산
+  const today = new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
   let host = '';
   let endpoint = '';
 
@@ -13,19 +14,19 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
     case 'soccer':
     case 'all':
       host = 'v3.football.api-sports.io';
-      endpoint = `/fixtures?date=${today}&timezone=Asia/Seoul`;
+      endpoint = `/fixtures?date=${today}`;
       break;
     case 'baseball':
       host = 'v1.baseball.api-sports.io';
-      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
+      endpoint = `/games?date=${today}`;
       break;
     case 'basketball':
       host = 'v1.basketball.api-sports.io';
-      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
+      endpoint = `/games?date=${today}`;
       break;
     default:
       host = `v1.${sport}.api-sports.io`;
-      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
+      endpoint = `/games?date=${today}`;
   }
 
   const url = `https://${host}${endpoint}`;
@@ -56,7 +57,7 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
   let oddsMap: Record<number, any> = {};
   
   try {
-    const oddsUrl = `https://${host}/odds?date=${today}&timezone=Asia/Seoul`;
+    const oddsUrl = `https://${host}/odds?date=${today}`;
     const oddsRes = await fetch(oddsUrl, {
       method: 'GET',
       headers: { 'x-apisports-key': apiKey },
@@ -111,6 +112,7 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
 
     return {
       id: fixtureId,
+      sport: sport,
       home: teams?.home?.name || 'Unknown',
       away: teams?.away?.name || 'Unknown',
       league: league?.name || 'Unknown League',

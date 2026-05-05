@@ -137,7 +137,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchMatches = async () => {
       try {
-        const res = await fetch("/api/sports/matches?sport=soccer");
+        const res = await fetch(`/api/sports/matches?sport=soccer&t=${Date.now()}`);
         const data = await res.json();
         if (data.matches) setMatches(data.matches);
       } catch (err) {
