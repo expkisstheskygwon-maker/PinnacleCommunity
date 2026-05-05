@@ -165,7 +165,7 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
   }
 
   // 3. 통합 매핑 로직
-  return fixtureData.map((item: any) => {
+  const matches = fixtureData.map((item: any) => {
     if (!item) return null;
     const fixture = item.fixture || item;
     const league = item.league || {};
