@@ -238,13 +238,26 @@ export default function HomePage() {
     }));
 
     try {
-      await fetch("/api/user/matches", {
+      const res = await fetch("/api/user/matches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ matchId, type, action })
       });
-    } catch (err) {
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "저장에 실패했습니다.");
+      }
+    } catch (err: any) {
       console.error("Failed to update preference", err);
+      // Revert optimistic update on failure
+      setUserPrefs(prev => ({
+        ...prev,
+        [type === 'favorite' ? 'favorites' : 'bets']: action === 'remove' 
+          ? [...prev[type === 'favorite' ? 'favorites' : 'bets'], matchId.toString()]
+          : prev[type === 'favorite' ? 'favorites' : 'bets'].filter(id => id !== matchId.toString())
+      }));
+      alert(err.message || "로그인이 필요하거나 서버 오류가 발생했습니다.");
     }
   };
   return (

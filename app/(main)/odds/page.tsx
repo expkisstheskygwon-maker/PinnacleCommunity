@@ -54,14 +54,27 @@ export default function OddsPage() {
     e.stopPropagation();
     const isFav = favorites.includes(matchId);
     const action = isFav ? 'remove' : 'add';
+
+    // Optimistic UI update
     setFavorites(prev => isFav ? prev.filter(id => id !== matchId) : [...prev, matchId]);
+
     try {
-      await fetch('/api/user/matches', {
+      const res = await fetch('/api/user/matches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matchId, type: 'favorite', action }),
       });
-    } catch {}
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "저장에 실패했습니다.");
+      }
+    } catch (err: any) {
+      console.error("Failed to update favorite", err);
+      // Revert on failure
+      setFavorites(prev => action === 'remove' ? [...prev, matchId] : prev.filter(id => id !== matchId));
+      alert(err.message || "로그인이 필요합니다.");
+    }
   };
 
   const handleOpenMarkets = async (match: any) => {
