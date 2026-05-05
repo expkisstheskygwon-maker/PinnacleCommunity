@@ -67,18 +67,11 @@ export default async function MyPage() {
     .bind(user.id)
     .all();
 
-  // 6. Fetch Today's Matches (to match with favorites)
+  // 6. Fetch Today's Matches using internal utility (No more self-fetch via URL)
   let todayMatches = [];
   try {
-    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
-    const host = process.env.NEXT_PUBLIC_VERCEL_URL || 'localhost:3000';
-    const res = await fetch(`${protocol}://${host}/api/sports/matches?sport=soccer`, {
-      next: { revalidate: 60 }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      todayMatches = data.matches || [];
-    }
+    const { getTodayMatches } = await import("@/lib/sports");
+    todayMatches = await getTodayMatches('soccer');
   } catch (e) {
     console.error("Failed to fetch matches for mypage", e);
   }
