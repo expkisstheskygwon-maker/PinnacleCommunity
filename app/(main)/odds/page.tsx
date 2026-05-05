@@ -564,12 +564,17 @@ export default function OddsPage() {
               </table>
             </div>
           )}
+            </div>
+          )}
           <div className="px-5 py-3 border-t border-white/[0.04] bg-white/[0.02] text-[10px] text-muted-foreground">
             배당은 Pinnacle 기준 참고용 데이터입니다. 실시간 변동될 수 있으며, 실제 배당은 Pinnacle 공식 사이트에서 확인하세요.
           </div>
         </div>
       </div>
-      {/* Full Markets Modal */}
+    </div>
+  </div>
+
+  {/* Full Markets Modal */}
       {selectedMatch && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 overflow-hidden">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectedMatch(null)} />
@@ -626,7 +631,7 @@ export default function OddsPage() {
 
                   {/* Market Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {marketData
+                    {markets
                       .filter(m => m.name.toLowerCase().includes(marketSearch.toLowerCase()))
                       .map((market, idx) => (
                         <div key={idx} className="glass-card rounded-[24px] overflow-hidden border border-white/[0.04] bg-white/[0.02] hover:border-white/[0.08] transition-colors">
@@ -648,7 +653,7 @@ export default function OddsPage() {
                       ))}
                   </div>
 
-                  {marketData.length === 0 && (
+                  {markets.length === 0 && (
                     <div className="text-center py-20">
                       <AlertCircle className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
                       <p className="text-muted-foreground font-medium">검색 결과와 일치하는 마켓이 없습니다.</p>
@@ -674,6 +679,6 @@ export default function OddsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
