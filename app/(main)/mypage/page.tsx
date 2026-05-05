@@ -74,11 +74,11 @@ export default async function MyPage() {
   };
 
   const MENU_ITEMS = [
-    { id: "posts", label: "내 글/댓글", icon: FileText, count: USER_PROFILE.postCount + USER_PROFILE.commentCount },
-    { id: "matches", label: "관심 경기", icon: Star, count: WATCHED_MATCHES.length },
-    { id: "notifications", label: "알림 설정", icon: Bell, count: MY_NOTIFICATIONS.filter(n => !n.read).length },
-    { id: "reports", label: "신고 내역", icon: Shield, count: 0 },
-    { id: "activity", label: "활동 점수", icon: Award, count: USER_PROFILE.score },
+    { id: "posts", label: "내 글/댓글", icon: FileText, count: USER_PROFILE.postCount + USER_PROFILE.commentCount, href: "/community" },
+    { id: "matches", label: "관심 경기", icon: Star, count: WATCHED_MATCHES.length, href: "/odds" },
+    { id: "notifications", label: "알림 서랍", icon: Bell, count: MY_NOTIFICATIONS.filter(n => !n.read).length, href: "/mypage/notifications" },
+    { id: "reports", label: "신고 내역", icon: Shield, count: 0, href: "#" },
+    { id: "activity", label: "활동 점수", icon: Award, count: USER_PROFILE.score, href: "#" },
   ];
 
   return (
@@ -99,7 +99,7 @@ export default async function MyPage() {
             {/* Menu */}
             <div className="glass-card rounded-2xl overflow-hidden">
               {MENU_ITEMS.map((item, idx) => (
-                <button key={item.id} className={cn(
+                <Link key={item.id} href={item.href} className={cn(
                   "w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.03] transition-colors",
                   idx < MENU_ITEMS.length - 1 && "border-b border-white/[0.04]"
                 )}>
@@ -115,7 +115,7 @@ export default async function MyPage() {
                     )}
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </div>
-                </button>
+                </Link>
               ))}
             </div>
           </div>
@@ -132,6 +132,10 @@ export default async function MyPage() {
                 <span className="badge-primary">
                   {MY_NOTIFICATIONS.filter(n => !n.read).length} 새 알림
                 </span>
+                <div className="flex-1" />
+                <Link href="/mypage/notifications" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+                  전체보기 <ChevronRight className="w-3 h-3" />
+                </Link>
               </div>
               <div className="space-y-2">
                 {MY_NOTIFICATIONS.map(notif => (

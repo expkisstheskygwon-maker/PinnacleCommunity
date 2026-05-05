@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import NotificationBell from '@/components/NotificationBell';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,17 +17,7 @@ export default async function RootLayout({
   return (
     <html lang="ko" className="dark">
       <body className={`${inter.className} min-h-screen flex flex-col`}>
-        {/* Header with navigation and notification bell */}
-        <header className="flex items-center justify-between px-4 py-3 bg-black/30 backdrop-blur-md sticky top-0 z-10">
-          <a href="/" className="text-xl font-black text-primary">Pinnacle Community</a>
-          <div className="flex items-center gap-4">
-            {/* Future navigation items can be added here */}
-            <NotificationBell />
-          </div>
-        </header>
-        <main className="flex-1">
-          {children}
-        </main>
+        {children}
       </body>
     </html>
   );

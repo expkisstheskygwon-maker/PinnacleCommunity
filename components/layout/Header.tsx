@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import NotificationBell from "@/components/NotificationBell";
 
 interface SubItem {
   href: string;
@@ -236,6 +237,9 @@ export default function Header({ user }: HeaderProps) {
 
             {/* Right actions */}
             <div className="flex items-center gap-2 shrink-0">
+              {/* Notification Bell */}
+              <NotificationBell />
+
               <button
                 onClick={() => setLang(prev => prev === "ko" ? "en" : "ko")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-xs font-bold"

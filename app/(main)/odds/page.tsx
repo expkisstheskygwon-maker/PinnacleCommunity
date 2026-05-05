@@ -6,12 +6,13 @@ import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
   ChevronDown, Filter, Star, Zap, Gamepad2, Trophy,
   ChevronRight, Info, Users, History, TrendingUp as Up, TrendingDown as Down,
-  MapPin, User, Clock, AlertCircle, X, Search
+  MapPin, User, Clock, AlertCircle, X, Search, Eye, EyeOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = [
   { id: "all", label: "전체", icon: Activity },
+  { id: "favorites", label: "⭐ 즐겨찾기", icon: Star },
   { id: "soccer", label: "축구", icon: Swords },
   { id: "baseball", label: "야구", icon: Trophy },
   { id: "basketball", label: "농구", icon: Activity },
@@ -32,6 +33,36 @@ export default function OddsPage() {
   const [marketData, setMarketData] = useState<any[]>([]);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketSearch, setMarketSearch] = useState("");
+
+  // ★ Favorites
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  // 배당률 노출 토글 (기본: 비노출)
+  const [showOdds, setShowOdds] = useState(false);
+
+  // Load favorites from API on mount
+  useEffect(() => {
+    fetch('/api/user/matches')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) setFavorites(data.favorites || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggleFavorite = async (matchId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isFav = favorites.includes(matchId);
+    const action = isFav ? 'remove' : 'add';
+    setFavorites(prev => isFav ? prev.filter(id => id !== matchId) : [...prev, matchId]);
+    try {
+      await fetch('/api/user/matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, type: 'favorite', action }),
+      });
+    } catch {}
+  };
 
   const handleOpenMarkets = async (match: any) => {
     setSelectedMatch(match);
@@ -75,18 +106,26 @@ export default function OddsPage() {
     }
   };
 
-  // 카테고리 변경 시 데이터 호출
+  // 카테고리 변경 시 데이터 호출 (즐겨찾기일 때는 새로 호출하지 않음)
   useEffect(() => {
-    fetchMatches(activeCat);
+    if (activeCat !== 'favorites') {
+      fetchMatches(activeCat);
+    }
   }, [activeCat]);
 
-  const filtered = [...matches].sort((a, b) => {
-    if (a.live && !b.live) return -1;
-    if (!a.live && b.live) return 1;
-    if (a.finished && !b.finished) return -1;
-    if (!a.finished && b.finished) return 1;
-    return 0;
-  });
+  const filtered = [...matches]
+    .filter(m => activeCat !== 'favorites' || favorites.includes(m.id.toString()))
+    .sort((a, b) => {
+      // Favorites first
+      const aFav = favorites.includes(a.id.toString()) ? 1 : 0;
+      const bFav = favorites.includes(b.id.toString()) ? 1 : 0;
+      if (aFav !== bFav) return bFav - aFav;
+      if (a.live && !b.live) return -1;
+      if (!a.live && b.live) return 1;
+      if (a.finished && !b.finished) return -1;
+      if (!a.finished && b.finished) return 1;
+      return 0;
+    });
   const liveCount = matches.filter(m => m.live).length;
 
   return (
@@ -105,6 +144,19 @@ export default function OddsPage() {
               <p className="text-muted-foreground mt-1">실시간 배당률과 경기 일정을 확인하세요</p>
             </div>
             <div className="flex items-center gap-3">
+              {/* 배당률 표시 토글 */}
+              <button
+                onClick={() => setShowOdds(!showOdds)}
+                className={cn(
+                  "btn-outline text-xs py-2 px-4 flex items-center gap-2 transition-all duration-300",
+                  showOdds
+                    ? "bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30 shadow-[0_0_20px_rgba(234,179,8,0.2)]"
+                    : "hover:bg-white/5"
+                )}
+              >
+                {showOdds ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                {showOdds ? "배당률 ON" : "배당률 OFF"}
+              </button>
               <button
                 onClick={() => setShowProView(!showProView)}
                 className={cn(
@@ -229,14 +281,29 @@ export default function OddsPage() {
                           )}
                         >
                           <td className="px-5 py-4">
-                            <div className="flex flex-col gap-1.5">
-                              <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">{m.league}</span>
-                              {showProView && (
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="w-2.5 h-2.5 text-muted-foreground/40" />
-                                  <span className="text-[9px] text-muted-foreground/40 font-medium">Stadion Arena</span>
-                                </div>
-                              )}
+                            <div className="flex items-center gap-2">
+                              {/* ★ Favorite Star */}
+                              <button
+                                onClick={(e) => toggleFavorite(m.id.toString(), e)}
+                                className={cn(
+                                  "p-1 rounded-lg transition-all shrink-0",
+                                  favorites.includes(m.id.toString())
+                                    ? "text-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/10"
+                                    : "text-muted-foreground/30 hover:text-[hsl(var(--gold))]/60 hover:bg-white/5"
+                                )}
+                                title={favorites.includes(m.id.toString()) ? "즐겨찾기 해제" : "즐겨찾기 등록"}
+                              >
+                                <Star className={cn("w-3.5 h-3.5", favorites.includes(m.id.toString()) && "fill-current")} />
+                              </button>
+                              <div className="flex flex-col gap-1.5">
+                                <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">{m.league}</span>
+                                {showProView && (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="w-2.5 h-2.5 text-muted-foreground/40" />
+                                    <span className="text-[9px] text-muted-foreground/40 font-medium">Stadion Arena</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-3 py-4">
@@ -265,7 +332,7 @@ export default function OddsPage() {
                             </div>
                           </td>
                           <td className="text-center px-3 py-4">
-                            <div className="flex flex-col items-center gap-0.5">
+                            <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
                               <span className={cn("font-mono text-xs font-bold", diff < 0 ? "text-red-400" : diff > 0 ? "text-emerald-400" : "text-foreground")}>
                                 {m.odds.h > 0 ? m.odds.h.toFixed(2) : "-"}
                               </span>
@@ -276,7 +343,7 @@ export default function OddsPage() {
                           </td>
                           {filtered.some(m2 => m2.odds.d > 0) && (
                             <td className="text-center px-3 py-4">
-                              <div className="flex flex-col items-center gap-0.5">
+                              <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
                                 <span className="font-mono text-xs text-muted-foreground">{m.odds.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
                                 {showProView && m.odds.d > 0 && (
                                   <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.d * 0.98).toFixed(2)}</span>
@@ -285,7 +352,7 @@ export default function OddsPage() {
                             </td>
                           )}
                           <td className="text-center px-3 py-4">
-                            <div className="flex flex-col items-center gap-0.5">
+                            <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
                               <span className="font-mono text-xs text-foreground font-bold">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
                               {showProView && m.odds.a > 0 && (
                                 <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.a * 0.97).toFixed(2)}</span>
