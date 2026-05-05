@@ -177,12 +177,15 @@ export default function HomePage() {
 
   // Personalized Sorting and Filtering
   const processedMatches = useMemo(() => {
-    let list = [...matches].map(m => ({
-      ...m,
-      isFavorite: userPrefs.favorites.includes(m.id.toString()),
-      isBet: userPrefs.bets.includes(m.id.toString()),
-      interestScore: 0
-    }));
+    let list = [...(matches || [])].map(m => {
+      if (!m || !m.id) return null;
+      return {
+        ...m,
+        isFavorite: (userPrefs?.favorites || []).includes(m.id.toString()),
+        isBet: (userPrefs?.bets || []).includes(m.id.toString()),
+        interestScore: 0
+      };
+    }).filter(Boolean) as any[];
 
     // Calculate interest score
     list.forEach(m => {
