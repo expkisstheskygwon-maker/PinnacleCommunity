@@ -14,8 +14,11 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
     return cache[cacheKey].data;
   }
 
-  const apiKey = providedApiKey || process.env.APISPORTS_KEY;
+  const { env } = getCloudflareContext();
+  const apiKey = providedApiKey || (env as any).APISPORTS_KEY;
   if (!apiKey) throw new Error('APISPORTS_KEY is missing');
+
+  const sportdbKey = (env as any).SPORTDB_API_KEY;
 
   // 'all'인 경우 여러 종목을 재귀적으로 호출하여 병합
   if (sport === 'all') {
@@ -94,9 +97,8 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
     } else {
       console.log('Soccer live empty, trying SportDB.dev (Flashscore) fallback...');
       try {
-        const flashMatches = await getFlashscoreMatches(apiKey);
+        const flashMatches = await getFlashscoreMatches(sportdbKey);
         if (flashMatches && flashMatches.length > 0) {
-          // Flashscore 데이터를 기존 형식으로 변환하여 반환
           return flashMatches;
         }
       } catch (e) {
@@ -205,9 +207,11 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
 }
 
 // SportDB.dev (Flashscore) API 통합
-async function getFlashscoreMatches(apiSportsKey: string) {
-  const sportdbKey = process.env.SPORTDB_API_KEY;
-  if (!sportdbKey) return null;
+async function getFlashscoreMatches(sportdbKey: string | undefined) {
+  if (!sportdbKey) {
+    console.warn('[Flashscore] SPORTDB_API_KEY is missing');
+    return null;
+  }
 
   try {
     const res = await fetch("https://api.sportdb.dev/api/flashscore/football", {
@@ -218,27 +222,31 @@ async function getFlashscoreMatches(apiSportsKey: string) {
     // Flashscore API 응답을 우리 시스템 표준 형식으로 변환
     if (data && Array.isArray(data)) {
       return data.map((m: any) => {
-        // 다양한 API 필드명 대응 (home_name, homeTeam, t1_name 등)
-        const homeName = m.home_name || m.home_team?.name || m.homeTeam || m.t1_name || m.home || 'Unknown Team';
-        const awayName = m.away_name || m.away_team?.name || m.awayTeam || m.t2_name || m.away || 'Unknown Team';
-        const leagueName = m.league_name || m.league?.name || m.leagueName || m.event_league || 'Flashscore League';
+        // 더 광범위한 필드 매핑 (Flashscore 실제 데이터 대응)
+        const home = m.home_team || m.participant1 || m.t1 || {};
+        const away = m.away_team || m.participant2 || m.t2 || {};
+        const league = m.league || m.event_league || {};
+
+        const homeName = home.name || m.home_name || m.homeTeam || m.t1_name || 'Unknown Team';
+        const awayName = away.name || m.away_name || m.awayTeam || m.t2_name || 'Unknown Team';
+        const leagueName = league.name || m.league_name || m.leagueName || 'Flashscore League';
         
         return {
           id: `flash-${m.id || Math.random()}`,
           sport: 'soccer',
           home: homeName,
           away: awayName,
-          homeLogo: m.home_team?.logo || m.t1_logo || '',
-          awayLogo: m.away_team?.logo || m.t2_logo || '',
+          homeLogo: home.logo || m.t1_logo || '',
+          awayLogo: away.logo || m.t2_logo || '',
           league: leagueName,
-          leagueId: m.league?.id || m.league_id || 0,
-          leagueLogo: m.league?.logo || '',
+          leagueId: league.id || m.league_id || 0,
+          leagueLogo: league.logo || '',
           date: m.start_time || m.event_date || '',
-          live: m.status === 'LIVE' || m.status === 'IN_PROGRESS' || m.is_live,
+          live: m.status === 'LIVE' || m.status === 'IN_PROGRESS' || m.is_live || !!m.score_home,
           finished: m.status === 'FINISHED' || m.is_finished,
           score: {
-            home: m.home_score ?? m.home_goal ?? 0,
-            away: m.away_score ?? m.away_goal ?? 0
+            home: m.home_score ?? m.home_goal ?? m.score_home ?? 0,
+            away: m.away_score ?? m.away_goal ?? m.score_away ?? 0
           },
           odds: null,
           statusText: m.status_name || m.status || 'Scheduled',
