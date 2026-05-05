@@ -260,7 +260,7 @@ export default function OddsPage() {
                 <Activity className="w-6 h-6 text-red-500" />
               </div>
               <p className="text-red-400 font-bold">데이터를 불러오지 못했습니다.</p>
-              <button onClick={() => fetchMatches(activeCat)} className="btn-primary py-2 px-6 text-xs">다시 시도</button>
+              <button onClick={() => fetchMatches()} className="btn-primary py-2 px-6 text-xs">다시 시도</button>
             </div>
           ) : matches.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-20 space-y-4 text-muted-foreground">
