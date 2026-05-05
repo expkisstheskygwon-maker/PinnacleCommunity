@@ -77,6 +77,7 @@ export default function OddsPage() {
   };
 
   useEffect(() => {
+    setMatches([]); // 종목 변경 시 기존 데이터 초기화
     fetchMatches();
   }, [sport]);
 

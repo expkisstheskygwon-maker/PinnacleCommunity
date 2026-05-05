@@ -1,7 +1,8 @@
 // lib/sports.ts
 // API-Sports 공통 로직 분리
 
-export async function getTodayMatches(sport: string = 'soccer', providedApiKey?: string) {
+export async function getTodayMatches(sportInput: string = 'soccer', providedApiKey?: string) {
+  const sport = sportInput.toLowerCase();
   const apiKey = providedApiKey || process.env.APISPORTS_KEY;
   if (!apiKey) throw new Error('APISPORTS_KEY is missing');
 
@@ -57,14 +58,14 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
     }
   }
 
-  if (!res.ok && !data.response) throw new Error(`API 서버 응답 오류 (${res.status}): ${host}`);
+  if (!res.ok && !data.response) throw new Error(`API 서버 응답 오류 (${res.status}) [${sport}]: ${host}`);
   
   // API-level error check
   if (data.errors && Object.keys(data.errors).length > 0) {
     const errorMsg = typeof data.errors === 'string' ? data.errors : JSON.stringify(data.errors);
     console.warn(`API-Sports Warning (${sport}):`, errorMsg);
     if (!data.response || data.response.length === 0) {
-      throw new Error(`API 오류: ${errorMsg}`);
+      throw new Error(`[${sport}] API 데이터 오류: ${errorMsg}`);
     }
   }
 
