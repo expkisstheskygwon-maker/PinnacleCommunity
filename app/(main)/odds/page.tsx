@@ -101,7 +101,9 @@ export default function OddsPage() {
         if (aFav !== bFav) return bFav - aFav;
         if (a.live && !b.live) return -1;
         if (!a.live && b.live) return 1;
-        return 0;
+        
+        // Stable fallback by ID
+        return a.id.localeCompare(b.id);
       });
   }, [matches, selectedLeagueId, searchTerm, favorites]);
 
@@ -334,7 +336,7 @@ export default function OddsPage() {
                     const isExpanded = expandedMatches[m.id] || showProView;
 
                     return (
-                      <>
+                      <React.Fragment key={m.id}>
                         <tr 
                           key={m.id} 
                           onClick={() => setExpandedMatches(prev => ({ ...prev, [m.id]: !prev[m.id] }))}
@@ -508,8 +510,18 @@ export default function OddsPage() {
                                           <span>{stat.away}{stat.suffix || ""}</span>
                                         </div>
                                         <div className="h-1 bg-white/5 rounded-full overflow-hidden flex">
-                                          <div className="h-full bg-blue-500/60" style={{ width: `${(stat.home / (stat.home + stat.away)) * 100}%` }} />
-                                          <div className="h-full bg-emerald-500/60" style={{ width: `${(stat.away / (stat.home + stat.away)) * 100}%` }} />
+                                          {(() => {
+                                            const total = stat.home + stat.away;
+                                            if (total === 0) return <div className="h-full bg-white/10 w-full" />;
+                                            const homeWidth = (stat.home / total) * 100;
+                                            const awayWidth = (stat.away / total) * 100;
+                                            return (
+                                              <>
+                                                <div className="h-full bg-blue-500/60" style={{ width: `${homeWidth}%` }} />
+                                                <div className="h-full bg-emerald-500/60" style={{ width: `${awayWidth}%` }} />
+                                              </>
+                                            );
+                                          })()}
                                         </div>
                                       </div>
                                     ))}
@@ -582,7 +594,7 @@ export default function OddsPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
