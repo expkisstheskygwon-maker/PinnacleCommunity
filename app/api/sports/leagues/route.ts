@@ -1,10 +1,11 @@
-// app/api/sports/leagues/route.ts
 import { NextResponse } from 'next/server';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get('sport') || 'soccer';
-  const apiKey = process.env.APISPORTS_KEY;
+  const { env } = getCloudflareContext();
+  const apiKey = (env as any).APISPORTS_KEY || process.env.APISPORTS_KEY;
 
   if (!apiKey) return NextResponse.json({ error: 'API Key missing' }, { status: 500 });
 
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   switch (sport) {
     case 'soccer': host = 'v3.football.api-sports.io'; break;
     case 'baseball': host = 'v1.baseball.api-sports.io'; break;
-    case 'basketball': host = 'v2.nba.api-sports.io'; break;
+    case 'basketball': host = 'v1.basketball.api-sports.io'; break;
     default: host = `v1.${sport}.api-sports.io`;
   }
 

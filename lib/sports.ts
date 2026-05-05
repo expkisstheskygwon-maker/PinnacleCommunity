@@ -20,7 +20,7 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
       endpoint = `/games?date=${today}`;
       break;
     case 'basketball':
-      host = 'v2.nba.api-sports.io';
+      host = 'v1.basketball.api-sports.io';
       endpoint = `/games?date=${today}`;
       break;
     default:
@@ -86,14 +86,14 @@ export async function getTodayMatches(sport: string = 'soccer', providedApiKey?:
 
     return {
       id: fixture.id,
-      home: teams.home.name,
-      away: teams.away.name,
-      league: league.name,
-      leagueId: league.id, // 리그 필터링을 위해 ID 추가
-      status: status.long || status.short,
-      statusCode: status.short,
+      home: teams?.home?.name || 'Unknown',
+      away: teams?.away?.name || 'Unknown',
+      league: league?.name || 'Unknown League',
+      leagueId: league?.id || 0,
+      status: status?.long || status?.short || 'Unknown',
+      statusCode: status?.short || 'NS',
       time: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS'].includes(status.short?.toUpperCase()),
+      live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS'].includes(status?.short?.toUpperCase()),
       scores: { home: homeScore, away: awayScore },
       odds: matchOdds
     };
