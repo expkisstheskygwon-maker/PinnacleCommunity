@@ -20,7 +20,7 @@ const CATEGORIES = [
 ];
 
 export default function OddsPage() {
-  const [sport, setSport] = useState('soccer');
+  const [sport, setSport] = useState('all');
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

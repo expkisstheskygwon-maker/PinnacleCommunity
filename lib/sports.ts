@@ -6,6 +6,24 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
   const apiKey = providedApiKey || process.env.APISPORTS_KEY;
   if (!apiKey) throw new Error('APISPORTS_KEY is missing');
 
+  // 'all'인 경우 여러 종목을 재귀적으로 호출하여 병합
+  if (sport === 'all') {
+    const sportsToFetch = ['soccer', 'baseball', 'basketball'];
+    const results = await Promise.allSettled(
+      sportsToFetch.map(s => getTodayMatches(s, apiKey))
+    );
+    
+    let allMatches: any[] = [];
+    results.forEach((res, idx) => {
+      if (res.status === 'fulfilled') {
+        allMatches = [...allMatches, ...res.value];
+      } else {
+        console.error(`Failed to fetch ${sportsToFetch[idx]}:`, res.reason);
+      }
+    });
+    return allMatches;
+  }
+
   // 한국 시간(KST, UTC+9) 기준으로 오늘 날짜 계산
   const today = new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
   let host = '';
@@ -13,7 +31,6 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
 
   switch (sport) {
     case 'soccer':
-    case 'all':
       host = 'v3.football.api-sports.io';
       endpoint = `/fixtures?date=${today}`;
       break;
