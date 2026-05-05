@@ -138,7 +138,7 @@ export default function HomePage() {
     const fetchMatches = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/sports/matches?sport=soccer&t=${Date.now()}`);
+        const res = await fetch(`/api/sports/matches?sport=all&t=${Date.now()}`);
         const data = await res.json();
         if (data.matches) {
           setMatches(data.matches);

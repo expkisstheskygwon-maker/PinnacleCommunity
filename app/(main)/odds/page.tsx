@@ -286,7 +286,7 @@ export default function OddsPage() {
                     <th className="text-left px-5 py-4 font-bold">리그</th>
                     <th className="text-left px-3 py-4 font-bold">경기 현황</th>
                     <th className="text-center px-3 py-4 font-bold">승 (1)</th>
-                    {filteredMatches.some(m => m.odds.d > 0) && <th className="text-center px-3 py-4 font-bold">무 (X)</th>}
+                    {filteredMatches.some(m => (m.odds?.d || 0) > 0) && <th className="text-center px-3 py-4 font-bold">무 (X)</th>}
                     <th className="text-center px-3 py-4 font-bold">패 (2)</th>
                     <th className="text-center px-3 py-4 font-bold">결과</th>
                     <th className="text-center px-3 py-4 font-bold hidden md:table-cell">핸디캡</th>
@@ -303,10 +303,10 @@ export default function OddsPage() {
                     let resultColor = "text-muted-foreground";
                     
                     if (m.finished || m.live) {
-                      if (m.scores.home > m.scores.away) {
+                      if (m.score.home > m.score.away) {
                         resultText = "홈승";
                         resultColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-                      } else if (m.scores.home < m.scores.away) {
+                      } else if (m.score.home < m.score.away) {
                         resultText = "원정승";
                         resultColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
                       } else {
@@ -355,7 +355,7 @@ export default function OddsPage() {
                               <div className="flex flex-col gap-1.5">
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">
-                                    {m.sport === 'soccer' ? '⚽' : m.sport === 'baseball' ? '⚾' : m.sport === 'basketball' ? '🏀' : '🌐'} {m.league}
+                                    {m.sport === 'soccer' ? '⚽' : m.sport === 'baseball' ? '⚾' : m.sport === 'basketball' ? '🏀' : m.sport === 'tennis' ? '🎾' : m.sport === 'esports' ? '🎮' : '🌐'} {m.league}
                                   </span>
                                 </div>
                                 {showProView && (
@@ -381,19 +381,19 @@ export default function OddsPage() {
                                   >
                                     <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.home) && "fill-current")} />
                                   </button>
-                                  <span className={cn("font-bold text-sm", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.home) && "text-[hsl(var(--gold))]")}>
+                                  <span className={cn("font-bold text-sm", m.score.home > m.score.away && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.home) && "text-[hsl(var(--gold))]")}>
                                     {m.home}
                                   </span>
                                   {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" title="라인업 확인됨" />}
                                 </div>
                                 <div className="flex items-center bg-black/40 rounded-lg px-2 py-1 border border-white/5 min-w-[50px] justify-center">
-                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.home}</span>
+                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.score.home}</span>
                                   <span className="text-muted-foreground/30 px-1 text-[10px]">:</span>
-                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.away}</span>
+                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.score.away}</span>
                                 </div>
                                 <div className="flex items-center gap-2 min-w-[120px] group/team">
                                   {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />}
-                                  <span className={cn("font-bold text-sm", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.away) && "text-[hsl(var(--gold))]")}>
+                                  <span className={cn("font-bold text-sm", m.score.away > m.score.home && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.away) && "text-[hsl(var(--gold))]")}>
                                     {m.away}
                                   </span>
                                   {/* Away Team Star */}
@@ -426,7 +426,7 @@ export default function OddsPage() {
                               )}
                             </div>
                           </td>
-                          {sortedMatches.some(m2 => (m2.odds?.d || 0) > 0) && (
+                          {filteredMatches.some(m2 => (m2.odds?.d || 0) > 0) && (
                             <td className="text-center px-3 py-4">
                               <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
                                 <span className="font-mono text-xs text-muted-foreground">{m.odds?.d ? m.odds.d.toFixed(2) : "-"}</span>

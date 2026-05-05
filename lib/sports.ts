@@ -7,7 +7,7 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
 
   // 'all'인 경우 여러 종목을 재귀적으로 호출하여 병합
   if (sport === 'all') {
-    const sportsToFetch = ['soccer', 'baseball', 'basketball'];
+    const sportsToFetch = ['soccer', 'baseball', 'basketball', 'tennis', 'esports'];
     const results = await Promise.allSettled(
       sportsToFetch.map(s => getTodayMatches(s, apiKey))
     );
