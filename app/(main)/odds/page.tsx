@@ -266,7 +266,11 @@ export default function OddsPage() {
                 <AlertCircle className="w-6 h-6 text-red-500" />
               </div>
               <p className="text-red-400 font-bold">데이터를 불러오지 못했습니다.</p>
-              {error && <p className="text-[10px] text-muted-foreground/60 max-w-xs text-center">{error}</p>}
+              {error && (
+                <div className="bg-black/20 p-3 rounded-xl border border-white/5 max-w-md w-full">
+                  <p className="text-[10px] text-muted-foreground/60 break-all text-center font-mono">{error}</p>
+                </div>
+              )}
               <button onClick={() => fetchMatches()} className="btn-primary py-2 px-6 text-xs">다시 시도</button>
             </div>
           ) : matches.length === 0 ? (
@@ -349,7 +353,11 @@ export default function OddsPage() {
                                 <Star className={cn("w-3.5 h-3.5", favorites.includes(m.id.toString()) && "fill-current")} />
                               </button>
                               <div className="flex flex-col gap-1.5">
-                                <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">{m.league}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">
+                                    {m.sport === 'soccer' ? '⚽' : m.sport === 'baseball' ? '⚾' : m.sport === 'basketball' ? '🏀' : '🌐'} {m.league}
+                                  </span>
+                                </div>
                                 {showProView && (
                                   <div className="flex items-center gap-1">
                                     <MapPin className="w-2.5 h-2.5 text-muted-foreground/40" />

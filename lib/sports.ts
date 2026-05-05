@@ -1,5 +1,4 @@
-// lib/sports.ts
-// API-Sports 공통 로직 분리
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export async function getTodayMatches(sportInput: string = 'soccer', providedApiKey?: string) {
   const sport = sportInput.toLowerCase();
@@ -68,7 +67,6 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
   // 축구 데이터가 비어있을 경우 강력한 백업 로직 가동
   if ((!data.response || data.response.length === 0) && sport === 'soccer') {
     console.log('Soccer fixtures empty, trying live fallback...');
-    // 라이브 경기 시도
     const liveRes = await fetch(`https://${host}/fixtures?live=all`, {
       method: 'GET',
       headers: { 'x-apisports-key': apiKey },
@@ -79,7 +77,6 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
     if (liveData.response && liveData.response.length > 0) {
       data = liveData;
     } else {
-      // 라이브도 없으면 최근 경기 10개 시도 (API 작동 확인용)
       console.log('Soccer live empty, trying last 10 fallback...');
       const lastRes = await fetch(`https://${host}/fixtures?last=10`, {
         method: 'GET',
@@ -106,9 +103,8 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
 
   const fixtureData = data.response || [];
 
-  // 2. 배당 정보 가져오기 (캐싱 제거 및 타임존 추가)
+  // 2. 배당 정보 가져오기 (배당 API 호출 실패하더라도 경기 목록은 반환)
   let oddsMap: Record<number, any> = {};
-  
   try {
     const oddsUrl = `https://${host}/odds?date=${today}`;
     const oddsRes = await fetch(oddsUrl, {
@@ -121,22 +117,16 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
       const oddsData = await oddsRes.json();
       if (oddsData.response) {
         oddsData.response.forEach((item: any) => {
-          const bookmakers = item.bookmakers || [];
-          const bookmaker = 
-            bookmakers.find((b: any) => b.name.toLowerCase().includes('pinnacle')) || 
-            bookmakers.find((b: any) => b.name.toLowerCase().includes('bet365')) || 
-            bookmakers[0];
-
-          if (bookmaker && bookmaker.bets) {
-            const findBet = (names: string[]) => bookmaker.bets.find((b: any) => names.includes(b.name));
-            const matchWinner = findBet(['Match Winner', '1X2', 'Home/Away']);
-            
-            const targetId = item.fixture?.id || item.game?.id;
-            if (targetId) {
-              oddsMap[targetId] = {
-                h: matchWinner?.values.find((v: any) => ['Home', '1'].includes(v.value))?.odd || 0,
-                d: matchWinner?.values.find((v: any) => ['Draw', 'X'].includes(v.value))?.odd || 0,
-                a: matchWinner?.values.find((v: any) => ['Away', '2'].includes(v.value))?.odd || 0,
+          const fid = item.fixture?.id || item.id;
+          const bms = item.bookmakers || [];
+          const bm = bms.find((b: any) => b.name.toLowerCase().includes('pinnacle')) || bms[0];
+          if (bm && bm.bets) {
+            const h2h = bm.bets.find((b: any) => b.name === 'Match Winner' || b.name === 'Full Time Result');
+            if (h2h) {
+              oddsMap[fid] = {
+                h: h2h.values.find((v: any) => v.value === 'Home' || v.value === '1')?.odd,
+                d: h2h.values.find((v: any) => v.value === 'Draw' || v.value === 'X')?.odd,
+                a: h2h.values.find((v: any) => v.value === 'Away' || v.value === '2')?.odd
               };
             }
           }
@@ -144,38 +134,40 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
       }
     }
   } catch (err) {
-    console.error("Odds fetching failed, continuing without odds", err);
+    console.error(`Odds fetch error [${sport}]:`, err);
   }
 
-  // 3. 데이터 가공
+  // 3. 통합 매핑 로직
   return fixtureData.map((item: any) => {
     if (!item) return null;
     const fixture = item.fixture || item;
-    const teams = item.teams || {};
     const league = item.league || {};
+    const teams = item.teams || {};
+    const goals = item.goals || item.scores || {};
     const status = fixture.status || item.status || {};
     
-    // Some sports use fixture.id, others use item.id or gameId
-    const fixtureId = fixture.id || item.id || item.gameId;
-    const matchOdds = oddsMap[fixtureId] || { h: 0, d: 0, a: 0 };
-    
-    const scores = item.goals || item.scores || { home: 0, away: 0 };
-    const homeScore = scores.home != null ? (typeof scores.home === 'object' ? scores.home?.total ?? 0 : scores.home) : 0;
-    const awayScore = scores.away != null ? (typeof scores.away === 'object' ? scores.away?.total ?? 0 : scores.away) : 0;
+    const fid = fixture.id || item.id || item.gameId || Math.random();
 
     return {
-      id: fixtureId,
+      id: fid,
       sport: sport,
-      home: teams?.home?.name || 'Unknown',
-      away: teams?.away?.name || 'Unknown',
-      league: league?.name || 'Unknown League',
-      leagueId: league?.id || 0,
-      status: status?.long || status?.short || 'Unknown',
-      statusCode: status?.short || 'NS',
-      time: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS'].includes(status?.short?.toUpperCase()),
-      scores: { home: homeScore, away: awayScore },
-      odds: matchOdds
+      home: teams.home?.name || teams.home || 'Unknown',
+      away: teams.away?.name || teams.away || 'Unknown',
+      homeLogo: teams.home?.logo || '',
+      awayLogo: teams.away?.logo || '',
+      league: league.name || 'Unknown League',
+      leagueId: Number(league.id || 0),
+      leagueLogo: league.logo || '',
+      date: fixture.date || item.date || '',
+      live: ['LIVE', '1H', '2H', 'HT', 'ET', 'P', 'BT', 'IN', 'IP'].includes(status.short || status.code || ''),
+      finished: ['FT', 'AET', 'PEN', 'AWD', 'CAN', 'ABD', 'POST', 'CANC'].includes(status.short || status.code || ''),
+      score: {
+        home: goals.home ?? 0,
+        away: goals.away ?? 0
+      },
+      odds: oddsMap[fid] || null,
+      statusText: status.long || 'Scheduled',
+      statusCode: status.short || 'NS'
     };
   }).filter(Boolean);
 }
