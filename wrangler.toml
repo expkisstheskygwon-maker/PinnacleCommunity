@@ -5,6 +5,7 @@ pages_build_output_dir = ".vercel/output/static"
 
 [vars]
 NEXT_PUBLIC_APP_ENV = "production"
+SPORTDB_API_KEY = "u83K2Okgefkz4icegzIHyPaUtyzIUld6GOLJKTXa"
 
 [[d1_databases]]
 binding = "DB"

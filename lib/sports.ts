@@ -92,7 +92,18 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
     if (liveData.response && liveData.response.length > 0) {
       data = liveData;
     } else {
-      console.log('Soccer live empty, trying last 10 fallback...');
+      console.log('Soccer live empty, trying SportDB.dev (Flashscore) fallback...');
+      try {
+        const flashMatches = await getFlashscoreMatches(apiKey);
+        if (flashMatches && flashMatches.length > 0) {
+          // Flashscore 데이터를 기존 형식으로 변환하여 반환
+          return flashMatches;
+        }
+      } catch (e) {
+        console.error('SportDB.dev Error:', e);
+      }
+
+      console.log('All soccer sources empty, trying last 10 fallback...');
       const lastRes = await fetch(`https://${host}/fixtures?last=10`, {
         method: 'GET',
         headers: { 'x-apisports-key': apiKey },
@@ -191,6 +202,47 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
   // 최종 결과 캐싱
   cache[cacheKey] = { data: matches, timestamp: Date.now() };
   return matches;
+}
+
+// SportDB.dev (Flashscore) API 통합
+async function getFlashscoreMatches(apiSportsKey: string) {
+  const sportdbKey = process.env.SPORTDB_API_KEY;
+  if (!sportdbKey) return null;
+
+  try {
+    const res = await fetch("https://api.sportdb.dev/api/flashscore/football", {
+      headers: { "X-API-Key": sportdbKey }
+    });
+    const data = await res.json();
+    
+    // Flashscore API 응답을 우리 시스템 표준 형식으로 변환
+    if (data && Array.isArray(data)) {
+      return data.map((m: any) => ({
+        id: `flash-${m.id}`,
+        sport: 'soccer',
+        home: m.home_team?.name || m.home_name || 'Unknown',
+        away: m.away_team?.name || m.away_name || 'Unknown',
+        homeLogo: m.home_team?.logo || '',
+        awayLogo: m.away_team?.logo || '',
+        league: m.league?.name || 'Flashscore League',
+        leagueId: m.league?.id || 0,
+        leagueLogo: m.league?.logo || '',
+        date: m.start_time || '',
+        live: m.status === 'LIVE' || m.status === 'IN_PROGRESS',
+        finished: m.status === 'FINISHED',
+        score: {
+          home: m.home_score ?? 0,
+          away: m.away_score ?? 0
+        },
+        odds: null, // Flashscore 기본 API에는 배당이 없을 수 있음
+        statusText: m.status_name || m.status || 'Scheduled',
+        statusCode: m.status_code || 'NS'
+      }));
+    }
+  } catch (err) {
+    console.error('getFlashscoreMatches Error:', err);
+  }
+  return null;
 }
 
 // TheSportsDB를 이용한 디자인 보강 (로고 및 팀 정보)
