@@ -64,7 +64,9 @@ export default function OddsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/sports/matches?sport=${sport}&t=${Date.now()}`);
+      // 'favorites'인 경우 'all'을 가져온 뒤 UI에서 필터링함
+      const targetSport = sport === 'favorites' ? 'all' : sport;
+      const res = await fetch(`/api/sports/matches?sport=${targetSport}&t=${Date.now()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "데이터를 불러오지 못했습니다.");
       setMatches(data.matches || []);
@@ -86,6 +88,10 @@ export default function OddsPage() {
     return (matches || [])
       .filter(m => {
         if (!m) return false;
+        
+        // 즐겨찾기 탭인 경우 즐겨찾기된 경기만 표시
+        if (sport === 'favorites' && !favorites.includes(m.id.toString())) return false;
+
         const matchesLeague = selectedLeagueId ? m.leagueId === selectedLeagueId : true;
         const matchesSearch = !searchTerm ? true : (
           (m.home?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
@@ -105,7 +111,7 @@ export default function OddsPage() {
         // Stable fallback by ID
         return a.id.localeCompare(b.id);
       });
-  }, [matches, selectedLeagueId, searchTerm, favorites]);
+  }, [matches, sport, selectedLeagueId, searchTerm, favorites]);
 
   const liveCount = (matches || []).filter(m => m?.live).length;
 
@@ -327,6 +333,7 @@ export default function OddsPage() {
                       const map: any = {
                         '1H': '전반', '2H': '후반', 'HT': '하프타임', 'ET': '연장', 'BT': '연장휴식', 'P': '승부차기',
                         'FT': '종료', 'AET': '연장종료', 'PEN': '승부차기종료', 'LIVE': '진행중', 'IN PROGRESS': '진행중',
+                        'Q1': '1쿼터', 'Q2': '2쿼터', 'Q3': '3쿼터', 'Q4': '4쿼터', 'OT': '연장',
                         'POST': '연기', 'CANC': '취소', 'ABD': '중단', 'NS': '예정'
                       };
                       return map[status.toUpperCase()] || status;
