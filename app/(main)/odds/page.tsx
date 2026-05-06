@@ -11,7 +11,6 @@ import {
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = [
-  { id: "all", label: "전체", icon: Activity },
   { id: "favorites", label: "⭐ 즐겨찾기", icon: Star },
   { id: "live", label: "🔥 라이브", icon: Zap },
   { id: "soccer", label: "축구", icon: Swords },
@@ -23,7 +22,7 @@ const CATEGORIES = [
 ];
 
 export default function OddsPage() {
-  const [activeCat, setActiveCat] = useState("all");
+  const [activeCat, setActiveCat] = useState("soccer");
   const [showProView, setShowProView] = useState(false);
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
