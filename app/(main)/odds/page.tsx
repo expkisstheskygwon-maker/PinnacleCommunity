@@ -32,6 +32,7 @@ export default function OddsPage() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
   const [expandedCountries, setExpandedCountries] = useState<Record<string, boolean>>({});
+  const [searchTerm, setSearchTerm] = useState("");
   // Full Markets States
   const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
   const [marketData, setMarketData] = useState<any[]>([]);
@@ -166,6 +167,7 @@ export default function OddsPage() {
       fetchMatches(activeCat);
       setSelectedCountry(null);
       setSelectedLeague(null);
+      setSearchTerm("");
       setExpandedCountries({});
     }
   }, [activeCat]);
@@ -187,6 +189,16 @@ export default function OddsPage() {
     .filter(m => activeCat !== 'favorites' || favorites.includes(m.id.toString()))
     .filter(m => !selectedCountry || m.country === selectedCountry)
     .filter(m => !selectedLeague || m.league === selectedLeague)
+    .filter(m => {
+      if (!searchTerm) return true;
+      const lowerSearch = searchTerm.toLowerCase();
+      return (
+        m.country.toLowerCase().includes(lowerSearch) ||
+        m.league.toLowerCase().includes(lowerSearch) ||
+        m.home.toLowerCase().includes(lowerSearch) ||
+        m.away.toLowerCase().includes(lowerSearch)
+      );
+    })
     .sort((a, b) => {
       // Favorites first
       const aFav = favorites.includes(a.id.toString()) ? 1 : 0;
@@ -251,6 +263,28 @@ export default function OddsPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <input 
+              type="text" 
+              placeholder="국가, 리그, 또는 팀 이름으로 검색..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white/5 border border-white/[0.08] rounded-2xl pl-12 pr-12 py-4 text-sm focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all shadow-inner"
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
           </div>
         </div>
 
