@@ -26,6 +26,49 @@ export async function GET(request: Request) {
     hockey: { host: 'v1.hockey.api-sports.io', endpoint: '/games' },
   };
 
+  const fetchTheSportsDBData = async () => {
+    const tsdbKey = process.env.THESPORTSDB_KEY || '123';
+    // 주요 리그 ID: EPL(4328), La Liga(4335), Serie A(4332), Bundesliga(4331)
+    const leagues = [4328, 4335, 4332, 4331];
+    
+    try {
+      const allEvents = await Promise.all(leagues.map(async (id) => {
+        const url = `https://www.thesportsdb.com/api/v1/json/${tsdbKey}/eventsnextleague.php?id=${id}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return data.events || [];
+      }));
+
+      return allEvents.flat().map((event: any) => ({
+        id: event.idEvent,
+        home: event.strHomeTeam,
+        away: event.strAwayTeam,
+        league: event.strLeague,
+        country: "Europe",
+        countryCode: "EU",
+        flag: null,
+        leagueLogo: null,
+        sport: "soccer",
+        status: "Upcoming",
+        statusCode: "NS",
+        time: event.strTime ? event.strTime.substring(0, 5) : "00:00",
+        date: event.dateEvent ? event.dateEvent.substring(5).replace('-', '/') : "00/00",
+        live: false,
+        finished: false,
+        scores: { home: 0, away: 0 },
+        odds: { h: 0, d: 0, a: 0 },
+        ah: "-",
+        ou: "-",
+        openH: 0,
+        movement: "steady",
+        source: "TheSportsDB"
+      }));
+    } catch (err) {
+      console.error("TheSportsDB Fallback Error:", err);
+      return [];
+    }
+  };
+
   const fetchSportData = async (sportKey: string, isLiveOnly: boolean = false) => {
     const config = sportConfigs[sportKey] || { host: `v1.${sportKey}.api-sports.io`, endpoint: '/games' };
     
@@ -36,7 +79,23 @@ export async function GET(request: Request) {
       const response = await fetch(url, { headers: { 'x-apisports-key': apiKey } });
       if (!response.ok) return [];
       const data = await response.json();
+      
+      // API 한도 초과 등의 에러 체크
+      if (data.errors && Object.keys(data.errors).length > 0) {
+        console.warn(`API-Sports Error for ${sportKey}:`, data.errors);
+        // 축구인 경우에만 TheSportsDB로 폴백 시도
+        if (sportKey === 'soccer' && !isLiveOnly) {
+          return await fetchTheSportsDBData();
+        }
+        return [];
+      }
+
       const fixtureData = data.response || [];
+      if (fixtureData.length === 0 && sportKey === 'soccer' && !isLiveOnly) {
+        // 데이터가 없어도 폴백 시도 (한도 초과 시 0으로 올 수 있음)
+        const fallback = await fetchTheSportsDBData();
+        if (fallback.length > 0) return fallback;
+      }
 
       // 배당 데이터
       const oddsUrl = `https://${config.host}/odds?date=${today}&timezone=Asia/Seoul`;
