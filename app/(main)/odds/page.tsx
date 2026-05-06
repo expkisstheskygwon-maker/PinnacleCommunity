@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
@@ -288,288 +288,321 @@ export default function OddsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
-                  {filtered.map(m => {
-                    const diff = m.odds.h - m.openH;
-                    
-                    // 결과 텍스트 도출
-                    let resultText = "-";
-                    let resultColor = "text-muted-foreground";
-                    
-                    if (m.finished || m.live) {
-                      if (m.scores.home > m.scores.away) {
-                        resultText = "홈승";
-                        resultColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-                      } else if (m.scores.home < m.scores.away) {
-                        resultText = "원정승";
-                        resultColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-                      } else {
-                        resultText = "무승부";
-                        resultColor = "bg-gray-500/10 text-gray-400 border-gray-500/20";
-                      }
-                    }
+                  {(() => {
+                    const groups: Record<string, any[]> = {};
+                    filtered.forEach(m => {
+                      const key = `${m.country} - ${m.league}`;
+                      if (!groups[key]) groups[key] = [];
+                      groups[key].push(m);
+                    });
 
-                    const getStatusKo = (status: string) => {
-                      const map: any = {
-                        '1H': '전반', '2H': '후반', 'HT': '하프타임', 'ET': '연장', 'BT': '연장휴식', 'P': '승부차기',
-                        'FT': '종료', 'AET': '연장종료', 'PEN': '승부차기종료', 'LIVE': '진행중', 'IN PROGRESS': '진행중',
-                        'POST': '연기', 'CANC': '취소', 'ABD': '중단', 'NS': '예정',
-                        'Q1': '1쿼터', 'Q2': '2쿼터', 'Q3': '3쿼터', 'Q4': '4쿼터', 'OT': '연장', 'AOT': '연장종료',
-                        'IN1': '1회', 'IN2': '2회', 'IN3': '3회', 'IN4': '4회', 'IN5': '5회', 'IN6': '6회', 'IN7': '7회', 'IN8': '8회', 'IN9': '9회', 'F': '종료'
-                      };
-                      return map[status.toUpperCase()] || status;
-                    };
-
-                    const stats = getMockStats(m.id);
-                    const isExpanded = expandedMatches[m.id] || showProView;
-
-                    return (
-                      <>
-                        <tr 
-                          key={m.id} 
-                          onClick={() => setExpandedMatches(prev => ({ ...prev, [m.id]: !prev[m.id] }))}
-                          className={cn(
-                            "hover:bg-white/[0.03] transition-colors group cursor-pointer border-l-2 border-transparent",
-                            isExpanded && "bg-white/[0.02] border-primary"
-                          )}
-                        >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              {/* ★ Favorite Star */}
-                              <button
-                                onClick={(e) => toggleFavorite(m.id.toString(), e)}
-                                className={cn(
-                                  "p-1 rounded-lg transition-all shrink-0",
-                                  favorites.includes(m.id.toString())
-                                    ? "text-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/10"
-                                    : "text-muted-foreground/30 hover:text-[hsl(var(--gold))]/60 hover:bg-white/5"
-                                )}
-                                title={favorites.includes(m.id.toString()) ? "즐겨찾기 해제" : "즐겨찾기 등록"}
-                              >
-                                <Star className={cn("w-3.5 h-3.5", favorites.includes(m.id.toString()) && "fill-current")} />
-                              </button>
-                              <div className="flex flex-col gap-1.5">
-                                <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">{m.league}</span>
-                                {showProView && (
-                                  <div className="flex items-center gap-1">
-                                    <MapPin className="w-2.5 h-2.5 text-muted-foreground/40" />
-                                    <span className="text-[9px] text-muted-foreground/40 font-medium">Stadion Arena</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-4">
-                            <div className="flex flex-col gap-2">
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 min-w-[120px] justify-end group/team">
-                                  {/* Home Team Star */}
-                                  <button
-                                    onClick={(e) => toggleTeamFavorite(m.home, e)}
-                                    className={cn(
-                                      "opacity-0 group-hover/team:opacity-100 transition-opacity p-0.5",
-                                      favTeams.includes(m.home) ? "opacity-100 text-[hsl(var(--gold))]" : "text-white/20 hover:text-white/40"
-                                    )}
-                                  >
-                                    <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.home) && "fill-current")} />
-                                  </button>
-                                  <span className={cn("font-bold text-sm", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.home) && "text-[hsl(var(--gold))]")}>
-                                    {m.home}
-                                  </span>
-                                  {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" title="라인업 확인됨" />}
-                                </div>
-                                <div className="flex items-center bg-black/40 rounded-lg px-2 py-1 border border-white/5 min-w-[50px] justify-center">
-                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.home}</span>
-                                  <span className="text-muted-foreground/30 px-1 text-[10px]">:</span>
-                                  <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.away}</span>
-                                </div>
-                                <div className="flex items-center gap-2 min-w-[120px] group/team">
-                                  {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />}
-                                  <span className={cn("font-bold text-sm", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.away) && "text-[hsl(var(--gold))]")}>
-                                    {m.away}
-                                  </span>
-                                  {/* Away Team Star */}
-                                  <button
-                                    onClick={(e) => toggleTeamFavorite(m.away, e)}
-                                    className={cn(
-                                      "opacity-0 group-hover/team:opacity-100 transition-opacity p-0.5",
-                                      favTeams.includes(m.away) ? "opacity-100 text-[hsl(var(--gold))]" : "text-white/20 hover:text-white/40"
-                                    )}
-                                  >
-                                    <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.away) && "fill-current")} />
-                                  </button>
-                                </div>
-                              </div>
-                              {showProView && (
-                                <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground/60 font-medium">
-                                  <div className="flex items-center gap-1"><History className="w-3 h-3" /> W-D-W-L-W</div>
-                                  <div className="flex items-center gap-1"><Users className="w-3 h-3" /> {stats.lineup}</div>
-                                </div>
+                    return Object.entries(groups).map(([groupKey, groupMatches]) => (
+                      <React.Fragment key={groupKey}>
+                        {/* Group Header */}
+                        <tr className="bg-white/5 border-y border-white/[0.06]">
+                          <td colSpan={9} className="px-5 py-2.5">
+                            <div className="flex items-center gap-3">
+                              {(groupMatches[0].flag || groupMatches[0].countryCode) && (
+                                <img 
+                                  src={groupMatches[0].flag || `https://flagcdn.com/w20/${groupMatches[0].countryCode.toLowerCase()}.png`} 
+                                  alt="" 
+                                  className="w-4 h-3 object-cover rounded-sm opacity-80"
+                                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                                />
                               )}
-                            </div>
-                          </td>
-                          <td className="text-center px-3 py-4">
-                            <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
-                              <span className={cn("font-mono text-xs font-bold", diff < 0 ? "text-red-400" : diff > 0 ? "text-emerald-400" : "text-foreground")}>
-                                {m.odds.h > 0 ? m.odds.h.toFixed(2) : "-"}
+                              <span className="text-[10px] font-black tracking-widest text-primary uppercase">
+                                {groupKey}
                               </span>
-                              {showProView && (
-                                <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.h * 1.02).toFixed(2)}</span>
-                              )}
-                            </div>
-                          </td>
-                          {filtered.some(m2 => m2.odds.d > 0) && (
-                            <td className="text-center px-3 py-4">
-                              <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
-                                <span className="font-mono text-xs text-muted-foreground">{m.odds.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
-                                {showProView && m.odds.d > 0 && (
-                                  <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.d * 0.98).toFixed(2)}</span>
-                                )}
-                              </div>
-                            </td>
-                          )}
-                          <td className="text-center px-3 py-4">
-                            <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
-                              <span className="font-mono text-xs text-foreground font-bold">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
-                              {showProView && m.odds.a > 0 && (
-                                <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.a * 0.97).toFixed(2)}</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="text-center px-3 py-4">
-                            <span className={cn("text-[10px] font-black px-2 py-1 rounded border transition-all", resultColor)}>
-                              {resultText}
-                            </span>
-                          </td>
-                          <td className="text-center px-3 py-4 hidden md:table-cell">
-                            <div className="flex flex-col items-center">
-                              <span className="font-mono text-[11px] text-muted-foreground">{m.ah}</span>
-                              {showProView && m.live && (
-                                <span className="text-[8px] text-emerald-400 font-bold mt-0.5">DANGEROUS ATTACK</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="text-center px-3 py-4 hidden md:table-cell font-mono text-[11px] text-muted-foreground">{m.ou}</td>
-                          <td className="px-5 py-4 text-right">
-                            <div className="flex items-center justify-end gap-3">
-                              <div className="flex flex-col items-end gap-1">
-                                {m.live ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
-                                    <span className="text-[10px] font-black text-red-500 uppercase tracking-tighter">{getStatusKo(m.statusCode)}</span>
-                                  </div>
-                                ) : m.finished ? (
-                                  <span className="text-[10px] font-bold text-muted-foreground/60 bg-white/5 px-2 py-0.5 rounded uppercase">{getStatusKo(m.statusCode)}</span>
-                                ) : (
-                                  <span className="text-[10px] font-bold text-muted-foreground/80 uppercase">{getStatusKo(m.statusCode)}</span>
-                                )}
-                                <span className="text-[10px] text-muted-foreground/40 font-mono">{m.time}</span>
-                              </div>
-                              <ChevronDown className={cn("w-4 h-4 text-muted-foreground/20 transition-transform", isExpanded && "rotate-180 text-primary")} />
+                              <span className="text-[9px] text-muted-foreground font-bold bg-white/5 px-1.5 py-0.5 rounded">
+                                {groupMatches.length}
+                              </span>
                             </div>
                           </td>
                         </tr>
+                        {groupMatches.map(m => {
+                          const diff = m.odds.h - m.openH;
+                          
+                          // 결과 텍스트 도출
+                          let resultText = "-";
+                          let resultColor = "text-muted-foreground";
+                          
+                          if (m.finished || m.live) {
+                            if (m.scores.home > m.scores.away) {
+                              resultText = "홈승";
+                              resultColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                            } else if (m.scores.home < m.scores.away) {
+                              resultText = "원정승";
+                              resultColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                            } else {
+                              resultText = "무승부";
+                              resultColor = "bg-gray-500/10 text-gray-400 border-gray-500/20";
+                            }
+                          }
 
-                        {/* Detail Panel */}
-                        {isExpanded && (
-                          <tr className="bg-white/[0.01] border-l-2 border-primary/40 overflow-hidden animate-in slide-in-from-top-1 duration-200">
-                            <td colSpan={9} className="p-0">
-                              <div className="px-5 py-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-                                {/* Live Stats */}
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2 text-xs font-bold text-primary mb-2">
-                                    <BarChart3 className="w-3.5 h-3.5" /> 실시간 경기 데이터
-                                  </div>
-                                  <div className="space-y-3">
-                                    {[
-                                      { label: "점유율", home: stats.possession.home, away: stats.possession.away, suffix: "%" },
-                                      { label: "슈팅", home: stats.shots.home, away: stats.shots.away },
-                                      { label: "코너킥", home: stats.corners.home, away: stats.corners.away },
-                                      { label: "경고", home: stats.yellowCards.home, away: stats.yellowCards.away },
-                                    ].map(stat => (
-                                      <div key={stat.label} className="space-y-1.5">
-                                        <div className="flex justify-between text-[10px] font-bold">
-                                          <span>{stat.home}{stat.suffix || ""}</span>
-                                          <span className="text-muted-foreground font-medium uppercase tracking-widest">{stat.label}</span>
-                                          <span>{stat.away}{stat.suffix || ""}</span>
-                                        </div>
-                                        <div className="h-1 bg-white/5 rounded-full overflow-hidden flex">
-                                          <div className="h-full bg-blue-500/60" style={{ width: `${(stat.home / (stat.home + stat.away)) * 100}%` }} />
-                                          <div className="h-full bg-emerald-500/60" style={{ width: `${(stat.away / (stat.home + stat.away)) * 100}%` }} />
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
+                          const getStatusKo = (status: string) => {
+                            const map: any = {
+                              '1H': '전반', '2H': '후반', 'HT': '하프타임', 'ET': '연장', 'BT': '연장휴식', 'P': '승부차기',
+                              'FT': '종료', 'AET': '연장종료', 'PEN': '승부차기종료', 'LIVE': '진행중', 'IN PROGRESS': '진행중',
+                              'POST': '연기', 'CANC': '취소', 'ABD': '중단', 'NS': '예정',
+                              'Q1': '1쿼터', 'Q2': '2쿼터', 'Q3': '3쿼터', 'Q4': '4쿼터', 'OT': '연장', 'AOT': '연장종료',
+                              'IN1': '1회', 'IN2': '2회', 'IN3': '3회', 'IN4': '4회', 'IN5': '5회', 'IN6': '6회', 'IN7': '7회', 'IN8': '8회', 'IN9': '9회', 'F': '종료'
+                            };
+                            return map[status.toUpperCase()] || status;
+                          };
 
-                                {/* Odds Movement */}
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2 text-xs font-bold text-[hsl(var(--gold))] mb-2">
-                                    <TrendingUp className="w-3.5 h-3.5" /> 배당 흐름 분석
-                                  </div>
-                                  <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-3">
-                                    <div className="flex justify-between text-[10px] border-b border-white/5 pb-2 font-bold uppercase text-muted-foreground">
-                                      <span>시장</span>
-                                      <span>초기</span>
-                                      <span>현재</span>
-                                      <span>변동</span>
+                          const stats = getMockStats(m.id);
+                          const isExpanded = expandedMatches[m.id] || showProView;
+
+                          return (
+                            <React.Fragment key={m.id}>
+                              <tr 
+                                onClick={() => setExpandedMatches(prev => ({ ...prev, [m.id]: !prev[m.id] }))}
+                                className={cn(
+                                  "hover:bg-white/[0.03] transition-colors group cursor-pointer border-l-2 border-transparent",
+                                  isExpanded && "bg-white/[0.02] border-primary"
+                                )}
+                              >
+                                <td className="px-5 py-4">
+                                  <div className="flex items-center gap-2">
+                                    {/* ★ Favorite Star */}
+                                    <button
+                                      onClick={(e) => toggleFavorite(m.id.toString(), e)}
+                                      className={cn(
+                                        "p-1 rounded-lg transition-all shrink-0",
+                                        favorites.includes(m.id.toString())
+                                          ? "text-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/10"
+                                          : "text-muted-foreground/30 hover:text-[hsl(var(--gold))]/60 hover:bg-white/5"
+                                      )}
+                                      title={favorites.includes(m.id.toString()) ? "즐겨찾기 해제" : "즐겨찾기 등록"}
+                                    >
+                                      <Star className={cn("w-3.5 h-3.5", favorites.includes(m.id.toString()) && "fill-current")} />
+                                    </button>
+                                    <div className="flex flex-col gap-1.5">
+                                      <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">{m.league}</span>
+                                      {showProView && (
+                                        <div className="flex items-center gap-1">
+                                          <MapPin className="w-2.5 h-2.5 text-muted-foreground/40" />
+                                          <span className="text-[9px] text-muted-foreground/40 font-medium">Stadion Arena</span>
+                                        </div>
+                                      )}
                                     </div>
-                                    {[
-                                      { label: "홈 (1)", start: (m.odds.h * 1.02).toFixed(2), current: m.odds.h.toFixed(2), trend: "down" },
-                                      { label: "무 (X)", start: (m.odds.d * 0.98).toFixed(2), current: m.odds.d.toFixed(2), trend: "up" },
-                                      { label: "패 (2)", start: (m.odds.a * 0.97).toFixed(2), current: m.odds.a.toFixed(2), trend: "up" },
-                                    ].map(o => (
-                                      <div key={o.label} className="flex justify-between items-center text-[11px]">
-                                        <span className="font-bold w-12">{o.label}</span>
-                                        <span className="font-mono text-muted-foreground/60">{o.start}</span>
-                                        <span className="font-mono font-bold text-foreground">{o.current}</span>
-                                        <span className={cn(
-                                          "px-1.5 py-0.5 rounded-[4px] text-[9px] font-black uppercase",
-                                          o.trend === "down" ? "bg-red-500/15 text-red-400" : "bg-emerald-500/15 text-emerald-400"
-                                        )}>
-                                          {o.trend === "down" ? "↓ 2.1%" : "↑ 1.4%"}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-4">
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex items-center gap-2 min-w-[120px] justify-end group/team">
+                                        {/* Home Team Star */}
+                                        <button
+                                          onClick={(e) => toggleTeamFavorite(m.home, e)}
+                                          className={cn(
+                                            "opacity-0 group-hover/team:opacity-100 transition-opacity p-0.5",
+                                            favTeams.includes(m.home) ? "opacity-100 text-[hsl(var(--gold))]" : "text-white/20 hover:text-white/40"
+                                          )}
+                                        >
+                                          <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.home) && "fill-current")} />
+                                        </button>
+                                        <span className={cn("font-bold text-sm", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.home) && "text-[hsl(var(--gold))]")}>
+                                          {m.home}
                                         </span>
+                                        {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" title="라인업 확인됨" />}
                                       </div>
-                                    ))}
+                                      <div className="flex items-center bg-black/40 rounded-lg px-2 py-1 border border-white/5 min-w-[50px] justify-center">
+                                        <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.home}</span>
+                                        <span className="text-muted-foreground/30 px-1 text-[10px]">:</span>
+                                        <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.away}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 min-w-[120px] group/team">
+                                        {showProView && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />}
+                                        <span className={cn("font-bold text-sm", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.away) && "text-[hsl(var(--gold))]")}>
+                                          {m.away}
+                                        </span>
+                                        {/* Away Team Star */}
+                                        <button
+                                          onClick={(e) => toggleTeamFavorite(m.away, e)}
+                                          className={cn(
+                                            "opacity-0 group-hover/team:opacity-100 transition-opacity p-0.5",
+                                            favTeams.includes(m.away) ? "opacity-100 text-[hsl(var(--gold))]" : "text-white/20 hover:text-white/40"
+                                          )}
+                                        >
+                                          <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.away) && "fill-current")} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                    {showProView && (
+                                      <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground/60 font-medium">
+                                        <div className="flex items-center gap-1"><History className="w-3 h-3" /> W-D-W-L-W</div>
+                                        <div className="flex items-center gap-1"><Users className="w-3 h-3" /> {stats.lineup}</div>
+                                      </div>
+                                    )}
                                   </div>
-                                </div>
+                                </td>
+                                <td className="text-center px-3 py-4">
+                                  <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
+                                    <span className={cn("font-mono text-xs font-bold", diff < 0 ? "text-red-400" : diff > 0 ? "text-emerald-400" : "text-foreground")}>
+                                      {m.odds.h > 0 ? m.odds.h.toFixed(2) : "-"}
+                                    </span>
+                                    {showProView && (
+                                      <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.h * 1.02).toFixed(2)}</span>
+                                    )}
+                                  </div>
+                                </td>
+                                {filtered.some(m2 => m2.odds.d > 0) && (
+                                  <td className="text-center px-3 py-4">
+                                    <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
+                                      <span className="font-mono text-xs text-muted-foreground">{m.odds.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
+                                      {showProView && m.odds.d > 0 && (
+                                        <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.d * 0.98).toFixed(2)}</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="text-center px-3 py-4">
+                                  <div className={cn("flex flex-col items-center gap-0.5 transition-all", !showOdds && "blur-sm select-none")}>
+                                    <span className="font-mono text-xs text-foreground font-bold">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
+                                    {showProView && m.odds.a > 0 && (
+                                      <span className="text-[8px] text-muted-foreground/40 line-through">{(m.odds.a * 0.97).toFixed(2)}</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="text-center px-3 py-4">
+                                  <span className={cn("text-[10px] font-black px-2 py-1 rounded border transition-all", resultColor)}>
+                                    {resultText}
+                                  </span>
+                                </td>
+                                <td className="text-center px-3 py-4 hidden md:table-cell">
+                                  <div className="flex flex-col items-center">
+                                    <span className="font-mono text-[11px] text-muted-foreground">{m.ah}</span>
+                                    {showProView && m.live && (
+                                      <span className="text-[8px] text-emerald-400 font-bold mt-0.5">DANGEROUS ATTACK</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="text-center px-3 py-4 hidden md:table-cell font-mono text-[11px] text-muted-foreground">{m.ou}</td>
+                                <td className="px-5 py-4 text-right">
+                                  <div className="flex items-center justify-end gap-3">
+                                    <div className="flex flex-col items-end gap-1">
+                                      {m.live ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
+                                          <span className="text-[10px] font-black text-red-500 uppercase tracking-tighter">{getStatusKo(m.statusCode)}</span>
+                                        </div>
+                                      ) : m.finished ? (
+                                        <span className="text-[10px] font-bold text-muted-foreground/60 bg-white/5 px-2 py-0.5 rounded uppercase">{getStatusKo(m.statusCode)}</span>
+                                      ) : (
+                                        <span className="text-[10px] font-bold text-muted-foreground/80 uppercase">{getStatusKo(m.statusCode)}</span>
+                                      )}
+                                      <span className="text-[10px] text-muted-foreground/40 font-mono">{m.time}</span>
+                                    </div>
+                                    <ChevronDown className={cn("w-4 h-4 text-muted-foreground/20 transition-transform", isExpanded && "rotate-180 text-primary")} />
+                                  </div>
+                                </td>
+                              </tr>
 
-                                {/* Match Info & Markets */}
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-2">
-                                    <Zap className="w-3.5 h-3.5" /> 추가 정보
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div className="glass-card p-3 rounded-xl border-white/5">
-                                      <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">경기장</p>
-                                      <p className="text-xs font-bold truncate">Seoul World Cup Stadium</p>
+                              {/* Detail Panel */}
+                              {isExpanded && (
+                                <tr className="bg-white/[0.01] border-l-2 border-primary/40 overflow-hidden animate-in slide-in-from-top-1 duration-200">
+                                  <td colSpan={9} className="p-0">
+                                    <div className="px-5 py-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+                                      {/* Live Stats */}
+                                      <div className="space-y-4">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-primary mb-2">
+                                          <BarChart3 className="w-3.5 h-3.5" /> 실시간 경기 데이터
+                                        </div>
+                                        <div className="space-y-3">
+                                          {[
+                                            { label: "점유율", home: stats.possession.home, away: stats.possession.away, suffix: "%" },
+                                            { label: "슈팅", home: stats.shots.home, away: stats.shots.away },
+                                            { label: "코너킥", home: stats.corners.home, away: stats.corners.away },
+                                            { label: "경고", home: stats.yellowCards.home, away: stats.yellowCards.away },
+                                          ].map(stat => (
+                                            <div key={stat.label} className="space-y-1.5">
+                                              <div className="flex justify-between text-[10px] font-bold">
+                                                <span>{stat.home}{stat.suffix || ""}</span>
+                                                <span className="text-muted-foreground font-medium uppercase tracking-widest">{stat.label}</span>
+                                                <span>{stat.away}{stat.suffix || ""}</span>
+                                              </div>
+                                              <div className="h-1 bg-white/5 rounded-full overflow-hidden flex">
+                                                <div className="h-full bg-blue-500/60" style={{ width: `${(stat.home / (stat.home + stat.away)) * 100}%` }} />
+                                                <div className="h-full bg-emerald-500/60" style={{ width: `${(stat.away / (stat.home + stat.away)) * 100}%` }} />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+
+                                      {/* Odds Movement */}
+                                      <div className="space-y-4">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-[hsl(var(--gold))] mb-2">
+                                          <TrendingUp className="w-3.5 h-3.5" /> 배당 흐름 분석
+                                        </div>
+                                        <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-3">
+                                          <div className="flex justify-between text-[10px] border-b border-white/5 pb-2 font-bold uppercase text-muted-foreground">
+                                            <span>시장</span>
+                                            <span>초기</span>
+                                            <span>현재</span>
+                                            <span>변동</span>
+                                          </div>
+                                          {[
+                                            { label: "홈 (1)", start: (m.odds.h * 1.02).toFixed(2), current: m.odds.h.toFixed(2), trend: "down" },
+                                            { label: "무 (X)", start: (m.odds.d * 0.98).toFixed(2), current: m.odds.d.toFixed(2), trend: "up" },
+                                            { label: "패 (2)", start: (m.odds.a * 0.97).toFixed(2), current: m.odds.a.toFixed(2), trend: "up" },
+                                          ].map(o => (
+                                            <div key={o.label} className="flex justify-between items-center text-[11px]">
+                                              <span className="font-bold w-12">{o.label}</span>
+                                              <span className="font-mono text-muted-foreground/60">{o.start}</span>
+                                              <span className="font-mono font-bold text-foreground">{o.current}</span>
+                                              <span className={cn(
+                                                "px-1.5 py-0.5 rounded-[4px] text-[9px] font-black uppercase",
+                                                o.trend === "down" ? "bg-red-500/15 text-red-400" : "bg-emerald-500/15 text-emerald-400"
+                                              )}>
+                                                {o.trend === "down" ? "↓ 2.1%" : "↑ 1.4%"}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+
+                                      {/* Match Info & Markets */}
+                                      <div className="space-y-4">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-2">
+                                          <Zap className="w-3.5 h-3.5" /> 추가 정보
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div className="glass-card p-3 rounded-xl border-white/5">
+                                            <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">경기장</p>
+                                            <p className="text-xs font-bold truncate">Seoul World Cup Stadium</p>
+                                          </div>
+                                          <div className="glass-card p-3 rounded-xl border-white/5">
+                                            <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">날씨</p>
+                                            <p className="text-xs font-bold">18°C, 맑음</p>
+                                          </div>
+                                          <div className="glass-card p-3 rounded-xl border-white/5">
+                                            <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">심판</p>
+                                            <p className="text-xs font-bold">Kim Cheol-su</p>
+                                          </div>
+                                          <div className="glass-card p-3 rounded-xl border-white/5">
+                                            <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">배당사</p>
+                                            <p className="text-xs font-bold text-primary">Pinnacle Official</p>
+                                          </div>
+                                        </div>
+                                        <button 
+                                          onClick={(e) => { e.stopPropagation(); handleOpenMarkets(m); }}
+                                          className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black hover:bg-primary hover:text-white transition-all uppercase tracking-widest"
+                                        >
+                                          전체 마켓 보기 (45+)
+                                        </button>
+                                      </div>
                                     </div>
-                                    <div className="glass-card p-3 rounded-xl border-white/5">
-                                      <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">날씨</p>
-                                      <p className="text-xs font-bold">18°C, 맑음</p>
-                                    </div>
-                                    <div className="glass-card p-3 rounded-xl border-white/5">
-                                      <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">심판</p>
-                                      <p className="text-xs font-bold">Kim Cheol-su</p>
-                                    </div>
-                                    <div className="glass-card p-3 rounded-xl border-white/5">
-                                      <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">배당사</p>
-                                      <p className="text-xs font-bold text-primary">Pinnacle Official</p>
-                                    </div>
-                                  </div>
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); handleOpenMarkets(m); }}
-                                    className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black hover:bg-primary hover:text-white transition-all uppercase tracking-widest"
-                                  >
-                                    전체 마켓 보기 (45+)
-                                  </button>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
-                    );
-                  })}
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </React.Fragment>
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
