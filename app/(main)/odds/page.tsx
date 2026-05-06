@@ -13,11 +13,13 @@ import { cn } from "@/lib/utils";
 const CATEGORIES = [
   { id: "all", label: "전체", icon: Activity },
   { id: "favorites", label: "⭐ 즐겨찾기", icon: Star },
+  { id: "live", label: "🔥 라이브", icon: Zap },
   { id: "soccer", label: "축구", icon: Swords },
-  { id: "baseball", label: "야구", icon: Trophy },
   { id: "basketball", label: "농구", icon: Activity },
-  { id: "esports", label: "e스포츠", icon: Gamepad2 },
-  { id: "live", label: "라이브", icon: Zap },
+  { id: "baseball", label: "야구", icon: Trophy },
+  { id: "volleyball", label: "배구", icon: Activity },
+  { id: "hockey", label: "하키", icon: Activity },
+  { id: "handball", label: "핸드볼", icon: Activity },
 ];
 
 export default function OddsPage() {
@@ -561,7 +563,12 @@ export default function OddsPage() {
                                           <Star className={cn("w-3.5 h-3.5", favorites.includes(m.id.toString()) && "fill-current")} />
                                         </button>
                                         <div className="flex flex-col gap-1.5">
-                                          <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">{m.league}</span>
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">{m.league}</span>
+                                            {activeCat === 'live' && (
+                                              <span className="text-[8px] font-black text-white/40 bg-white/5 px-1.5 py-0.5 rounded uppercase">{m.sport}</span>
+                                            )}
+                                          </div>
                                           {showProView && (
                                             <div className="flex items-center gap-1">
                                               <MapPin className="w-2.5 h-2.5 text-muted-foreground/40" />
