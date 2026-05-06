@@ -37,7 +37,9 @@ const NAV_ITEMS: NavItem[] = [
       { href: "/odds?cat=soccer", label: "축구", labelEn: "Soccer" },
       { href: "/odds?cat=baseball", label: "야구", labelEn: "Baseball" },
       { href: "/odds?cat=basketball", label: "농구", labelEn: "Basketball" },
-      { href: "/odds?cat=esports", label: "e스포츠", labelEn: "Esports" },
+      { href: "/odds?cat=volleyball", label: "배구", labelEn: "Volleyball" },
+      { href: "/odds?cat=hockey", label: "하키", labelEn: "Hockey" },
+      { href: "/odds?cat=handball", label: "핸드볼", labelEn: "Handball" },
       { href: "/odds?cat=live", label: "라이브 베팅", labelEn: "Live Betting" },
     ]
   },
