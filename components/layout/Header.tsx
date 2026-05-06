@@ -219,7 +219,7 @@ export default function Header({ user }: HeaderProps) {
 
                   {/* Dropdown */}
                   {item.children && openDropdown === item.id && (
-                    <div className="absolute top-full left-0 mt-1 w-48 py-2 glass-card rounded-xl z-50 animate-fade-in">
+                    <div className="absolute top-full left-0 mt-1 w-48 py-2 bg-background/95 border border-white/10 backdrop-blur-xl shadow-2xl rounded-xl z-50 animate-fade-in">
                       {item.children.map((child) => (
                         <Link
                           key={child.href}
