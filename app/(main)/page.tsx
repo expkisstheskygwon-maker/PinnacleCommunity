@@ -530,7 +530,7 @@ export default function HomePage() {
               <SectionHeader icon={Flame} title="인기 게시글" href="/community" badge="HOT" />
               <div className="space-y-2">
                 {hotPosts.map((post, idx) => (
-                  <Link href={`/community/post/${post.id}`} key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                  <Link href={`/community/${post.id}`} key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
                     <span className={cn(
                       "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0",
                       idx < 3 ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground"
