@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       endpoint = `/games?date=${today}`;
       break;
     case 'basketball':
-      host = 'v2.nba.api-sports.io'; // NBA 전용 또는 v1.basketball
+      host = 'v1.basketball.api-sports.io';
       endpoint = `/games?date=${today}`;
       break;
     default:
@@ -105,8 +105,8 @@ export async function GET(request: Request) {
         statusCode: status.short,
         time: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
         date: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }),
-        live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS'].includes(status.short?.toUpperCase()),
-        finished: ['FT', 'AET', 'PEN', 'POST', 'CANC', 'ABD', 'AWD', 'WO'].includes(status.short?.toUpperCase()),
+        live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS', 'Q1', 'Q2', 'Q3', 'Q4', 'OT', 'IN1', 'IN2', 'IN3', 'IN4', 'IN5', 'IN6', 'IN7', 'IN8', 'IN9'].includes(status.short?.toUpperCase()),
+        finished: ['FT', 'AET', 'PEN', 'POST', 'CANC', 'ABD', 'AWD', 'WO', 'AOT', 'F'].includes(status.short?.toUpperCase()),
         scores: {
           home: homeScore ?? 0,
           away: awayScore ?? 0

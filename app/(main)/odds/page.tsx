@@ -312,7 +312,9 @@ export default function OddsPage() {
                       const map: any = {
                         '1H': '전반', '2H': '후반', 'HT': '하프타임', 'ET': '연장', 'BT': '연장휴식', 'P': '승부차기',
                         'FT': '종료', 'AET': '연장종료', 'PEN': '승부차기종료', 'LIVE': '진행중', 'IN PROGRESS': '진행중',
-                        'POST': '연기', 'CANC': '취소', 'ABD': '중단', 'NS': '예정'
+                        'POST': '연기', 'CANC': '취소', 'ABD': '중단', 'NS': '예정',
+                        'Q1': '1쿼터', 'Q2': '2쿼터', 'Q3': '3쿼터', 'Q4': '4쿼터', 'OT': '연장', 'AOT': '연장종료',
+                        'IN1': '1회', 'IN2': '2회', 'IN3': '3회', 'IN4': '4회', 'IN5': '5회', 'IN6': '6회', 'IN7': '7회', 'IN8': '8회', 'IN9': '9회', 'F': '종료'
                       };
                       return map[status.toUpperCase()] || status;
                     };
