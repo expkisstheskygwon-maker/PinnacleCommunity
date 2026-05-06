@@ -152,7 +152,7 @@ export default function OddsPage() {
   const fetchMatches = async (sport: string) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/sports/matches?sport=${sport === 'all' ? 'soccer' : sport}`);
+      const res = await fetch(`/api/sports/matches?sport=${sport}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setMatches(data.matches || []);
