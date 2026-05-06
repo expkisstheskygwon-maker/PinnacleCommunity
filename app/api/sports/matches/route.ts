@@ -28,7 +28,9 @@ export async function GET(request: Request) {
 
   const fetchSportData = async (sportKey: string, isLiveOnly: boolean = false) => {
     const config = sportConfigs[sportKey] || { host: `v1.${sportKey}.api-sports.io`, endpoint: '/games' };
-    const url = `https://${config.host}${config.endpoint}?${isLiveOnly ? 'live=all' : `date=${today}`}`;
+    
+    // API-Sports의 v1 (농구, 야구 등)은 live=all 파라미터가 존재하지 않으므로, date로 전체 호출 후 자체 필터링
+    const url = `https://${config.host}${config.endpoint}?date=${today}&timezone=Asia/Seoul`;
 
     try {
       const response = await fetch(url, { headers: { 'x-apisports-key': apiKey } });
@@ -36,8 +38,8 @@ export async function GET(request: Request) {
       const data = await response.json();
       const fixtureData = data.response || [];
 
-      // 배당 데이터 (라이브 전용인 경우 생략 가능하지만 일관성을 위해 유지)
-      const oddsUrl = `https://${config.host}/odds?date=${today}`;
+      // 배당 데이터
+      const oddsUrl = `https://${config.host}/odds?date=${today}&timezone=Asia/Seoul`;
       const oddsResponse = await fetch(oddsUrl, { headers: { 'x-apisports-key': apiKey } });
       let oddsMap: Record<number, any> = {};
       if (oddsResponse.ok) {
@@ -65,7 +67,7 @@ export async function GET(request: Request) {
         });
       }
 
-      return fixtureData.map((item: any) => {
+      const mappedMatches = fixtureData.map((item: any) => {
         const fixture = item.fixture || item;
         const teams = item.teams;
         const league = item.league;
@@ -100,6 +102,8 @@ export async function GET(request: Request) {
           movement: "steady"
         };
       });
+
+      return isLiveOnly ? mappedMatches.filter((m: any) => m.live) : mappedMatches;
     } catch (err) {
       console.error(`Error fetching ${sportKey}:`, err);
       return [];
@@ -108,13 +112,18 @@ export async function GET(request: Request) {
 
   try {
     if (sport === 'live') {
-      // 모든 종목의 라이브 경기 병렬 호출
       const sportsToFetch = ['soccer', 'baseball', 'basketball', 'volleyball', 'handball', 'hockey'];
       const allResults = await Promise.all(sportsToFetch.map(s => fetchSportData(s, true)));
       const matches = allResults.flat();
       return NextResponse.json({ matches });
+    } else if (sport === 'all') {
+      // 원래 'all'은 soccer만 불렀으나, 진짜 전체 경기를 보여주기 위해 인기 3종목 병렬 호출
+      const sportsToFetch = ['soccer', 'baseball', 'basketball'];
+      const allResults = await Promise.all(sportsToFetch.map(s => fetchSportData(s, false)));
+      const matches = allResults.flat();
+      return NextResponse.json({ matches });
     } else {
-      const matches = await fetchSportData(sport === 'all' ? 'soccer' : sport);
+      const matches = await fetchSportData(sport);
       return NextResponse.json({ matches });
     }
   } catch (error: any) {
