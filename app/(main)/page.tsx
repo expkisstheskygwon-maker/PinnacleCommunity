@@ -100,6 +100,7 @@ function StarRating({ rating }: { rating: number }) {
 /* ─── Main Page ─── */
 export default function HomePage() {
   const [matches, setMatches] = useState<any[]>([]);
+  const [hotPosts, setHotPosts] = useState<any[]>(HOT_POSTS); // Fallback to mock initially
   const [userPrefs, setUserPrefs] = useState<{ favorites: string[], bets: string[], interests: any[] }>({
     favorites: [],
     bets: [],
@@ -166,8 +167,32 @@ export default function HomePage() {
       }
     };
 
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch("/api/posts?limit=5");
+        const data = await res.json();
+        if (data.success && data.posts && data.posts.length > 0) {
+          // Normalize post structure to match the UI expectations
+          const formattedPosts = data.posts.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            author: p.author || '익명',
+            category: p.category === 'analysis' ? '분석' : (p.category === 'guide' ? '가이드' : (p.category === 'qna' ? '질문' : (p.category === 'column' ? '칼럼' : p.category))),
+            views: p.views || 0,
+            comments: p.commentsCount || 0,
+            likes: p.likes || 0,
+            hot: (p.views || 0) > 100 || (p.likes || 0) > 5
+          }));
+          setHotPosts(formattedPosts);
+        }
+      } catch (err) {
+        console.error("Failed to fetch posts", err);
+      }
+    };
+
     fetchMatches();
     fetchUserPrefs();
+    fetchPosts();
   }, []);
 
   // Personalized Sorting and Filtering
@@ -504,8 +529,8 @@ export default function HomePage() {
             <section>
               <SectionHeader icon={Flame} title="인기 게시글" href="/community" badge="HOT" />
               <div className="space-y-2">
-                {HOT_POSTS.map((post, idx) => (
-                  <div key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                {hotPosts.map((post, idx) => (
+                  <Link href={`/community/post/${post.id}`} key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
                     <span className={cn(
                       "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0",
                       idx < 3 ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground"
@@ -523,11 +548,11 @@ export default function HomePage() {
                       </div>
                     </div>
                     <div className="hidden sm:flex items-center gap-4 text-[10px] text-muted-foreground shrink-0">
-                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{post.views.toLocaleString()}</span>
-                      <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{post.likes}</span>
-                      <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{post.comments}</span>
+                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{(post.views || 0).toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{post.likes || 0}</span>
+                      <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{post.comments || 0}</span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </section>
