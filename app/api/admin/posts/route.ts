@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, content, category, subCategory } = await request.json();
+    const { title, content, category, subCategory, image } = await request.json();
 
     if (!title || !content || !category) {
       return NextResponse.json(
@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
     // 실제 사이트의 posts 테이블 스키마에 맞춤
     const result = await db
       .prepare(
-        'INSERT INTO posts (title, content, authorId, category, tags) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO posts (title, content, authorId, category, tags, image) VALUES (?, ?, ?, ?, ?, ?)'
       )
-      .bind(title, content, 0, category, subCategory || null)
+      .bind(title, content, 0, category, subCategory || null, image || null)
       .run();
 
     if (!result.success) {

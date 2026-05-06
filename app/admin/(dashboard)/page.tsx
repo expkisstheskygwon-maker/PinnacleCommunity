@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Shield, Users, FileText, BarChart3, Bell, BookOpen, HelpCircle,
   TrendingUp, LogOut, Home, ChevronRight, Search, Plus, Edit, Trash2,
-  Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle
+  Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, Image as ImageIcon
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -519,6 +519,7 @@ function PostEditorView({ category }: { category: string }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [subCategory, setSubCategory] = useState("");
+  const [imageBase64, setImageBase64] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
@@ -567,6 +568,7 @@ function PostEditorView({ category }: { category: string }) {
           content,
           category: type,
           subCategory: subCategory || undefined,
+          image: imageBase64 || undefined,
         }),
       });
 
@@ -577,6 +579,7 @@ function PostEditorView({ category }: { category: string }) {
         setTitle("");
         setContent("");
         setSubCategory("");
+        setImageBase64("");
       } else {
         alert(`오류: ${data.error}`);
       }
@@ -654,6 +657,46 @@ function PostEditorView({ category }: { category: string }) {
         <div className="space-y-2">
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">본문</label>
           <textarea value={content} onChange={e => setContent(e.target.value)} rows={14} placeholder="내용을 입력하세요..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all resize-none" />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">대표 이미지 (선택)</label>
+          <div className="flex items-center gap-4">
+            <label className="cursor-pointer flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors text-sm">
+              <Upload className="w-4 h-4 text-muted-foreground" />
+              <span className="font-bold">이미지 업로드</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) {
+                    alert("이미지 크기는 2MB 이하여야 합니다.");
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    setImageBase64(event.target?.result as string);
+                  };
+                  reader.readAsDataURL(file);
+                }} 
+                className="hidden" 
+              />
+            </label>
+            {imageBase64 && (
+              <div className="relative group">
+                <img src={imageBase64} alt="Preview" className="h-12 w-12 object-cover rounded-lg border border-white/10" />
+                <button 
+                  onClick={() => setImageBase64("")} 
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground">이미지 파일(JPG, PNG 등) 2MB 이하 업로드 가능 (자동 Base64 변환 후 데이터베이스에 저장됩니다)</p>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2">
           <button className="btn-outline py-2.5 px-6 text-xs" onClick={() => alert("임시저장 기능은 현재 미구현입니다.")}>임시 저장</button>
