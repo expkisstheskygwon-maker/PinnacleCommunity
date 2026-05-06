@@ -34,13 +34,15 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "odds", href: "/odds", label: "배당/경기", labelEn: "Odds", icon: TrendingUp,
     children: [
+      { href: "/odds?cat=all", label: "전체", labelEn: "All" },
+      { href: "/odds?cat=favorites", label: "즐겨찾기", labelEn: "Favorites" },
+      { href: "/odds?cat=live", label: "라이브", labelEn: "Live" },
       { href: "/odds?cat=soccer", label: "축구", labelEn: "Soccer" },
-      { href: "/odds?cat=baseball", label: "야구", labelEn: "Baseball" },
       { href: "/odds?cat=basketball", label: "농구", labelEn: "Basketball" },
+      { href: "/odds?cat=baseball", label: "야구", labelEn: "Baseball" },
       { href: "/odds?cat=volleyball", label: "배구", labelEn: "Volleyball" },
       { href: "/odds?cat=hockey", label: "하키", labelEn: "Hockey" },
       { href: "/odds?cat=handball", label: "핸드볼", labelEn: "Handball" },
-      { href: "/odds?cat=live", label: "라이브 베팅", labelEn: "Live Betting" },
     ]
   },
   {
