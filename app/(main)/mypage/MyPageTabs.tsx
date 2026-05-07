@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   FileText, Star, Bell, Shield, Award,
   MessageSquare, Heart, Eye, ChevronRight,
-  Clock, Zap, Trophy, History, MapPin
+  Clock, Zap, Trophy, History, MapPin, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProfileSection from "./ProfileSection";
@@ -32,6 +32,7 @@ export default function MyPageTabs({
   const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests
   const [favorites, setFavorites] = useState<string[]>(initialFavorites);
   const [interests, setInterests] = useState<any[]>(initialInterests);
+  const [searchTerm, setSearchTerm] = useState("");
   
   const favTeams = interests.filter(i => i.category === 'team').map(i => i.value);
   const favLeagues = interests.filter(i => i.category === 'league').map(i => i.value);
@@ -43,7 +44,13 @@ export default function MyPageTabs({
     const hasFavTeam = favTeams.includes(m.home) || favTeams.includes(m.away);
     const hasFavLeague = favLeagues.includes(m.league);
     const hasFavSport = favSports.includes(m.sport);
-    return isFavMatch || hasFavTeam || hasFavLeague || hasFavSport;
+    
+    const matchesSearch = !searchTerm || 
+      m.home.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      m.away.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      m.league.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return (isFavMatch || hasFavTeam || hasFavLeague || hasFavSport) && matchesSearch;
   });
 
   const MENU_ITEMS = [
@@ -132,9 +139,15 @@ export default function MyPageTabs({
                         <p className="text-sm font-bold">{interest.value}</p>
                       </div>
                     </div>
-                    <Link href="/" className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-primary hover:underline">
+                    <button 
+                      onClick={() => {
+                        setSearchTerm(interest.value);
+                        setActiveTab("matches");
+                      }}
+                      className="bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border border-primary/20 group-hover:scale-105 active:scale-95"
+                    >
                       경기 보기
-                    </Link>
+                    </button>
                   </div>
                 ))
               ) : (
@@ -154,12 +167,22 @@ export default function MyPageTabs({
         {(activeTab === "overview" || activeTab === "matches") && (
           <section>
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="bg-emerald-500/15 p-1.5 rounded-lg">
-                  <Star className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-emerald-500/15 p-1.5 rounded-lg">
+                    <Star className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <h3 className="font-bold text-lg">{searchTerm ? `'${searchTerm}' 경기` : "오늘의 관심 경기"}</h3>
+                  <span className="badge-primary">{favoriteMatches.length}</span>
                 </div>
-                <h3 className="font-bold text-lg">오늘의 관심 경기</h3>
-                <span className="badge-primary">{favoriteMatches.length}</span>
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm("")}
+                    className="flex items-center gap-1 text-[10px] bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md text-muted-foreground transition-colors"
+                  >
+                    필터 해제 <X className="w-3 h-3" />
+                  </button>
+                )}
               </div>
               {activeTab === "overview" && (
                 <button onClick={() => setActiveTab("matches")} className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
@@ -227,10 +250,22 @@ export default function MyPageTabs({
             ) : (
               <div className="glass-card rounded-2xl p-12 text-center space-y-3">
                 <Star className="w-10 h-10 text-muted-foreground/20 mx-auto" />
-                <p className="text-muted-foreground text-sm">관심 있는 경기가 오늘 없습니다.<br/>다른 종목을 확인하거나 새로운 팀을 관심 등록해보세요.</p>
-                <Link href="/odds" className="inline-block btn-primary text-xs py-2 px-4 mt-2">
-                  경기 보러가기
-                </Link>
+                <p className="text-muted-foreground text-sm">
+                  {searchTerm 
+                    ? `현재 '${searchTerm}' 팀의 경기가 없습니다.` 
+                    : "관심 있는 경기가 오늘 없습니다."}
+                  <br/>배당 페이지에서 새로운 팀이나 리그를 관심 등록해보세요.
+                </p>
+                <div className="flex items-center justify-center gap-3 mt-2">
+                  {searchTerm && (
+                    <button onClick={() => setSearchTerm("")} className="btn-outline text-xs py-2 px-4">
+                      전체 관심 경기 보기
+                    </button>
+                  )}
+                  <Link href="/odds" className="btn-primary text-xs py-2 px-4">
+                    배당 페이지로 이동
+                  </Link>
+                </div>
               </div>
             )}
           </section>
