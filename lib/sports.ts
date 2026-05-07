@@ -20,15 +20,17 @@ export async function getTodayMatches(sport: string = 'soccer') {
       endpoint = `/games?date=${today}`;
       break;
     case 'basketball':
-      host = 'v2.nba.api-sports.io';
-      endpoint = `/games?date=${today}`;
+      host = 'v1.basketball.api-sports.io';
+      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
       break;
     default:
       host = `v1.${sport}.api-sports.io`;
-      endpoint = `/games?date=${today}`;
+      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
   }
 
-  const url = `https://${host}${endpoint}`;
+  const url = (sport === 'soccer' || sport === 'all')
+    ? `https://${host}/fixtures?date=${today}&timezone=Asia/Seoul`
+    : `https://${host}${endpoint}`;
   
   // 1. 경기 정보 가져오기
   const res = await fetch(url, {
@@ -42,7 +44,7 @@ export async function getTodayMatches(sport: string = 'soccer') {
   const fixtureData = data.response || [];
 
   // 2. 배당 정보 가져오기 (필요시)
-  const oddsUrl = `https://${host}/odds?date=${today}`;
+  const oddsUrl = `https://${host}/odds?date=${today}&timezone=Asia/Seoul`;
   const oddsRes = await fetch(oddsUrl, {
     method: 'GET',
     headers: { 'x-apisports-key': apiKey },
@@ -92,7 +94,7 @@ export async function getTodayMatches(sport: string = 'soccer') {
       status: status.long || status.short,
       statusCode: status.short,
       time: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS'].includes(status.short?.toUpperCase()),
+      live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS', 'Q1', 'Q2', 'Q3', 'Q4', 'OT', 'IN1', 'IN2', 'IN3', 'IN4', 'IN5', 'IN6', 'IN7', 'IN8', 'IN9'].includes(status.short?.toUpperCase()),
       scores: { home: homeScore, away: awayScore },
       odds: matchOdds,
       sport: sport
