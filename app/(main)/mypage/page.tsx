@@ -71,7 +71,7 @@ export default async function MyPage() {
     .all();
 
   // 6. Fetch Today's Matches for multiple sports
-  let todayMatches = [];
+  let todayMatches: any[] = [];
   try {
     const { getTodayMatches } = await import("@/lib/sports");
     const [soccer, baseball, basketball] = await Promise.all([
