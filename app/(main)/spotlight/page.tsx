@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import {
   Star, CheckCircle2, ThumbsUp, MessageSquare, Filter,
   ChevronDown, PenLine, ArrowUpDown, Clock, TrendingUp,
@@ -10,12 +12,24 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function SpotlightPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <SpotlightContent />
+    </Suspense>
+  );
+}
+
+function SpotlightContent() {
   const [activeCat, setActiveCat] = useState("all");
+  const searchParams = useSearchParams();
   const [posts, setPosts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const cat = searchParams.get('cat');
+    if (cat) setActiveCat(cat);
+
     const fetchData = async () => {
       setIsLoading(true);
       try {

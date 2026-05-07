@@ -10,13 +10,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const CATEGORIES = [
-  { id: "all", label: "전체" },
-  { id: "beginner", label: "초보 가이드" },
-  { id: "odds", label: "배당 이해" },
-  { id: "line", label: "라인 변동" },
-  { id: "strategy", label: "전략/리스크" },
-];
 
 const ARTICLES = [
   { id: 1, title: "아시안핸디캡 완전정복: -0.5와 -0.75의 차이", author: "ProBettor", category: "배당 이해", date: "2026-04-19", views: 2300, comments: 56, premium: true, summary: "아시안핸디캡의 가장 혼란스러운 부분인 쿼터 라인에 대한 심층 분석. 정산 방식부터 실전 활용법까지 다룹니다." },
@@ -32,6 +25,7 @@ function AnalysisContent() {
   const initialCat = searchParams.get("cat") || "all";
   const [activeCat, setActiveCat] = useState(initialCat);
   const [articles, setArticles] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Sync state with URL parameter if it changes
@@ -43,38 +37,47 @@ function AnalysisContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    const fetchArticles = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch("/api/posts?category=analysis");
-        const data = await res.json();
-        if (data.success && data.posts) {
-          // Normalize data
-          const formatted = data.posts.map((p: any) => ({
+        const [postsRes, catsRes] = await Promise.all([
+          fetch("/api/posts?category=analysis"),
+          fetch("/api/admin/categories?type=analysis")
+        ]);
+        
+        const postsData = await postsRes.json();
+        const catsData = await catsRes.json();
+        
+        if (postsData.success && postsData.posts) {
+          const formatted = postsData.posts.map((p: any) => ({
             id: p.id,
             title: p.title,
             author: p.author || '관리자',
-            category: p.tags || '기타', // subCategory is saved in tags
+            category: p.tags || '기타',
             date: new Date(p.createdAt || Date.now()).toISOString().split('T')[0],
             views: p.views || 0,
             comments: p.commentsCount || 0,
-            premium: false, // Could be determined by tags or specific DB field
+            premium: false,
             summary: p.content ? p.content.substring(0, 100).replace(/<[^>]+>/g, '') + '...' : '내용이 없습니다.'
           }));
           setArticles(formatted);
         }
+        
+        if (catsData.success) {
+          setCategories(catsData.categories);
+        }
       } catch (err) {
-        console.error("Failed to fetch analysis articles", err);
+        console.error("Failed to fetch analysis data", err);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchArticles();
+    fetchData();
   }, []);
 
   const filtered = activeCat === "all" 
     ? articles 
-    : articles.filter(a => a.category === CATEGORIES.find(c => c.id === activeCat)?.label);
+    : articles.filter(a => a.category === activeCat);
 
   return (
     <div className="mesh-gradient min-h-screen">
@@ -94,18 +97,29 @@ function AnalysisContent() {
 
         {/* Categories */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {CATEGORIES.map(cat => (
+          <button
+            onClick={() => setActiveCat("all")}
+            className={cn(
+              "px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
+              activeCat === "all"
+                ? "bg-primary text-white shadow-[0_0_16px_rgba(59,130,246,0.3)]"
+                : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 border border-white/[0.06]"
+            )}
+          >
+            전체
+          </button>
+          {categories.map(cat => (
             <button
               key={cat.id}
-              onClick={() => setActiveCat(cat.id)}
+              onClick={() => setActiveCat(cat.name)}
               className={cn(
-                "px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
-                activeCat === cat.id
-                  ? "bg-primary text-white shadow-[0_0_16px_rgba(59,130,246,0.3)]"
-                  : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 border border-white/[0.06]"
+                "px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap border",
+                activeCat === cat.name
+                  ? "bg-primary/20 border-primary/40 text-primary"
+                  : "bg-white/5 border-white/[0.06] text-muted-foreground hover:border-white/20"
               )}
             >
-              {cat.label}
+              {cat.name}
             </button>
           ))}
         </div>

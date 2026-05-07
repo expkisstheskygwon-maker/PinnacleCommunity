@@ -113,6 +113,7 @@ export default function Header({ user }: HeaderProps) {
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
+  const [dynamicCategories, setDynamicCategories] = useState<Record<string, SubItem[]>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -121,7 +122,40 @@ export default function Header({ user }: HeaderProps) {
       month: '2-digit',
       day: '2-digit'
     }).replace(/\//g, '.'));
+
+    // Fetch dynamic categories for all types
+    const fetchAllCats = async () => {
+      try {
+        const types = ["spotlight", "analysis", "qna", "notices"];
+        const catsMap: Record<string, SubItem[]> = {};
+        
+        await Promise.all(types.map(async (type) => {
+          const res = await fetch(`/api/admin/categories?type=${type}`);
+          const data = await res.json();
+          if (data.success && data.categories.length > 0) {
+            catsMap[type] = data.categories.map((c: any) => ({
+              href: `/${type}?cat=${encodeURIComponent(c.name)}`,
+              label: c.name,
+              labelEn: c.name
+            }));
+          }
+        }));
+        
+        setDynamicCategories(catsMap);
+      } catch (err) {
+        console.error("Failed to fetch header categories", err);
+      }
+    };
+    fetchAllCats();
   }, [lang]);
+
+  // Merge static NAV_ITEMS with dynamic categories
+  const navItems = NAV_ITEMS.map(item => {
+    if (dynamicCategories[item.id]) {
+      return { ...item, children: dynamicCategories[item.id] };
+    }
+    return item;
+  });
 
   const handleLogout = async () => {
     try {
@@ -198,7 +232,7 @@ export default function Header({ user }: HeaderProps) {
 
             {/* Desktop Nav */}
             <nav className="hidden xl:flex items-center gap-0.5">
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <div
                   key={item.id}
                   className="relative"
@@ -286,7 +320,7 @@ export default function Header({ user }: HeaderProps) {
               <div className="pb-4 mb-4 border-b border-white/[0.06]">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{lang === "ko" ? "메뉴" : "Menu"}</span>
               </div>
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <div key={item.id}>
                   <Link
                     href={item.href}
