@@ -126,7 +126,7 @@ export default function Header({ user }: HeaderProps) {
     // Fetch dynamic categories for all types
     const fetchAllCats = async () => {
       try {
-        const types = ["spotlight", "analysis", "qna", "notices"];
+        const types = ["spotlight", "analysis", "qna", "notices", "guide"];
         const catsMap: Record<string, SubItem[]> = {};
         
         await Promise.all(types.map(async (type) => {
@@ -250,11 +250,11 @@ export default function Header({ user }: HeaderProps) {
                   >
                     <item.icon className="w-3.5 h-3.5" />
                     {lang === "ko" ? item.label : item.labelEn}
-                    {item.children && <ChevronDown className={cn("w-3 h-3 transition-transform", openDropdown === item.id && "rotate-180")} />}
+                    {item.children && item.children.length > 0 && <ChevronDown className={cn("w-3 h-3 transition-transform", openDropdown === item.id && "rotate-180")} />}
                   </Link>
 
                   {/* Dropdown */}
-                  {item.children && openDropdown === item.id && (
+                  {item.children && item.children.length > 0 && openDropdown === item.id && (
                     <div className="absolute top-full left-0 mt-1 w-48 py-2 bg-background/95 border border-white/10 backdrop-blur-xl shadow-2xl rounded-xl z-50 animate-fade-in">
                       {item.children.map((child) => (
                         <Link
@@ -334,7 +334,7 @@ export default function Header({ user }: HeaderProps) {
                     <item.icon className="w-4 h-4" />
                     {lang === "ko" ? item.label : item.labelEn}
                   </Link>
-                  {item.children && (
+                  {item.children && item.children.length > 0 && (
                     <div className="ml-10 space-y-0.5 mt-0.5 mb-2">
                       {item.children.map((child) => (
                         <Link
