@@ -178,8 +178,8 @@ export default function GuidePage() {
             <Link href="/qna" className="btn-primary flex items-center gap-2">
               Q&A 바로가기 <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link href="/reviews" className="btn-outline flex items-center gap-2">
-              후기 보기
+            <Link href="/spotlight" className="btn-outline flex items-center gap-2">
+              스포트라이트 보기
             </Link>
           </div>
         </div>

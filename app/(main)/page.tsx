@@ -101,6 +101,7 @@ function StarRating({ rating }: { rating: number }) {
 export default function HomePage() {
   const [matches, setMatches] = useState<any[]>([]);
   const [hotPosts, setHotPosts] = useState<any[]>(HOT_POSTS); // Fallback to mock initially
+  const [spotlightPosts, setSpotlightPosts] = useState<any[]>([]);
   const [userPrefs, setUserPrefs] = useState<{ favorites: string[], bets: string[], interests: any[] }>({
     favorites: [],
     bets: [],
@@ -190,9 +191,20 @@ export default function HomePage() {
       }
     };
 
+    const fetchSpotlight = async () => {
+      try {
+        const res = await fetch("/api/posts?category=spotlight&limit=3");
+        const data = await res.json();
+        if (data.success) setSpotlightPosts(data.posts);
+      } catch (err) {
+        console.error("Failed to fetch spotlight", err);
+      }
+    };
+
     fetchMatches();
     fetchUserPrefs();
     fetchPosts();
+    fetchSpotlight();
   }, []);
 
   // Personalized Sorting and Filtering
@@ -306,7 +318,7 @@ export default function HomePage() {
               모든 정보를 <span className="text-primary italic">한곳</span>에서
             </h1>
             <p className="text-muted-foreground text-lg md:text-xl leading-relaxed">
-              가입 가이드부터 배당 분석, 실사용 후기, 사기주의 안내까지.<br className="hidden md:block" />
+              가입 가이드부터 배당 분석, 스포트라이트, 사기주의 안내까지.<br className="hidden md:block" />
               신뢰할 수 있는 피나클 커뮤니티에 오신 것을 환영합니다.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -557,35 +569,39 @@ export default function HomePage() {
               </div>
             </section>
 
-            {/* New Reviews */}
+            {/* Spotlight (Formerly Reviews) */}
             <section>
-              <SectionHeader icon={Star} title="최신 후기" href="/reviews" />
+              <SectionHeader icon={Star} title="스포트라이트" href="/spotlight" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {NEW_REVIEWS.map(review => (
-                  <div key={review.id} className="glass-card-hover rounded-2xl p-5 space-y-3 cursor-pointer">
-                    <div className="flex items-center justify-between">
-                      <span className="badge-primary">{review.category}</span>
-                      {review.verified && (
-                        <span className="badge-success">
-                          <CheckCircle2 className="w-3 h-3" /> 검증됨
+                {spotlightPosts.length > 0 ? (
+                  spotlightPosts.map(post => (
+                    <Link href={`/spotlight/${post.id}`} key={post.id} className="glass-card-hover rounded-2xl p-5 space-y-3 cursor-pointer group">
+                      <div className="flex items-center justify-between">
+                        <span className="badge-primary">{post.tags || "Premium"}</span>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Eye className="w-3 h-3" /> {post.views || 0}
                         </span>
-                      )}
-                    </div>
-                    <h4 className="font-bold text-sm leading-snug">{review.title}</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{review.summary}</p>
-                    <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{review.author[0]}</div>
-                        <span className="text-xs font-medium">{review.author}</span>
                       </div>
-                      <StarRating rating={review.rating} />
+                      <h4 className="font-bold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">{post.title}</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{post.content.replace(/<[^>]*>/g, '').substring(0, 100)}</p>
+                      <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">管</div>
+                          <span className="text-xs font-medium">관리자</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{new Date(post.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  [1, 2, 3].map(i => (
+                    <div key={i} className="glass-card rounded-2xl p-5 space-y-3 opacity-50">
+                      <div className="w-16 h-4 bg-white/5 rounded animate-pulse" />
+                      <div className="w-full h-8 bg-white/5 rounded animate-pulse" />
+                      <div className="w-full h-12 bg-white/5 rounded animate-pulse" />
                     </div>
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground/60">
-                      <span>{review.sport}</span>
-                      <span>{review.date}</span>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </section>
           </div>
@@ -677,7 +693,7 @@ export default function HomePage() {
               <div className="space-y-3">
                 {[
                   { user: "분석왕", action: "경기 토론에 글을 작성했습니다", time: "3분 전", avatar: "분" },
-                  { user: "빠른출금", action: "출금 후기를 등록했습니다", time: "12분 전", avatar: "빠" },
+                  { user: "빠른출금", action: "스포트라이트 글을 확인했습니다", time: "12분 전", avatar: "빠" },
                   { user: "ProBettor", action: "Q&A에 답변을 달았습니다", time: "25분 전", avatar: "P" },
                   { user: "축구매니아", action: "EPL 픽을 공유했습니다", time: "42분 전", avatar: "축" },
                 ].map((activity, idx) => (
@@ -708,7 +724,7 @@ export default function HomePage() {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "검증된 후기", value: "847건", icon: CheckCircle2, color: "text-emerald-400" },
+                  { label: "검증된 정보", value: "847건", icon: CheckCircle2, color: "text-emerald-400" },
                   { label: "전문가 칼럼", value: "156편", icon: FileText, color: "text-primary" },
                   { label: "해결된 Q&A", value: "2,341건", icon: Target, color: "text-purple-400" },
                   { label: "사기 신고", value: "23건", icon: Shield, color: "text-red-400" },

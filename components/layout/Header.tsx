@@ -54,12 +54,11 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
-    id: "reviews", href: "/reviews", label: "후기", labelEn: "Reviews", icon: Star,
+    id: "spotlight", href: "/spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: Star,
     children: [
-      { href: "/reviews?cat=signup", label: "가입 후기", labelEn: "Signup" },
-      { href: "/reviews?cat=deposit", label: "입금/출금", labelEn: "Deposit/Withdraw" },
-      { href: "/reviews?cat=support", label: "고객센터", labelEn: "Support" },
-      { href: "/reviews?cat=sports", label: "종목별", labelEn: "By Sport" },
+      { href: "/spotlight?cat=pickup", label: "오늘의 픽", labelEn: "Daily Pick" },
+      { href: "/spotlight?cat=column", label: "전문가 칼럼", labelEn: "Expert Column" },
+      { href: "/spotlight?cat=news", label: "긴급 뉴스", labelEn: "Breaking News" },
     ]
   },
   {

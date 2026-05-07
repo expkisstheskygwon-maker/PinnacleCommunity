@@ -18,6 +18,7 @@ const SIDEBAR_ITEMS = [
   { id: "qna", label: "Q&A 관리", icon: HelpCircle },
   { id: "notices", label: "공지/이슈 작성", icon: Bell },
   { id: "analysis", label: "분석/칼럼 작성", icon: TrendingUp },
+  { id: "spotlight", label: "스포트라이트 관리", icon: Star },
   { id: "categories", label: "카테고리 관리", icon: Edit },
 ];
 
@@ -108,6 +109,7 @@ export default function AdminDashboard() {
           {activeTab === "qna" && <PostEditorView category="Q&A" />}
           {activeTab === "notices" && <PostEditorView category="공지/이슈" />}
           {activeTab === "analysis" && <PostEditorView category="분석/칼럼" />}
+          {activeTab === "spotlight" && <PostEditorView category="스포트라이트" />}
           {activeTab === "categories" && <CategoryManagementView />}
         </div>
       </main>
@@ -530,6 +532,7 @@ function PostEditorView({ category }: { category: string }) {
       case "Q&A": return "qna";
       case "공지/이슈": return "notices";
       case "분석/칼럼": return "analysis";
+      case "스포트라이트": return "spotlight";
       default: return "free";
     }
   };
@@ -729,6 +732,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
     { id: "guide", label: "가이드" },
     { id: "qna", label: "Q&A" },
     { id: "analysis", label: "분석/칼럼" },
+    { id: "spotlight", label: "스포트라이트" },
   ];
 
   const fetchCategories = async () => {
