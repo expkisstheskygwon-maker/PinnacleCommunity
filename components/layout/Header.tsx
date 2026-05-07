@@ -62,6 +62,15 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
+    id: "community", href: "/community", label: "커뮤니티", labelEn: "Forum", icon: Users,
+    children: [
+      { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
+      { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
+      { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
+      { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
+    ]
+  },
+  {
     id: "qna", href: "/qna", label: "Q&A", labelEn: "Q&A", icon: HelpCircle,
     children: [
       { href: "/qna?cat=auth", label: "가입/인증", labelEn: "Signup/KYC" },
@@ -80,15 +89,6 @@ const NAV_ITEMS: NavItem[] = [
       { href: "/notices?cat=scam", label: "사기주의", labelEn: "Scam Alert" },
       { href: "/notices?cat=outage", label: "장애/지연", labelEn: "Outage" },
       { href: "/notices?cat=policy", label: "정책 변경", labelEn: "Policy" },
-    ]
-  },
-  {
-    id: "community", href: "/community", label: "커뮤니티", labelEn: "Forum", icon: Users,
-    children: [
-      { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
-      { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
-      { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
-      { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
     ]
   },
   {
