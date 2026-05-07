@@ -180,7 +180,7 @@ export default function MyPageTabs({
                         <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 uppercase">
                           {match.league}
                         </span>
-                        {favLeagues.includes(match.league) && <Heart className="w-3 h-3 text-rose-400 fill-current" title="관심 리그" />}
+                        {favLeagues.includes(match.league) && <Heart className="w-3 h-3 text-rose-400 fill-current" />}
                       </div>
                       {match.live && (
                         <span className="badge-live text-[9px]">
