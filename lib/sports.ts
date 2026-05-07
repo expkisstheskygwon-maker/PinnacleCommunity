@@ -94,7 +94,8 @@ export async function getTodayMatches(sport: string = 'soccer') {
       time: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
       live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS'].includes(status.short?.toUpperCase()),
       scores: { home: homeScore, away: awayScore },
-      odds: matchOdds
+      odds: matchOdds,
+      sport: sport
     };
   });
 }

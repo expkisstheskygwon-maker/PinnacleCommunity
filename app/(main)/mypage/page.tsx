@@ -48,14 +48,15 @@ export default async function MyPage() {
     .bind(user.id, user.id)
     .first();
 
-  // 3. Fetch Favorites (Match IDs) & Favorite Teams (Interests)
+  // 3. Fetch Favorites (Match IDs) & ALL Interests (teams, leagues, sports, countries)
   const [favResults, interestResults] = await Promise.all([
     db.prepare("SELECT matchId FROM user_favorites WHERE userId = ?").bind(user.id).all(),
-    db.prepare("SELECT value FROM user_interests WHERE userId = ? AND category = 'team'").bind(user.id).all()
+    db.prepare("SELECT category, value FROM user_interests WHERE userId = ?").bind(user.id).all()
   ]);
 
   const favoriteIds = favResults.results.map((r: any) => r.matchId.toString());
-  const favoriteTeams = interestResults.results.map((r: any) => r.value);
+  const allInterests = interestResults.results;
+  const favoriteTeams = allInterests.filter((i: any) => i.category === 'team').map((i: any) => i.value);
 
   // 4. Fetch Real Notifications
   const notifResults = await db
@@ -69,11 +70,16 @@ export default async function MyPage() {
     .bind(user.id)
     .all();
 
-  // 6. Fetch Today's Matches using internal utility (No more self-fetch via URL)
+  // 6. Fetch Today's Matches for multiple sports
   let todayMatches = [];
   try {
     const { getTodayMatches } = await import("@/lib/sports");
-    todayMatches = await getTodayMatches('soccer');
+    const [soccer, baseball, basketball] = await Promise.all([
+      getTodayMatches('soccer').catch(() => []),
+      getTodayMatches('baseball').catch(() => []),
+      getTodayMatches('basketball').catch(() => [])
+    ]);
+    todayMatches = [...soccer, ...baseball, ...basketball];
   } catch (e) {
     console.error("Failed to fetch matches for mypage", e);
   }
@@ -102,7 +108,7 @@ export default async function MyPage() {
           profile={USER_PROFILE}
           initialMatches={todayMatches}
           initialFavorites={favoriteIds}
-          initialFavTeams={favoriteTeams}
+          initialInterests={allInterests}
           initialNotifications={notifResults.results}
           initialPosts={postResults.results}
         />
