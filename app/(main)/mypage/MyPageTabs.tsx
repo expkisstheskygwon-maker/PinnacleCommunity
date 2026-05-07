@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   FileText, Star, Bell, Shield, Award,
   MessageSquare, Heart, Eye, ChevronRight,
-  Clock, Zap, Trophy, History, MapPin
+  Clock, Zap, Trophy, History, MapPin, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProfileSection from "./ProfileSection";
@@ -15,7 +15,7 @@ interface MyPageTabsProps {
   profile: any;
   initialMatches: any[];
   initialFavorites: string[];
-  initialFavTeams: string[];
+  initialInterests: any[];
   initialNotifications: any[];
   initialPosts: any[];
 }
@@ -25,24 +25,38 @@ export default function MyPageTabs({
   profile,
   initialMatches,
   initialFavorites,
-  initialFavTeams,
+  initialInterests,
   initialNotifications,
   initialPosts
 }: MyPageTabsProps) {
-  const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications
+  const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests
   const [favorites, setFavorites] = useState<string[]>(initialFavorites);
-  const [favTeams, setFavTeams] = useState<string[]>(initialFavTeams);
+  const [interests, setInterests] = useState<any[]>(initialInterests);
+  const [searchTerm, setSearchTerm] = useState("");
   
-  // 즐겨찾기 필터링 로직: 즐겨찾기한 경기 ID + 관심 팀이 포함된 경기
+  const favTeams = interests.filter(i => i.category === 'team').map(i => i.value);
+  const favLeagues = interests.filter(i => i.category === 'league').map(i => i.value);
+  const favSports = interests.filter(i => i.category === 'sport').map(i => i.value);
+
+  // 즐겨찾기 필터링 로직: 즐겨찾기한 경기 ID + 관심 팀/리그/종목이 포함된 경기
   const favoriteMatches = initialMatches.filter(m => {
     const isFavMatch = favorites.includes(m.id.toString());
     const hasFavTeam = favTeams.includes(m.home) || favTeams.includes(m.away);
-    return isFavMatch || hasFavTeam;
+    const hasFavLeague = favLeagues.includes(m.league);
+    const hasFavSport = favSports.includes(m.sport);
+    
+    const matchesSearch = !searchTerm || 
+      m.home.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      m.away.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      m.league.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return (isFavMatch || hasFavTeam || hasFavLeague || hasFavSport) && matchesSearch;
   });
 
   const MENU_ITEMS = [
     { id: "overview", label: "마이페이지 홈", icon: Shield, count: 0 },
     { id: "matches", label: "관심 경기", icon: Star, count: favoriteMatches.length },
+    { id: "interests", label: "관심 설정", icon: Heart, count: interests.length },
     { id: "notifications", label: "알림 서랍", icon: Bell, count: initialNotifications.filter(n => !n.readAt).length },
     { id: "posts", label: "내 글/댓글", icon: FileText, count: profile.postCount + profile.commentCount },
     { id: "activity", label: "활동 점수", icon: Award, count: profile.score },
@@ -88,20 +102,91 @@ export default function MyPageTabs({
       {/* Right - Dynamic Content Area */}
       <div className="xl:col-span-8 space-y-8 animate-fade-in">
         
-        {/* ─── Tab: Overview ─── */}
+        {/* ─── Tab: Overview or Interests ─── */}
+        {activeTab === "interests" && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="bg-rose-500/15 p-1.5 rounded-lg">
+                <Heart className="w-4 h-4 text-rose-400" />
+              </div>
+              <h3 className="font-bold text-lg">나의 관심 설정</h3>
+              <span className="badge-primary">{interests.length}</span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {interests.length > 0 ? (
+                interests.map((interest, idx) => (
+                  <div key={idx} className="glass-card rounded-2xl p-4 flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                        interest.category === 'sport' ? "bg-primary/10 text-primary" :
+                        interest.category === 'league' ? "bg-emerald-500/10 text-emerald-400" :
+                        interest.category === 'team' ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))]" :
+                        "bg-purple-500/10 text-purple-400"
+                      )}>
+                        {interest.category === 'sport' ? <Zap className="w-4 h-4" /> :
+                         interest.category === 'league' ? <Trophy className="w-4 h-4" /> :
+                         interest.category === 'team' ? <Star className="w-4 h-4" /> :
+                         <MapPin className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                          {interest.category === 'sport' ? '종목' :
+                           interest.category === 'league' ? '리그' :
+                           interest.category === 'team' ? '팀' : '국가'}
+                        </p>
+                        <p className="text-sm font-bold">{interest.value}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setSearchTerm(interest.value);
+                        setActiveTab("matches");
+                      }}
+                      className="bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border border-primary/20 group-hover:scale-105 active:scale-95"
+                    >
+                      경기 보기
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full glass-card rounded-2xl p-12 text-center space-y-3">
+                  <Heart className="w-10 h-10 text-muted-foreground/20 mx-auto" />
+                  <p className="text-muted-foreground text-sm">설정된 관심 항목이 없습니다.<br/>홈페이지에서 관심 있는 팀이나 리그를 추가해보세요.</p>
+                  <Link href="/" className="inline-block btn-primary text-xs py-2 px-4 mt-2">
+                    설정하러 가기
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ─── Tab: Overview or Matches ─── */}
         {(activeTab === "overview" || activeTab === "matches") && (
           <section>
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="bg-emerald-500/15 p-1.5 rounded-lg">
-                  <Star className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-emerald-500/15 p-1.5 rounded-lg">
+                    <Star className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <h3 className="font-bold text-lg">{searchTerm ? `'${searchTerm}' 경기` : "오늘의 관심 경기"}</h3>
+                  <span className="badge-primary">{favoriteMatches.length}</span>
                 </div>
-                <h3 className="font-bold text-lg">관심 경기 (즐겨찾기)</h3>
-                <span className="badge-primary">{favoriteMatches.length}</span>
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm("")}
+                    className="flex items-center gap-1 text-[10px] bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md text-muted-foreground transition-colors"
+                  >
+                    필터 해제 <X className="w-3 h-3" />
+                  </button>
+                )}
               </div>
               {activeTab === "overview" && (
                 <button onClick={() => setActiveTab("matches")} className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
-                  더보기 <ChevronRight className="w-3 h-3" />
+                  전체 경기 <ChevronRight className="w-3 h-3" />
                 </button>
               )}
             </div>
@@ -111,12 +196,15 @@ export default function MyPageTabs({
                 {favoriteMatches.map(match => (
                   <div key={match.id} className="glass-card-hover rounded-2xl p-5 group cursor-pointer relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-3">
-                      <Star className="w-4 h-4 text-[hsl(var(--gold))] fill-current opacity-40 group-hover:opacity-100 transition-opacity" />
+                      <Star className={cn("w-4 h-4 transition-opacity", favorites.includes(match.id.toString()) ? "text-[hsl(var(--gold))] fill-current opacity-100" : "text-white/10 opacity-40 group-hover:opacity-100")} />
                     </div>
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 uppercase">
-                        {match.league}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 uppercase">
+                          {match.league}
+                        </span>
+                        {favLeagues.includes(match.league) && <Heart className="w-3 h-3 text-rose-400 fill-current" />}
+                      </div>
                       {match.live && (
                         <span className="badge-live text-[9px]">
                           <span className="relative flex h-1.5 w-1.5">
@@ -152,7 +240,7 @@ export default function MyPageTabs({
                     <div className="mt-5 pt-4 border-t border-white/[0.04] flex items-center justify-between text-[10px] text-muted-foreground/60 font-medium">
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {match.time}</span>
-                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Stadium</span>
+                        <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-primary" /> {match.sport === 'soccer' ? '축구' : match.sport === 'baseball' ? '야구' : '농구'}</span>
                       </div>
                       <Link href="/odds" className="text-primary hover:underline font-bold">배당 분석 →</Link>
                     </div>
@@ -162,10 +250,22 @@ export default function MyPageTabs({
             ) : (
               <div className="glass-card rounded-2xl p-12 text-center space-y-3">
                 <Star className="w-10 h-10 text-muted-foreground/20 mx-auto" />
-                <p className="text-muted-foreground text-sm">즐겨찾기한 경기가 없습니다.<br/>배당 페이지에서 관심 있는 경기에 별표를 눌러보세요.</p>
-                <Link href="/odds" className="inline-block btn-primary text-xs py-2 px-4 mt-2">
-                  경기 보러가기
-                </Link>
+                <p className="text-muted-foreground text-sm">
+                  {searchTerm 
+                    ? `현재 '${searchTerm}' 팀의 경기가 없습니다.` 
+                    : "관심 있는 경기가 오늘 없습니다."}
+                  <br/>배당 페이지에서 새로운 팀이나 리그를 관심 등록해보세요.
+                </p>
+                <div className="flex items-center justify-center gap-3 mt-2">
+                  {searchTerm && (
+                    <button onClick={() => setSearchTerm("")} className="btn-outline text-xs py-2 px-4">
+                      전체 관심 경기 보기
+                    </button>
+                  )}
+                  <Link href="/odds" className="btn-primary text-xs py-2 px-4">
+                    배당 페이지로 이동
+                  </Link>
+                </div>
               </div>
             )}
           </section>

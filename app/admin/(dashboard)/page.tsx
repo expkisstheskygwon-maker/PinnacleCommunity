@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import {
   Shield, Users, FileText, BarChart3, Bell, BookOpen, HelpCircle,
   TrendingUp, LogOut, Home, ChevronRight, Search, Plus, Edit, Trash2,
-  Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle
+  Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, 
+  Image as ImageIcon, Star, Info, X
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ const SIDEBAR_ITEMS = [
   { id: "qna", label: "Q&A 관리", icon: HelpCircle },
   { id: "notices", label: "공지/이슈 작성", icon: Bell },
   { id: "analysis", label: "분석/칼럼 작성", icon: TrendingUp },
+  { id: "spotlight", label: "스포트라이트 관리", icon: Star },
   { id: "categories", label: "카테고리 관리", icon: Edit },
 ];
 
@@ -108,6 +110,7 @@ export default function AdminDashboard() {
           {activeTab === "qna" && <PostEditorView category="Q&A" />}
           {activeTab === "notices" && <PostEditorView category="공지/이슈" />}
           {activeTab === "analysis" && <PostEditorView category="분석/칼럼" />}
+          {activeTab === "spotlight" && <PostEditorView category="스포트라이트" />}
           {activeTab === "categories" && <CategoryManagementView />}
         </div>
       </main>
@@ -519,8 +522,10 @@ function PostEditorView({ category }: { category: string }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [subCategory, setSubCategory] = useState("");
+  const [imageBase64, setImageBase64] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [isPreview, setIsPreview] = useState(false);
 
   // Map category to backend category ID
   const getCategoryType = () => {
@@ -529,6 +534,7 @@ function PostEditorView({ category }: { category: string }) {
       case "Q&A": return "qna";
       case "공지/이슈": return "notices";
       case "분석/칼럼": return "analysis";
+      case "스포트라이트": return "spotlight";
       default: return "free";
     }
   };
@@ -549,7 +555,7 @@ function PostEditorView({ category }: { category: string }) {
       }
     };
     fetchCats();
-  }, [type, isManageModalOpen]); // Re-fetch when modal closes
+  }, [type, isManageModalOpen]);
 
   const handlePublish = async () => {
     if (!title || !content) {
@@ -567,17 +573,18 @@ function PostEditorView({ category }: { category: string }) {
           content,
           category: type,
           subCategory: subCategory || undefined,
+          image: imageBase64 || undefined,
         }),
       });
-
-      const data = await response.json();
 
       if (response.ok) {
         alert("게시글이 성공적으로 발행되었습니다.");
         setTitle("");
         setContent("");
         setSubCategory("");
+        setImageBase64("");
       } else {
+        const data = await response.json();
         alert(`오류: ${data.error}`);
       }
     } catch (error) {
@@ -589,89 +596,171 @@ function PostEditorView({ category }: { category: string }) {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-black tracking-tight">{category} 작성</h1>
-        <p className="text-sm text-muted-foreground mt-1">새로운 {category} 콘텐츠를 작성합니다 (관리자 전용)</p>
-      </div>
-      <div className="glass-card rounded-2xl p-6 space-y-5">
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">제목</label>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder={`${category} 제목을 입력하세요`} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all" />
+    <div className="space-y-6 animate-fade-in max-w-5xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">{category} 작성</h1>
+          <p className="text-sm text-muted-foreground mt-1">새로운 {category} 콘텐츠를 작성합니다 (HTML 지원)</p>
         </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">세부 카테고리 (선택)</label>
-            <button 
-              onClick={() => setIsManageModalOpen(true)}
-              className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-lg"
-            >
-              <Edit className="w-2.5 h-2.5" /> 카테고리 편집
-            </button>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {subOptions.length > 0 ? (
-              subOptions.map(c => (
-                <button 
-                  key={c.id} 
-                  onClick={() => setSubCategory(c.name)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
-                    subCategory === c.name 
-                      ? "bg-primary/20 text-primary border-primary/50" 
-                      : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20"
-                  )}
-                >
-                  {c.name}
-                </button>
-              ))
-            ) : (
-              <p className="text-[10px] text-muted-foreground py-1">등록된 카테고리가 없습니다. [카테고리 편집] 버튼을 눌러 추가해 주세요.</p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsPreview(!isPreview)}
+            className={cn(
+              "px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5",
+              isPreview ? "bg-primary text-white border-primary" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
             )}
-          </div>
-        </div>
-
-        {/* Category Manage Modal */}
-        {isManageModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in">
-              <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
-                <div>
-                  <h3 className="font-black text-lg">{category} 카테고리 관리</h3>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">글 작성 시 선택 가능한 세부 분류를 관리합니다</p>
-                </div>
-                <button onClick={() => setIsManageModalOpen(false)} className="text-muted-foreground hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all">✕</button>
-              </div>
-              <div className="p-6 max-h-[70vh] overflow-y-auto">
-                <CategoryManagementView initialType={type} hideHeader={true} />
-              </div>
-              <div className="p-4 border-t border-white/10 flex justify-end bg-black/20">
-                <button onClick={() => setIsManageModalOpen(false)} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all">닫기</button>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">본문</label>
-          <textarea value={content} onChange={e => setContent(e.target.value)} rows={14} placeholder="내용을 입력하세요..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all resize-none" />
-        </div>
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button className="btn-outline py-2.5 px-6 text-xs" onClick={() => alert("임시저장 기능은 현재 미구현입니다.")}>임시 저장</button>
-          <button 
+          >
+            {isPreview ? <Edit className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            {isPreview ? "에디터" : "미리보기"}
+          </button>
+          <button
             onClick={handlePublish}
             disabled={isPublishing}
-            className="py-2.5 px-6 rounded-xl font-bold text-sm bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)] disabled:opacity-50 disabled:pointer-events-none"
+            className="btn-primary py-2 px-8 text-xs flex items-center gap-2"
           >
-            <span className="flex items-center gap-1.5">
-              <Plus className="w-3.5 h-3.5" /> 
-              {isPublishing ? "발행 중..." : "발행하기"}
-            </span>
+            {isPublishing ? <Plus className="w-3.5 h-3.5" /> : null}
+            {isPublishing ? "발행 중..." : "발행하기"}
           </button>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="glass-card rounded-2xl p-6 space-y-5">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">제목</label>
+              <input 
+                value={title} 
+                onChange={e => setTitle(e.target.value)} 
+                placeholder={`${category} 제목을 입력하세요`} 
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all" 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">본문 {isPreview && "(미리보기)"}</label>
+                {!isPreview && <span className="text-[10px] text-muted-foreground italic">* HTML 태그를 직접 사용할 수 있습니다.</span>}
+              </div>
+              {isPreview ? (
+                <div 
+                  className="w-full min-h-[500px] bg-white/[0.02] border border-white/10 rounded-xl px-6 py-6 prose prose-invert prose-sm max-w-none overflow-y-auto"
+                  dangerouslySetInnerHTML={{ __html: content || "<p class='text-muted-foreground italic text-center py-20'>내용이 없습니다.</p>" }}
+                />
+              ) : (
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="내용을 입력하세요 (HTML 가능)..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[500px] font-mono leading-relaxed"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="glass-card rounded-2xl p-6 space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">세부 카테고리</label>
+                <button 
+                  onClick={() => setIsManageModalOpen(true)}
+                  className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-lg"
+                >
+                  <Edit className="w-2.5 h-2.5" /> 관리
+                </button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {subOptions.length > 0 ? (
+                  subOptions.map(c => (
+                    <button 
+                      key={c.id} 
+                      onClick={() => setSubCategory(c.name)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
+                        subCategory === c.name 
+                          ? "bg-primary/20 text-primary border-primary/50" 
+                          : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20"
+                      )}
+                    >
+                      {c.name}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-[10px] text-muted-foreground py-1 italic">등록된 카테고리가 없습니다.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">대표 이미지</label>
+              <div className="relative group">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => setImageBase64(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="cursor-pointer block w-full aspect-video bg-white/5 border border-dashed border-white/20 rounded-xl overflow-hidden hover:bg-white/10 transition-all flex flex-col items-center justify-center"
+                >
+                  {imageBase64 ? (
+                    <img src={imageBase64} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Star className="w-5 h-5 opacity-20" />
+                      <span className="text-[10px] font-bold">대표 이미지 선택</span>
+                    </div>
+                  )}
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div className="glass-card p-6 rounded-2xl bg-primary/[0.03] border-primary/10">
+            <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-1.5">
+              <Info className="w-3 h-3" /> 관리자 팁
+            </h4>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              가이드 메뉴는 HTML을 직접 입력하여 리스트, 표 등을 자유롭게 구성할 수 있습니다. 미리보기 버튼을 눌러 디자인을 확인하세요.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {isManageModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in">
+            <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+              <div>
+                <h3 className="font-black text-lg">{category} 카테고리 관리</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">글 작성 시 선택 가능한 세부 분류를 관리합니다</p>
+              </div>
+              <button onClick={() => setIsManageModalOpen(false)} className="text-muted-foreground hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all">✕</button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <CategoryManagementView initialType={type} hideHeader={true} />
+            </div>
+            <div className="p-4 border-t border-white/10 flex justify-end bg-black/20">
+              <button onClick={() => setIsManageModalOpen(false)} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all">닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function CategoryManagementView({ initialType, hideHeader }: { initialType?: string; hideHeader?: boolean }) {
   const [categories, setCategories] = useState<any[]>([]);
@@ -686,6 +775,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
     { id: "guide", label: "가이드" },
     { id: "qna", label: "Q&A" },
     { id: "analysis", label: "분석/칼럼" },
+    { id: "spotlight", label: "스포트라이트" },
   ];
 
   const fetchCategories = async () => {

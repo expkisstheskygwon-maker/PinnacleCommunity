@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   BarChart3, Microscope, TrendingUp, BookOpen, Shield,
   Calendar, Users, MessageSquare, Eye, ChevronRight, Star,
@@ -9,13 +10,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const CATEGORIES = [
-  { id: "all", label: "전체" },
-  { id: "beginner", label: "초보 가이드" },
-  { id: "odds", label: "배당 이해" },
-  { id: "line", label: "라인 변동" },
-  { id: "strategy", label: "전략/리스크" },
-];
 
 const ARTICLES = [
   { id: 1, title: "아시안핸디캡 완전정복: -0.5와 -0.75의 차이", author: "ProBettor", category: "배당 이해", date: "2026-04-19", views: 2300, comments: 56, premium: true, summary: "아시안핸디캡의 가장 혼란스러운 부분인 쿼터 라인에 대한 심층 분석. 정산 방식부터 실전 활용법까지 다룹니다." },
@@ -26,9 +20,64 @@ const ARTICLES = [
   { id: 6, title: "배팅 뱅크롤 관리: 켈리 기준법 실전 적용", author: "ProBettor", category: "전략/리스크", date: "2026-04-14", views: 1560, comments: 41, premium: true, summary: "풀 켈리, 하프 켈리, 쿼터 켈리의 차이와 실전에서의 수익률 비교 시뮬레이션 결과." },
 ];
 
-export default function AnalysisPage() {
-  const [activeCat, setActiveCat] = useState("all");
-  const filtered = activeCat === "all" ? ARTICLES : ARTICLES.filter(a => a.category === CATEGORIES.find(c => c.id === activeCat)?.label);
+function AnalysisContent() {
+  const searchParams = useSearchParams();
+  const initialCat = searchParams.get("cat") || "all";
+  const [activeCat, setActiveCat] = useState(initialCat);
+  const [articles, setArticles] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Sync state with URL parameter if it changes
+  useEffect(() => {
+    const cat = searchParams.get("cat");
+    if (cat) {
+      setActiveCat(cat);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [postsRes, catsRes] = await Promise.all([
+          fetch("/api/posts?category=analysis"),
+          fetch("/api/admin/categories?type=analysis")
+        ]);
+        
+        const postsData = await postsRes.json();
+        const catsData = await catsRes.json();
+        
+        if (postsData.success && postsData.posts) {
+          const formatted = postsData.posts.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            author: p.author || '관리자',
+            category: p.tags || '기타',
+            date: new Date(p.createdAt || Date.now()).toISOString().split('T')[0],
+            views: p.views || 0,
+            comments: p.commentsCount || 0,
+            premium: false,
+            summary: p.content ? p.content.substring(0, 100).replace(/<[^>]+>/g, '') + '...' : '내용이 없습니다.'
+          }));
+          setArticles(formatted);
+        }
+        
+        if (catsData.success) {
+          setCategories(catsData.categories);
+        }
+      } catch (err) {
+        console.error("Failed to fetch analysis data", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const filtered = activeCat === "all" 
+    ? articles 
+    : articles.filter(a => a.category === activeCat);
 
   return (
     <div className="mesh-gradient min-h-screen">
@@ -48,26 +97,46 @@ export default function AnalysisPage() {
 
         {/* Categories */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {CATEGORIES.map(cat => (
+          <button
+            onClick={() => setActiveCat("all")}
+            className={cn(
+              "px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
+              activeCat === "all"
+                ? "bg-primary text-white shadow-[0_0_16px_rgba(59,130,246,0.3)]"
+                : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 border border-white/[0.06]"
+            )}
+          >
+            전체
+          </button>
+          {categories.map(cat => (
             <button
               key={cat.id}
-              onClick={() => setActiveCat(cat.id)}
+              onClick={() => setActiveCat(cat.name)}
               className={cn(
-                "px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
-                activeCat === cat.id
-                  ? "bg-primary text-white shadow-[0_0_16px_rgba(59,130,246,0.3)]"
-                  : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 border border-white/[0.06]"
+                "px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap border",
+                activeCat === cat.name
+                  ? "bg-primary/20 border-primary/40 text-primary"
+                  : "bg-white/5 border-white/[0.06] text-muted-foreground hover:border-white/20"
               )}
             >
-              {cat.label}
+              {cat.name}
             </button>
           ))}
         </div>
 
         {/* Articles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map(article => (
-            <div key={article.id} className="glass-card-hover rounded-2xl overflow-hidden cursor-pointer group">
+        {isLoading ? (
+          <div className="py-20 text-center text-muted-foreground animate-pulse">
+            게시글을 불러오는 중입니다...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-20 text-center text-muted-foreground">
+            등록된 분석/칼럼 게시글이 없습니다.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map(article => (
+              <Link href={`/community/${article.id}`} key={article.id} className="glass-card-hover rounded-2xl overflow-hidden cursor-pointer group block">
               {/* Card Top */}
               <div className="h-44 bg-gradient-to-br from-primary/15 to-secondary/30 relative flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.03%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')] opacity-50" />
@@ -96,10 +165,19 @@ export default function AnalysisPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function AnalysisPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>}>
+      <AnalysisContent />
+    </Suspense>
   );
 }

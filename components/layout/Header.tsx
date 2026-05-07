@@ -34,11 +34,14 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "odds", href: "/odds", label: "배당/경기", labelEn: "Odds", icon: TrendingUp,
     children: [
+      { href: "/odds?cat=favorites", label: "즐겨찾기", labelEn: "Favorites" },
+      { href: "/odds?cat=live", label: "라이브", labelEn: "Live" },
       { href: "/odds?cat=soccer", label: "축구", labelEn: "Soccer" },
-      { href: "/odds?cat=baseball", label: "야구", labelEn: "Baseball" },
       { href: "/odds?cat=basketball", label: "농구", labelEn: "Basketball" },
-      { href: "/odds?cat=esports", label: "e스포츠", labelEn: "Esports" },
-      { href: "/odds?cat=live", label: "라이브 베팅", labelEn: "Live Betting" },
+      { href: "/odds?cat=baseball", label: "야구", labelEn: "Baseball" },
+      { href: "/odds?cat=volleyball", label: "배구", labelEn: "Volleyball" },
+      { href: "/odds?cat=hockey", label: "하키", labelEn: "Hockey" },
+      { href: "/odds?cat=handball", label: "핸드볼", labelEn: "Handball" },
     ]
   },
   {
@@ -51,12 +54,20 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
-    id: "reviews", href: "/reviews", label: "후기", labelEn: "Reviews", icon: Star,
+    id: "spotlight", href: "/spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: Star,
     children: [
-      { href: "/reviews?cat=signup", label: "가입 후기", labelEn: "Signup" },
-      { href: "/reviews?cat=deposit", label: "입금/출금", labelEn: "Deposit/Withdraw" },
-      { href: "/reviews?cat=support", label: "고객센터", labelEn: "Support" },
-      { href: "/reviews?cat=sports", label: "종목별", labelEn: "By Sport" },
+      { href: "/spotlight?cat=pickup", label: "오늘의 픽", labelEn: "Daily Pick" },
+      { href: "/spotlight?cat=column", label: "전문가 칼럼", labelEn: "Expert Column" },
+      { href: "/spotlight?cat=news", label: "긴급 뉴스", labelEn: "Breaking News" },
+    ]
+  },
+  {
+    id: "community", href: "/community", label: "커뮤니티", labelEn: "Forum", icon: Users,
+    children: [
+      { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
+      { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
+      { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
+      { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
     ]
   },
   {
@@ -81,15 +92,6 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
-    id: "community", href: "/community", label: "커뮤니티", labelEn: "Forum", icon: Users,
-    children: [
-      { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
-      { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
-      { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
-      { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
-    ]
-  },
-  {
     id: "mypage", href: "/mypage", label: "마이페이지", labelEn: "My Page", icon: User,
   },
 ];
@@ -111,6 +113,7 @@ export default function Header({ user }: HeaderProps) {
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
+  const [dynamicCategories, setDynamicCategories] = useState<Record<string, SubItem[]>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -119,7 +122,40 @@ export default function Header({ user }: HeaderProps) {
       month: '2-digit',
       day: '2-digit'
     }).replace(/\//g, '.'));
+
+    // Fetch dynamic categories for all types
+    const fetchAllCats = async () => {
+      try {
+        const types = ["spotlight", "analysis", "qna", "notices", "guide"];
+        const catsMap: Record<string, SubItem[]> = {};
+        
+        await Promise.all(types.map(async (type) => {
+          const res = await fetch(`/api/admin/categories?type=${type}`);
+          const data = await res.json();
+          if (data.success && data.categories.length > 0) {
+            catsMap[type] = data.categories.map((c: any) => ({
+              href: `/${type}?cat=${encodeURIComponent(c.name)}`,
+              label: c.name,
+              labelEn: c.name
+            }));
+          }
+        }));
+        
+        setDynamicCategories(catsMap);
+      } catch (err) {
+        console.error("Failed to fetch header categories", err);
+      }
+    };
+    fetchAllCats();
   }, [lang]);
+
+  // Merge static NAV_ITEMS with dynamic categories
+  const navItems = NAV_ITEMS.map(item => {
+    if (dynamicCategories[item.id]) {
+      return { ...item, children: dynamicCategories[item.id] };
+    }
+    return item;
+  });
 
   const handleLogout = async () => {
     try {
@@ -197,7 +233,7 @@ export default function Header({ user }: HeaderProps) {
 
             {/* Desktop Nav */}
             <nav className="hidden xl:flex items-center gap-0.5">
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <div
                   key={item.id}
                   className="relative"
@@ -215,12 +251,12 @@ export default function Header({ user }: HeaderProps) {
                   >
                     <item.icon className="w-3.5 h-3.5" />
                     {lang === "ko" ? item.label : item.labelEn}
-                    {item.children && <ChevronDown className={cn("w-3 h-3 transition-transform", openDropdown === item.id && "rotate-180")} />}
+                    {item.children && item.children.length > 0 && <ChevronDown className={cn("w-3 h-3 transition-transform", openDropdown === item.id && "rotate-180")} />}
                   </Link>
 
                   {/* Dropdown */}
-                  {item.children && openDropdown === item.id && (
-                    <div className="absolute top-full left-0 mt-1 w-48 py-2 glass-card rounded-xl z-50 animate-fade-in">
+                  {item.children && item.children.length > 0 && openDropdown === item.id && (
+                    <div className="absolute top-full left-0 mt-1 w-48 py-2 bg-background/95 border border-white/10 backdrop-blur-xl shadow-2xl rounded-xl z-50 animate-fade-in">
                       {item.children.map((child) => (
                         <Link
                           key={child.href}
@@ -285,7 +321,7 @@ export default function Header({ user }: HeaderProps) {
               <div className="pb-4 mb-4 border-b border-white/[0.06]">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{lang === "ko" ? "메뉴" : "Menu"}</span>
               </div>
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <div key={item.id}>
                   <Link
                     href={item.href}
@@ -299,7 +335,7 @@ export default function Header({ user }: HeaderProps) {
                     <item.icon className="w-4 h-4" />
                     {lang === "ko" ? item.label : item.labelEn}
                   </Link>
-                  {item.children && (
+                  {item.children && item.children.length > 0 && (
                     <div className="ml-10 space-y-0.5 mt-0.5 mb-2">
                       {item.children.map((child) => (
                         <Link

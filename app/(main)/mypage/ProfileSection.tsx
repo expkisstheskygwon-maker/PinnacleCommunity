@@ -131,7 +131,7 @@ export default function ProfileSection({ user, profile }: ProfileSectionProps) {
           {[
             { label: "게시글", value: profile.postCount, icon: FileText, color: "text-primary" },
             { label: "댓글", value: profile.commentCount, icon: MessageSquare, color: "text-emerald-400" },
-            { label: "후기", value: profile.reviewCount, icon: Star, color: "text-[hsl(var(--gold))]" },
+            { label: "스포트라이트", value: profile.reviewCount, icon: Star, color: "text-[hsl(var(--gold))]" },
             { label: "받은 추천", value: profile.likeReceived, icon: Heart, color: "text-red-400" },
           ].map(stat => (
             <div key={stat.label} className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] hover:bg-white/[0.05] transition-colors group cursor-default">
