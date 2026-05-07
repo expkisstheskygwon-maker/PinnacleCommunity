@@ -56,6 +56,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "spotlight", href: "/spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: Star,
     children: [
+      { href: "/spotlight?cat=최신%20동향", label: "최신 동향", labelEn: "Latest Trends" },
       { href: "/spotlight?cat=pickup", label: "오늘의 픽", labelEn: "Daily Pick" },
       { href: "/spotlight?cat=column", label: "전문가 칼럼", labelEn: "Expert Column" },
       { href: "/spotlight?cat=news", label: "긴급 뉴스", labelEn: "Breaking News" },
@@ -151,8 +152,18 @@ export default function Header({ user }: HeaderProps) {
 
   // Merge static NAV_ITEMS with dynamic categories
   const navItems = NAV_ITEMS.map(item => {
-    if (dynamicCategories[item.id]) {
-      return { ...item, children: dynamicCategories[item.id] };
+    const dynamic = dynamicCategories[item.id] || [];
+    const staticChildren = item.children || [];
+    
+    if (dynamic.length > 0) {
+      // Merge: static first, then dynamic (excluding duplicates by label)
+      const merged = [...staticChildren];
+      dynamic.forEach(d => {
+        if (!merged.find(s => s.label === d.label)) {
+          merged.push(d);
+        }
+      });
+      return { ...item, children: merged };
     }
     return item;
   });

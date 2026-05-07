@@ -1,0 +1,30 @@
+name: Pinnacle Article Scraper
+
+on:
+  schedule:
+    # 7:00 AM and 7:00 PM KST (UTC+9)
+    # 7:00 AM KST = 10:00 PM UTC (previous day)
+    # 7:00 PM KST = 10:00 AM UTC
+    - cron: '0 10,22 * * *'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Scraper
+        env:
+          BOT_API_KEY: ${{ secrets.BOT_API_KEY }}
+          # 배포된 운영 서버 URL (예: https://pinnacle-community.pages.dev)
+          # 사용자가 설정하지 않은 경우 로컬 주소는 의미 없으므로 환경 변수에서 가져옴
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          node scripts/pinnacle-scraper.js

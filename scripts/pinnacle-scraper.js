@@ -1,47 +1,59 @@
 /**
  * Pinnacle Betting Resources Scraper
- * 매일 최신글 2~3개를 긁어와 우리 사이트에 자동으로 업로드합니다.
+ * 매일 최신글을 긁어와 우리 사이트의 '스포트라이트 > 최신 동향'에 업로드합니다.
  */
 
-const BOT_KEY = 'pinnacle_bot_secret_2026'; // wrangler.toml과 일치해야 함
+const BOT_KEY = process.env.BOT_API_KEY || 'pinnacle_bot_secret_2026';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
+const API_ENDPOINT = `${API_BASE_URL}/api/bot/posts`;
 const TARGET_URL = 'https://www.pinnacle.com/betting-resources/ko';
-const API_ENDPOINT = 'http://localhost:3000/api/bot/posts'; // 로컬 테스트용 (배포 시 운영 서버 URL로 변경)
 
 async function scrapePinnacle() {
-  console.log('--- Scraper Started ---');
+  console.log(`--- Scraper Started at ${new Date().toISOString()} ---`);
   
   try {
     const response = await fetch(TARGET_URL);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    
     const html = await response.text();
 
-    // 1. Next.js 데이터 추출 (가장 깨끗한 데이터 소스)
+    // 1. Next.js 데이터 추출
     const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
     if (!nextDataMatch) {
-      throw new Error('Could not find __NEXT_DATA__ script');
+      throw new Error('Could not find __NEXT_DATA__ script.');
     }
 
     const nextData = JSON.parse(nextDataMatch[1]);
-    const articles = nextData.props.pageProps.initialState.content.articles || [];
+    
+    // Pinnacle은 mainStageData에 메인 최신글을 문자열화된 JSON으로 담고 있음
+    let articles = [];
+    if (nextData.props.pageProps.mainStageData) {
+      articles = JSON.parse(nextData.props.pageProps.mainStageData);
+    } else {
+      // 대체 경로 확인 (구조 변경 대비)
+      articles = nextData.props.pageProps.initialState?.content?.articles || [];
+    }
 
     console.log(`Found ${articles.length} articles.`);
 
-    // 2. 최신 3개 글만 처리
-    const latestArticles = articles.slice(0, 3);
+    // 2. 최신글 처리
+    const count = process.env.SCRAPE_COUNT ? parseInt(process.env.SCRAPE_COUNT) : 1;
+    const latestArticles = articles.slice(0, count);
 
     for (const article of latestArticles) {
       console.log(`Processing: ${article.title}`);
 
-      // 3. 우리 API 규격에 맞춰 데이터 가공
+      // 3. 데이터 가공
       const postData = {
         title: article.title,
-        content: article.content || article.excerpt || article.description,
-        category: 'spotlight', // 스포트라이트 게시판
-        subCategory: '전문가 칼럼', // 소분류
-        image: article.imageUrl || article.thumbnailUrl,
-        externalUrl: `https://www.pinnacle.com${article.url}`
+        content: article.description || article.content || "",
+        category: 'spotlight',
+        subCategory: '최신 동향',
+        image: article.image ? `https://www.pinnacle.com${article.image}` : null,
+        externalUrl: `https://www.pinnacle.com/betting-resources/ko${article.alias}`
       };
 
-      // 4. 우리 사이트 API로 전송
+      // 4. API 전송
       try {
         const uploadRes = await fetch(API_ENDPOINT, {
           method: 'POST',
@@ -55,7 +67,7 @@ async function scrapePinnacle() {
         const result = await uploadRes.json();
         if (result.success) {
           if (result.duplicated) {
-            console.log(`[Skip] Already uploaded: ${article.title}`);
+            console.log(`[Skip] Already exists: ${article.title}`);
           } else {
             console.log(`[Success] Uploaded: ${article.title} (ID: ${result.postId})`);
           }
@@ -69,10 +81,10 @@ async function scrapePinnacle() {
 
   } catch (error) {
     console.error('Scraper Fatal Error:', error);
+    process.exit(1);
   }
 
   console.log('--- Scraper Finished ---');
 }
 
-// 실행
 scrapePinnacle();
