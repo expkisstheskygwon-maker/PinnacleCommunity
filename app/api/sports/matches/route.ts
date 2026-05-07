@@ -10,10 +10,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'API Key missing' }, { status: 500 });
   }
 
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API Key missing' }, { status: 500 });
-  }
-
   const today = new Date().toISOString().split('T')[0];
 
   // 종목별 설정 정의
