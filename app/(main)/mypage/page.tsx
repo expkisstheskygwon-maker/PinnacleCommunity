@@ -74,12 +74,10 @@ export default async function MyPage() {
   let todayMatches: any[] = [];
   try {
     const { getTodayMatches } = await import("@/lib/sports");
-    const [soccer, baseball, basketball] = await Promise.all([
-      getTodayMatches('soccer').catch(() => []),
-      getTodayMatches('baseball').catch(() => []),
-      getTodayMatches('basketball').catch(() => [])
+    const [allMatches] = await Promise.all([
+      getTodayMatches('all').catch(() => []),
     ]);
-    todayMatches = [...soccer, ...baseball, ...basketball];
+    todayMatches = allMatches;
   } catch (e) {
     console.error("Failed to fetch matches for mypage", e);
   }

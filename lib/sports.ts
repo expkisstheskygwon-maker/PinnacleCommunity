@@ -41,21 +41,28 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
   // 캐시 확인
   const cacheKey = `matches-${sport}`;
   if (cache[cacheKey] && (Date.now() - cache[cacheKey].timestamp < CACHE_TTL)) {
-    console.log(`[Cache Hit] ${cacheKey}`);
     return cache[cacheKey].data;
   }
 
-  const { env } = getCloudflareContext();
-  const apiKey = providedApiKey || (env as any).APISPORTS_KEY;
-  const sportdbKey = (env as any).SPORTDB_API_KEY;
+  // API Key 우선순위: 1. 인자, 2. process.env, 3. Cloudflare Context
+  let apiKey = providedApiKey || process.env.APISPORTS_KEY;
+  let tsdbKey = process.env.THESPORTSDB_KEY || '123';
 
   if (!apiKey) {
-    console.error("API Key missing in getTodayMatches");
+    try {
+      const { env } = getCloudflareContext();
+      apiKey = (env as any).APISPORTS_KEY;
+      tsdbKey = (env as any).THESPORTSDB_KEY || tsdbKey;
+    } catch (e) {}
+  }
+
+  if (!apiKey) {
+    console.warn("API Key missing in getTodayMatches, returning demo data");
     return getDemoMatches(sport);
   }
 
   if (sport === 'all') {
-    const sportsToFetch = ['soccer', 'baseball', 'basketball', 'tennis'];
+    const sportsToFetch = ['soccer', 'baseball', 'basketball', 'volleyball', 'handball', 'hockey'];
     const results = await Promise.allSettled(
       sportsToFetch.map(s => getTodayMatches(s, apiKey))
     );
@@ -66,51 +73,67 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
         allMatches = [...allMatches, ...res.value];
       }
     });
-    
-    if (allMatches.length === 0) return getDemoMatches('all');
-    
-    cache[cacheKey] = { data: allMatches, timestamp: Date.now() };
     return allMatches;
   }
 
-  // 한국 시간(KST) 기준 오늘 날짜 구하기
-  const now = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
-  const today = now.toISOString().split('T')[0];
+  const today = new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-  let host = '';
-  let endpoint = '';
+  // TheSportsDB Fallback Logic
+  const fetchTSDB = async () => {
+    const leagueMap: Record<string, number[]> = {
+      soccer: [4328, 4335, 4332, 4331, 4334],
+      basketball: [4387],
+      baseball: [4424],
+    };
+    const leagues = leagueMap[sport] || [];
+    if (leagues.length === 0) return [];
+    
+    try {
+      const allEvents = await Promise.all(leagues.map(async (id) => {
+        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${tsdbKey}/eventsnextleague.php?id=${id}`);
+        const data = await res.json();
+        return data.events || [];
+      }));
 
-  switch (sport) {
-    case 'soccer':
-      host = 'v3.football.api-sports.io';
-      endpoint = `/fixtures?date=${today}&timezone=Asia/Seoul`;
-      break;
-    case 'baseball':
-      host = 'v1.baseball.api-sports.io';
-      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
-      break;
-    case 'basketball':
-      host = 'v1.basketball.api-sports.io';
-      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
-      break;
-    default:
-      host = `v1.${sport}.api-sports.io`;
-      endpoint = `/games?date=${today}&timezone=Asia/Seoul`;
-  }
+      return allEvents.flat().map((event: any) => ({
+        id: event.idEvent,
+        home: event.strHomeTeam,
+        away: event.strAwayTeam,
+        league: event.strLeague,
+        status: "Upcoming",
+        statusCode: "NS",
+        time: event.strTime ? event.strTime.substring(0, 5) : "00:00",
+        live: false,
+        scores: { home: 0, away: 0 },
+        odds: { h: 0, d: 0, a: 0 },
+        sport: sport,
+        source: "TheSportsDB"
+      }));
+    } catch (err) {
+      return [];
+    }
+  };
+
+  const host = sport === 'soccer' ? 'v3.football.api-sports.io' : `v1.${sport}.api-sports.io`;
+  const endpoint = sport === 'soccer' ? `/fixtures?date=${today}&timezone=Asia/Seoul` : `/games?date=${today}&timezone=Asia/Seoul`;
 
   try {
     const res = await fetch(`https://${host}${endpoint}`, {
       method: 'GET',
       headers: { 'x-apisports-key': apiKey },
-      next: { revalidate: 60 }
+      next: { revalidate: 180 }
     });
 
-    if (!res.ok) throw new Error(`Failed to fetch from ${host}`);
+    if (!res.ok) return await fetchTSDB();
     const data = await res.json();
-    const fixtureData = data.response || [];
+    
+    if (data.errors && Object.keys(data.errors).length > 0) {
+      return await fetchTSDB();
+    }
 
-    // 2. 배당 정보 가져오기 (필요시 추가 호출 가능)
-    // 여기서는 기본 정보를 매핑하여 반환
+    const fixtureData = data.response || [];
+    if (fixtureData.length === 0) return await fetchTSDB();
+
     const mappedMatches = fixtureData.map((item: any) => {
       const fixture = item.fixture || item.game || item;
       const teams = item.teams;
@@ -125,12 +148,12 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
         status: status.long || status.short,
         statusCode: status.short,
         time: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-        live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS', 'Q1', 'Q2', 'Q3', 'Q4', 'OT'].includes(status.short?.toUpperCase()),
+        live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS', 'Q1', 'Q2', 'Q3', 'Q4', 'OT', 'IN1', 'IN2', 'IN3', 'IN4', 'IN5', 'IN6', 'IN7', 'IN8', 'IN9'].includes(status.short?.toUpperCase()),
         scores: { 
           home: goals?.home ?? 0, 
           away: goals?.away ?? 0 
         },
-        odds: { h: 0, d: 0, a: 0 }, // 배당은 별도 API 호출이 필요할 수 있음
+        odds: { h: 0, d: 0, a: 0 },
         sport: sport
       };
     });
@@ -139,7 +162,6 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
     return mappedMatches;
 
   } catch (error) {
-    console.error(`Error fetching matches for ${sport}:`, error);
-    return getDemoMatches(sport);
+    return await fetchTSDB();
   }
 }

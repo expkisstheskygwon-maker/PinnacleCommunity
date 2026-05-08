@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, notifications: [] });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
@@ -76,7 +76,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     const { ids } = await request.json(); // array of notification IDs
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, favorites: [], bets: [] });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     const { matchId, type, action } = await request.json(); // type: 'favorite' or 'bet', action: 'add' or 'remove'
     
     const { env } = getCloudflareContext();
