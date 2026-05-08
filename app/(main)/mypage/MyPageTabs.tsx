@@ -48,22 +48,33 @@ export default function MyPageTabs({
   const favLeagues = safeInterests.filter(i => i.category === 'league').map(i => i.value);
   const favSports = safeInterests.filter(i => i.category === 'sport').map(i => i.value);
 
-  const favoriteMatches = safeMatches.filter(m => {
-    if (!m) return false;
+  const favoriteMatches = safeMatches.map(m => {
+    if (!m) return null;
     const matchIdStr = String(m.id || '');
+    
+    let priority = 0;
     const isFavMatch = favorites.includes(matchIdStr);
     const hasFavTeam = favTeams.includes(String(m.home || '')) || favTeams.includes(String(m.away || ''));
     const hasFavLeague = favLeagues.includes(String(m.league || ''));
     const hasFavSport = favSports.includes(String(m.sport || ''));
-    
+
+    if (isFavMatch) priority += 1000;
+    if (hasFavTeam) priority += 500;
+    if (hasFavLeague) priority += 200;
+    if (hasFavSport) priority += 10;
+
+    if (priority === 0) return null;
+
     const sTerm = String(searchTerm || '').toLowerCase();
     const matchesSearch = !sTerm || 
       String(m.home || '').toLowerCase().includes(sTerm) || 
       String(m.away || '').toLowerCase().includes(sTerm) || 
       String(m.league || '').toLowerCase().includes(sTerm);
 
-    return (isFavMatch || hasFavTeam || hasFavLeague || hasFavSport) && matchesSearch;
-  });
+    if (!matchesSearch) return null;
+
+    return { ...m, priority };
+  }).filter(Boolean).sort((a: any, b: any) => b.priority - a.priority) as any[];
 
   const MENU_ITEMS = [
     { id: "overview", label: "마이페이지 홈", icon: Shield, count: 0 },

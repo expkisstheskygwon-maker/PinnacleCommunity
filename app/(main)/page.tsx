@@ -229,37 +229,27 @@ export default function HomePage() {
       if (!m) return;
       (userPrefs?.interests || []).forEach(pref => {
         if (!pref) return;
+        // Increase weights to prioritize teams/leagues over generic live status
         if (pref.category === 'sport' && m.sport === pref.value) m.interestScore += 10;
-        if (pref.category === 'league' && m.league === pref.value) m.interestScore += 50;
-        if (pref.category === 'team' && (m.home === pref.value || m.away === pref.value)) m.interestScore += 100;
+        if (pref.category === 'league' && m.league === pref.value) m.interestScore += 200; // Increased from 50
+        if (pref.category === 'team' && (m.home === pref.value || m.away === pref.value)) m.interestScore += 500; // Increased from 100
         m.interestScore += (pref.priority || 0);
       });
       
-      if (m.isFavorite) m.interestScore += 1000;
+      if (m.isFavorite) m.interestScore += 2000; // Increased from 1000
       if (m.isBet) m.interestScore += 300;
-      if (m.live) m.interestScore += 500;
+      if (m.live) m.interestScore += 100; // Decreased from 500 to prioritize interests
     });
 
     // Filter by tab
     if (activeTab === "all") {
-      // 1. 즐겨찾기 경기 분리
-      const favs = list.filter(m => m.isFavorite).sort((a, b) => b.interestScore - a.interestScore);
-      
-      // 즐겨찾기가 8개 이상이면 바로 반환
-      if (favs.length >= 8) return favs.slice(0, 8);
-
-      // 2. 즐겨찾기 아닌 경기 중 실시간/관심도 순으로 정렬하여 채우기
-      const nonFavs = list
-        .filter(m => !m.isFavorite)
-        .sort((a, b) => {
-          // 실시간 여부 우선
-          if (a.live && !b.live) return -1;
-          if (!a.live && b.live) return 1;
-          // 그 다음은 관심 점수 순
-          return b.interestScore - a.interestScore;
-        });
-
-      return [...favs, ...nonFavs].slice(0, 8);
+      // Sort primarily by interestScore, then by live status
+      return list.sort((a, b) => {
+        if (b.interestScore !== a.interestScore) return b.interestScore - a.interestScore;
+        if (a.live && !b.live) return -1;
+        if (!a.live && b.live) return 1;
+        return 0;
+      }).slice(0, 12); // Show a bit more matches if they have many interests
     }
     
     if (activeTab === "interest") return list.filter(m => m.interestScore > 0).sort((a, b) => b.interestScore - a.interestScore);
