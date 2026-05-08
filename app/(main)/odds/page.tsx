@@ -140,14 +140,30 @@ export default function OddsPage() {
     e.stopPropagation();
     const isFav = favorites.includes(matchId);
     const action = isFav ? 'remove' : 'add';
+    
+    // Optimistic update
     setFavorites(prev => isFav ? prev.filter(id => id !== matchId) : [...prev, matchId]);
+    
     try {
-      await fetch('/api/user/matches', {
+      const res = await fetch('/api/user/matches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matchId, type: 'favorite', action }),
       });
-    } catch {
+
+      if (!res.ok) {
+        const data = await res.json();
+        if (res.status === 401) {
+          alert("관심경기를 저장하려면 로그인이 필요합니다.");
+        } else {
+          console.error("Failed to toggle favorite:", data.error);
+        }
+        // Rollback on error
+        setFavorites(prev => action === 'remove' ? [...prev, matchId] : prev.filter(id => id !== matchId));
+      }
+    } catch (err) {
+      console.error("Network error while toggling favorite:", err);
+      // Rollback on network error
       setFavorites(prev => action === 'remove' ? [...prev, matchId] : prev.filter(id => id !== matchId));
     }
   };
@@ -156,14 +172,27 @@ export default function OddsPage() {
     e.stopPropagation();
     const isFav = favTeams.includes(teamName);
     const action = isFav ? 'remove' : 'add';
+    
+    // Optimistic update
     setFavTeams(prev => isFav ? prev.filter(t => t !== teamName) : [...prev, teamName]);
+    
     try {
-      await fetch('/api/user/interests', {
+      const res = await fetch('/api/user/interests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ category: 'team', value: teamName, action }),
       });
-    } catch {
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          alert("관심팀을 저장하려면 로그인이 필요합니다.");
+        }
+        // Rollback on error
+        setFavTeams(prev => action === 'remove' ? [...prev, teamName] : prev.filter(t => t !== teamName));
+      }
+    } catch (err) {
+      console.error("Network error while toggling team favorite:", err);
+      // Rollback on network error
       setFavTeams(prev => action === 'remove' ? [...prev, teamName] : prev.filter(t => t !== teamName));
     }
   };

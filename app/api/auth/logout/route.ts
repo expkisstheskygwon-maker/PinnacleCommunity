@@ -9,8 +9,9 @@ export async function POST() {
   // Clear the auth_session cookie
   response.cookies.set('auth_session', '', {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
+    path: '/',
     maxAge: 0 // Expire immediately
   });
 
