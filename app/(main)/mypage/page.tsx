@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import MyPageTabs from "./MyPageTabs";
 
+import ErrorBoundary from "@/components/ErrorBoundary";
+
 // Default fallback profile
 const DEFAULT_PROFILE = {
   level: 1,
@@ -101,20 +103,22 @@ export default async function MyPage() {
           <span className="text-foreground font-bold">마이페이지</span>
         </div>
 
-        <MyPageTabs 
-          user={{
-            id: user?.id,
-            nickname: user?.nickname || '',
-            email: user?.email || '',
-            avatar: user?.avatar || ''
-          }}
-          profile={USER_PROFILE}
-          initialMatches={todayMatches || []}
-          initialFavorites={favoriteIds || []}
-          initialInterests={allInterests || []}
-          initialNotifications={notifResults?.results || []}
-          initialPosts={postResults?.results || []}
-        />
+        <ErrorBoundary>
+          <MyPageTabs 
+            user={{
+              id: user?.id,
+              nickname: user?.nickname || '',
+              email: user?.email || '',
+              avatar: user?.avatar || ''
+            }}
+            profile={USER_PROFILE}
+            initialMatches={todayMatches || []}
+            initialFavorites={favoriteIds || []}
+            initialInterests={allInterests || []}
+            initialNotifications={notifResults?.results || []}
+            initialPosts={postResults?.results || []}
+          />
+        </ErrorBoundary>
       </div>
     </div>
   );
