@@ -23,32 +23,44 @@ interface MyPageTabsProps {
 export default function MyPageTabs({
   user,
   profile,
-  initialMatches,
-  initialFavorites,
-  initialInterests,
-  initialNotifications,
-  initialPosts
+  initialMatches = [],
+  initialFavorites = [],
+  initialInterests = [],
+  initialNotifications = [],
+  initialPosts = []
 }: MyPageTabsProps) {
+  const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests
   const [favorites, setFavorites] = useState<string[]>(initialFavorites);
   const [interests, setInterests] = useState<any[]>(initialInterests);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
-  const favTeams = interests.filter(i => i.category === 'team').map(i => i.value);
-  const favLeagues = interests.filter(i => i.category === 'league').map(i => i.value);
-  const favSports = interests.filter(i => i.category === 'sport').map(i => i.value);
+  const safeInterests = Array.isArray(interests) ? interests : [];
+  const safeMatches = Array.isArray(initialMatches) ? initialMatches : [];
+  const safeNotifications = Array.isArray(initialNotifications) ? initialNotifications : [];
+  const safePosts = Array.isArray(initialPosts) ? initialPosts : [];
+
+  const favTeams = safeInterests.filter(i => i.category === 'team').map(i => i.value);
+  const favLeagues = safeInterests.filter(i => i.category === 'league').map(i => i.value);
+  const favSports = safeInterests.filter(i => i.category === 'sport').map(i => i.value);
 
   // 즐겨찾기 필터링 로직: 즐겨찾기한 경기 ID + 관심 팀/리그/종목이 포함된 경기
-  const favoriteMatches = initialMatches.filter(m => {
-    const isFavMatch = favorites.includes(m.id.toString());
+  const favoriteMatches = safeMatches.filter(m => {
+    if (!m) return false;
+    const matchIdStr = (m.id || '').toString();
+    const isFavMatch = favorites.includes(matchIdStr);
     const hasFavTeam = favTeams.includes(m.home) || favTeams.includes(m.away);
     const hasFavLeague = favLeagues.includes(m.league);
     const hasFavSport = favSports.includes(m.sport);
     
     const matchesSearch = !searchTerm || 
-      m.home.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      m.away.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      m.league.toLowerCase().includes(searchTerm.toLowerCase());
+      (m.home || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (m.away || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (m.league || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     return (isFavMatch || hasFavTeam || hasFavLeague || hasFavSport) && matchesSearch;
   });
@@ -56,11 +68,13 @@ export default function MyPageTabs({
   const MENU_ITEMS = [
     { id: "overview", label: "마이페이지 홈", icon: Shield, count: 0 },
     { id: "matches", label: "관심 경기", icon: Star, count: favoriteMatches.length },
-    { id: "interests", label: "관심 설정", icon: Heart, count: interests.length },
-    { id: "notifications", label: "알림 서랍", icon: Bell, count: initialNotifications.filter(n => !n.readAt).length },
-    { id: "posts", label: "내 글/댓글", icon: FileText, count: profile.postCount + profile.commentCount },
-    { id: "activity", label: "활동 점수", icon: Award, count: profile.score },
+    { id: "interests", label: "관심 설정", icon: Heart, count: safeInterests.length },
+    { id: "notifications", label: "알림 서랍", icon: Bell, count: safeNotifications.filter(n => !n.readAt).length },
+    { id: "posts", label: "내 글/댓글", icon: FileText, count: (profile?.postCount || 0) + (profile?.commentCount || 0) },
+    { id: "activity", label: "활동 점수", icon: Award, count: profile?.score || 0 },
   ];
+
+  if (!isClient) return null; // Prevent hydration mismatch
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">

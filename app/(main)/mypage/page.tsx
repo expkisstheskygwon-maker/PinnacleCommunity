@@ -54,8 +54,8 @@ export default async function MyPage() {
     db.prepare("SELECT category, value FROM user_interests WHERE userId = ?").bind(user.id).all()
   ]);
 
-  const favoriteIds = favResults.results.map((r: any) => r.matchId.toString());
-  const allInterests = interestResults.results;
+  const favoriteIds = (favResults?.results || []).map((r: any) => (r.matchId || '').toString());
+  const allInterests = interestResults?.results || [];
   const favoriteTeams = allInterests.filter((i: any) => i.category === 'team').map((i: any) => i.value);
 
   // 4. Fetch Real Notifications
@@ -104,11 +104,11 @@ export default async function MyPage() {
         <MyPageTabs 
           user={user}
           profile={USER_PROFILE}
-          initialMatches={todayMatches}
-          initialFavorites={favoriteIds}
-          initialInterests={allInterests}
-          initialNotifications={notifResults.results}
-          initialPosts={postResults.results}
+          initialMatches={todayMatches || []}
+          initialFavorites={favoriteIds || []}
+          initialInterests={allInterests || []}
+          initialNotifications={notifResults?.results || []}
+          initialPosts={postResults?.results || []}
         />
       </div>
     </div>

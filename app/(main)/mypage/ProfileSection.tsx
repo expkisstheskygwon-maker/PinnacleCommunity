@@ -15,6 +15,7 @@ interface ProfileSectionProps {
 
 export default function ProfileSection({ user, profile }: ProfileSectionProps) {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,12 +24,16 @@ export default function ProfileSection({ user, profile }: ProfileSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
-    nickname: user.nickname,
-    email: user.email,
+    nickname: user?.nickname || '',
+    email: user?.email || '',
     password: '',
     confirmPassword: '',
-    avatar: user.avatar || '',
+    avatar: user?.avatar || '',
   });
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -94,6 +99,8 @@ export default function ProfileSection({ user, profile }: ProfileSectionProps) {
     }
   };
 
+  if (!isClient) return null;
+
   return (
     <>
       {/* Profile Card */}
@@ -109,30 +116,30 @@ export default function ProfileSection({ user, profile }: ProfileSectionProps) {
               />
             ) : (
               <div className="w-full h-full rounded-2xl bg-primary/20 flex items-center justify-center text-4xl font-black text-primary border-2 border-primary/20">
-                {formData.nickname[0]}
+                {formData.nickname ? formData.nickname[0] : '?'}
               </div>
             )}
             <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-background border border-white/10 rounded-lg flex items-center justify-center shadow-lg">
-              <span className="text-[10px] font-black text-primary">Lv.{profile.level}</span>
+              <span className="text-[10px] font-black text-primary">Lv.{profile?.level || 1}</span>
             </div>
           </div>
           
           <h2 className="text-2xl font-black text-glow">{formData.nickname}</h2>
           <div className="flex items-center justify-center gap-2 mt-1.5">
             <span className="badge-primary text-[10px] py-0.5 px-2">
-              <Award className="w-3 h-3" /> {profile.badge}
+              <Award className="w-3 h-3" /> {profile?.badge || 'Newbie'}
             </span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2 opacity-60">가입일: {profile.joined}</p>
+          <p className="text-[10px] text-muted-foreground mt-2 opacity-60">가입일: {profile?.joined}</p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mt-6">
           {[
-            { label: "게시글", value: profile.postCount, icon: FileText, color: "text-primary" },
-            { label: "댓글", value: profile.commentCount, icon: MessageSquare, color: "text-emerald-400" },
-            { label: "스포트라이트", value: profile.reviewCount, icon: Star, color: "text-[hsl(var(--gold))]" },
-            { label: "받은 추천", value: profile.likeReceived, icon: Heart, color: "text-red-400" },
+            { label: "게시글", value: profile?.postCount || 0, icon: FileText, color: "text-primary" },
+            { label: "댓글", value: profile?.commentCount || 0, icon: MessageSquare, color: "text-emerald-400" },
+            { label: "스포트라이트", value: profile?.reviewCount || 0, icon: Star, color: "text-[hsl(var(--gold))]" },
+            { label: "받은 추천", value: profile?.likeReceived || 0, icon: Heart, color: "text-red-400" },
           ].map(stat => (
             <div key={stat.label} className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] hover:bg-white/[0.05] transition-colors group cursor-default">
               <stat.icon className={cn("w-4 h-4 mx-auto mb-1 opacity-70 group-hover:opacity-100 transition-opacity", stat.color)} />
@@ -146,7 +153,7 @@ export default function ProfileSection({ user, profile }: ProfileSectionProps) {
         <div className="mt-6 bg-gradient-to-br from-primary/10 via-transparent to-transparent rounded-xl p-4 border border-primary/10">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-[hsl(var(--gold))]" /> 활동 점수</span>
-            <span className="text-base font-black text-primary">{profile.score.toLocaleString()}</span>
+            <span className="text-base font-black text-primary">{(profile?.score || 0).toLocaleString()}</span>
           </div>
           <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-primary to-primary/40 rounded-full" style={{ width: "62%" }} />
