@@ -239,7 +239,13 @@ export default function MyPageTabs({
                       </div>
                       <div className="px-4 text-center">
                         <div className="bg-black/40 rounded-xl px-3 py-1.5 border border-white/5 font-mono text-xl font-black text-red-500 shadow-inner">
-                          {match?.scores?.home ?? 0} : {match?.scores?.away ?? 0}
+                          {typeof match?.scores?.home === 'object' && match?.scores?.home !== null 
+                            ? (match.scores.home.total ?? match.scores.home.goals ?? 0) 
+                            : (match?.scores?.home ?? 0)} 
+                          {' : '} 
+                          {typeof match?.scores?.away === 'object' && match?.scores?.away !== null 
+                            ? (match.scores.away.total ?? match.scores.away.goals ?? 0) 
+                            : (match?.scores?.away ?? 0)}
                         </div>
                         <span className="text-[10px] text-muted-foreground/40 mt-1 block uppercase font-bold tracking-widest">{match?.status || ''}</span>
                       </div>
