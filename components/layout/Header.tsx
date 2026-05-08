@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import NotificationBell from "@/components/NotificationBell";
+import { getLevelInfo } from "@/lib/gamification";
 
 interface SubItem {
   href: string;
@@ -115,6 +116,7 @@ export default function Header({ user }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
   const [dynamicCategories, setDynamicCategories] = useState<Record<string, SubItem[]>>({});
+  const [userStats, setUserStats] = useState<{ level: number, title: string } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -147,8 +149,24 @@ export default function Header({ user }: HeaderProps) {
         console.error("Failed to fetch header categories", err);
       }
     };
+    // Fetch user stats if logged in
+    const fetchUserStats = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch('/api/user/profile');
+        const data = await res.json();
+        if (data.success && data.profile) {
+          const lvInfo = getLevelInfo(data.profile.score || 0);
+          setUserStats({ level: lvInfo.level, title: lvInfo.title });
+        }
+      } catch (err) {
+        console.error("Failed to fetch user stats", err);
+      }
+    };
+
     fetchAllCats();
-  }, [lang]);
+    fetchUserStats();
+  }, [lang, user]);
 
   // Merge static NAV_ITEMS with dynamic categories
   const navItems = NAV_ITEMS.map(item => {
@@ -297,13 +315,26 @@ export default function Header({ user }: HeaderProps) {
               </button>
 
               {user ? (
-                <button 
-                  onClick={handleLogout}
-                  className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 transition-all text-xs font-bold"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  {lang === "ko" ? "로그아웃" : "Logout"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <Link 
+                    href="/mypage" 
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition-all group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/20 overflow-hidden shrink-0">
+                      <User className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="hidden md:flex flex-col items-start leading-tight">
+                      <span className="text-[11px] font-black group-hover:text-primary transition-colors">{user.nickname}</span>
+                      <span className="text-[9px] font-bold text-muted-foreground">Lv.{userStats?.level || 1} {userStats?.title || '루키'}</span>
+                    </div>
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 transition-all text-xs font-bold"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ) : (
                 <Link href="/login" className="hidden sm:flex items-center gap-1.5 btn-primary text-xs py-2 px-4">
                   <LogIn className="w-3.5 h-3.5" />

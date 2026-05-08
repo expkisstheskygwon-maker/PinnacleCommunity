@@ -32,9 +32,15 @@ export async function POST(
       .run();
 
     // 2. 활동 포인트 적립 (+5 포인트)
+    const userData: any = await db.prepare('SELECT score FROM users WHERE id = ?').bind(sessionData.id).first();
+    const newScore = (userData?.score || 0) + 5;
+    
+    const { calculateLevel } = await import('@/lib/gamification');
+    const newLevel = calculateLevel(newScore);
+
     await db
-      .prepare('UPDATE users SET score = score + 5 WHERE id = ?')
-      .bind(sessionData.id)
+      .prepare('UPDATE users SET score = ?, level = ? WHERE id = ?')
+      .bind(newScore, newLevel, sessionData.id)
       .run();
 
     return NextResponse.json({ 

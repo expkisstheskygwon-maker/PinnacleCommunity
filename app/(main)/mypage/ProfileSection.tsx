@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { getLevelInfo } from '@/lib/gamification';
 
 interface ProfileSectionProps {
   user: any;
@@ -14,6 +15,7 @@ interface ProfileSectionProps {
 }
 
 export default function ProfileSection({ user, profile }: ProfileSectionProps) {
+  const lv = getLevelInfo(profile?.score || 0);
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -126,8 +128,8 @@ export default function ProfileSection({ user, profile }: ProfileSectionProps) {
           
           <h2 className="text-2xl font-black text-glow">{formData.nickname}</h2>
           <div className="flex items-center justify-center gap-2 mt-1.5">
-            <span className="badge-primary text-[10px] py-0.5 px-2">
-              <Award className="w-3 h-3" /> {profile?.badge || 'Newbie'}
+            <span className={cn("badge-primary text-[10px] py-0.5 px-2 font-bold border", lv.badgeColor)}>
+              <Award className="w-3 h-3" /> {lv.title}
             </span>
           </div>
           <p className="text-[10px] text-muted-foreground mt-2 opacity-60">가입일: {profile?.joined}</p>
@@ -149,18 +151,27 @@ export default function ProfileSection({ user, profile }: ProfileSectionProps) {
           ))}
         </div>
 
-        {/* Activity Score */}
-        <div className="mt-6 bg-gradient-to-br from-primary/10 via-transparent to-transparent rounded-xl p-4 border border-primary/10">
+        {/* Activity Score & Level Progress */}
+        <div className="mt-6 bg-gradient-to-br from-primary/10 via-transparent to-transparent rounded-xl p-4 border border-primary/10 text-left">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-[hsl(var(--gold))]" /> 활동 점수</span>
-            <span className="text-base font-black text-primary">{(profile?.score || 0).toLocaleString()}</span>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Current Level</span>
+              <span className="text-sm font-black text-foreground">Lv.{lv.level} {lv.title}</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Points</span>
+              <p className="text-sm font-black text-primary">{(profile?.score || 0).toLocaleString()}P</p>
+            </div>
           </div>
-          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-primary to-primary/40 rounded-full" style={{ width: "62%" }} />
+          <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 p-[1px]">
+            <div 
+              className="h-full bg-gradient-to-r from-primary to-primary/40 rounded-full transition-all duration-1000 ease-out" 
+              style={{ width: `${lv.progress}%` }} 
+            />
           </div>
-          <div className="flex justify-between mt-1.5 text-[9px] text-muted-foreground/60 font-medium">
-            <span>다음 레벨까지 150점</span>
-            <span>Lv.16</span>
+          <div className="flex justify-between mt-2 text-[9px] text-muted-foreground font-bold">
+            <span>{lv.progress.toFixed(1)}%</span>
+            <span>{lv.level < 99 ? `Next: ${lv.nextScore}P (Lv.${lv.level + 1})` : "Max Level"}</span>
           </div>
         </div>
 

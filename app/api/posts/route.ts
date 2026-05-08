@@ -40,9 +40,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Bonus: Increase user's activity score (+20 points for a post)
+    const userData: any = await db.prepare('SELECT score FROM users WHERE id = ?').bind(sessionData.id).first();
+    const newScore = (userData?.score || 0) + 20;
+    
+    const { calculateLevel } = await import('@/lib/gamification');
+    const newLevel = calculateLevel(newScore);
+
     await db
-      .prepare('UPDATE users SET score = score + 20 WHERE id = ?')
-      .bind(sessionData.id)
+      .prepare('UPDATE users SET score = ?, level = ? WHERE id = ?')
+      .bind(newScore, newLevel, sessionData.id)
       .run();
 
     return NextResponse.json(

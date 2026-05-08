@@ -41,10 +41,14 @@ export async function POST(request: NextRequest) {
     const ATTENDANCE_POINTS = 10;
     const newScore = (user.score || 0) + ATTENDANCE_POINTS;
     const newAttendanceCount = (user.attendanceCount || 0) + 1;
+    
+    // 자동 레벨 계산
+    const { calculateLevel } = await import('@/lib/gamification');
+    const newLevel = calculateLevel(newScore);
 
     await db
-      .prepare('UPDATE users SET score = ?, attendanceCount = ?, lastAttendanceDate = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
-      .bind(newScore, newAttendanceCount, today, user.id)
+      .prepare('UPDATE users SET score = ?, level = ?, attendanceCount = ?, lastAttendanceDate = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
+      .bind(newScore, newLevel, newAttendanceCount, today, user.id)
       .run();
 
     return NextResponse.json({
