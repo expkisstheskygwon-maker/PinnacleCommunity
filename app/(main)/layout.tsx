@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import AttendanceTracker from '@/components/AttendanceTracker';
 
 export default async function MainLayout({
   children,
@@ -22,6 +23,7 @@ export default async function MainLayout({
   return (
     <>
       <Header user={user} />
+      <AttendanceTracker user={user} />
       <main className="flex-1">{children}</main>
       <Footer />
     </>
