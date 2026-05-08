@@ -102,7 +102,12 @@ export default async function MyPage() {
         </div>
 
         <MyPageTabs 
-          user={user}
+          user={{
+            id: user?.id,
+            nickname: user?.nickname || '',
+            email: user?.email || '',
+            avatar: user?.avatar || ''
+          }}
           profile={USER_PROFILE}
           initialMatches={todayMatches || []}
           initialFavorites={favoriteIds || []}
