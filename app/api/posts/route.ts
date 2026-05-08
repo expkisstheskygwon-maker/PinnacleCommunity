@@ -39,10 +39,9 @@ export async function POST(request: NextRequest) {
       throw new Error('데이터베이스 저장 중 오류가 발생했습니다.');
     }
 
-    // 2. Bonus: Increase user's activity score (e.g., +10 points for a post)
-    // In a real app, this might be more complex (e.g., different points for different categories)
+    // 2. Bonus: Increase user's activity score (+20 points for a post)
     await db
-      .prepare('UPDATE users SET score = score + 10 WHERE id = ?')
+      .prepare('UPDATE users SET score = score + 20 WHERE id = ?')
       .bind(sessionData.id)
       .run();
 

@@ -16,6 +16,10 @@ export default function PostDetailPage() {
   const [post, setPost] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentContent, setCommentContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -35,10 +39,60 @@ export default function PostDetailPage() {
       }
     };
 
+    const fetchComments = async () => {
+      try {
+        const response = await fetch(`/api/posts/${params.id}/comments`);
+        const data = await response.json();
+        if (data.success) {
+          setComments(data.comments);
+        }
+      } catch (err) {
+        console.error("Failed to fetch comments", err);
+      }
+    };
+
     if (params.id) {
       fetchPost();
+      fetchComments();
     }
   }, [params.id]);
+
+  const handleCommentSubmit = async () => {
+    if (!commentContent.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitMessage('');
+
+    try {
+      const response = await fetch(`/api/posts/${params.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: commentContent })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCommentContent('');
+        setSubmitMessage('댓글 작성 완료! +5포인트 적립');
+        
+        // Refresh comments
+        const res = await fetch(`/api/posts/${params.id}/comments`);
+        const refreshData = await res.json();
+        if (refreshData.success) setComments(refreshData.comments);
+
+        // Hide message after 3s
+        setTimeout(() => setSubmitMessage(''), 3000);
+      } else {
+        alert(data.error || '댓글 등록에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('Comment submission error:', err);
+      alert('서버 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -171,14 +225,71 @@ export default function PostDetailPage() {
               </div>
             </div>
 
-            {/* Comments Placeholder */}
+            {/* Comments Section */}
             <div className="glass-card rounded-3xl p-6 md:p-8 space-y-6 border-white/10">
-              <div className="flex items-center gap-2 mb-4">
-                <MessageSquare className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-bold">댓글 <span className="text-primary">0</span></h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  <h3 className="text-lg font-bold">댓글 <span className="text-primary">{comments.length}</span></h3>
+                </div>
               </div>
-              <div className="bg-white/5 rounded-2xl p-4 text-center border border-white/5">
-                <p className="text-sm text-muted-foreground">댓글 기능은 곧 업데이트 예정입니다.</p>
+
+              {/* Comment Input */}
+              <div className="space-y-4">
+                <div className="relative">
+                  <textarea 
+                    value={commentContent}
+                    onChange={(e) => setCommentContent(e.target.value)}
+                    placeholder="매너 있는 댓글은 커뮤니티를 따뜻하게 만듭니다. (작성 시 5포인트 적립)"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[100px] resize-none"
+                  />
+                  <button 
+                    onClick={handleCommentSubmit}
+                    disabled={isSubmitting || !commentContent.trim()}
+                    className="absolute bottom-4 right-4 btn-primary py-1.5 px-5 text-xs flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MessageSquare className="w-3 h-3" />}
+                    등록하기
+                  </button>
+                </div>
+                {submitMessage && (
+                  <div className="animate-fade-in flex items-center gap-2 text-xs font-bold text-primary bg-primary/10 p-2 rounded-xl border border-primary/20">
+                    <Star className="w-3 h-3 fill-current" />
+                    {submitMessage}
+                  </div>
+                )}
+              </div>
+
+              {/* Comment List */}
+              <div className="space-y-6 pt-6 border-t border-white/5">
+                {comments.length > 0 ? (
+                  comments.map((comment: any) => (
+                    <div key={comment.id} className="flex gap-4 group">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/5 overflow-hidden">
+                        {comment.authorAvatar ? (
+                          <img src={comment.authorAvatar} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-bold text-muted-foreground">{comment.author[0]}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold">{comment.author}</span>
+                            <span className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded text-muted-foreground">Lv.{comment.authorLevel || 1}</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/40">{new Date(comment.createdAt).toLocaleString()}</span>
+                        </div>
+                        <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-10 text-center space-y-3">
+                    <MessageSquare className="w-10 h-10 text-white/5 mx-auto" />
+                    <p className="text-sm text-muted-foreground">첫 번째 댓글을 남겨보세요!</p>
+                  </div>
+                )}
               </div>
             </div>
           </article>
