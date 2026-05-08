@@ -128,34 +128,34 @@ export default function MyPageTabs({
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {interests.length > 0 ? (
-                interests.map((interest, idx) => (
+              {safeInterests.length > 0 ? (
+                safeInterests.map((interest, idx) => (
                   <div key={idx} className="glass-card rounded-2xl p-4 flex items-center justify-between group">
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                        interest.category === 'sport' ? "bg-primary/10 text-primary" :
-                        interest.category === 'league' ? "bg-emerald-500/10 text-emerald-400" :
-                        interest.category === 'team' ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))]" :
+                        interest?.category === 'sport' ? "bg-primary/10 text-primary" :
+                        interest?.category === 'league' ? "bg-emerald-500/10 text-emerald-400" :
+                        interest?.category === 'team' ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))]" :
                         "bg-purple-500/10 text-purple-400"
                       )}>
-                        {interest.category === 'sport' ? <Zap className="w-4 h-4" /> :
-                         interest.category === 'league' ? <Trophy className="w-4 h-4" /> :
-                         interest.category === 'team' ? <Star className="w-4 h-4" /> :
+                        {interest?.category === 'sport' ? <Zap className="w-4 h-4" /> :
+                         interest?.category === 'league' ? <Trophy className="w-4 h-4" /> :
+                         interest?.category === 'team' ? <Star className="w-4 h-4" /> :
                          <MapPin className="w-4 h-4" />}
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                          {interest.category === 'sport' ? '종목' :
-                           interest.category === 'league' ? '리그' :
-                           interest.category === 'team' ? '팀' : '국가'}
+                          {interest?.category === 'sport' ? '종목' :
+                           interest?.category === 'league' ? '리그' :
+                           interest?.category === 'team' ? '팀' : '국가'}
                         </p>
-                        <p className="text-sm font-bold">{interest.value}</p>
+                        <p className="text-sm font-bold">{interest?.value || ''}</p>
                       </div>
                     </div>
                     <button 
                       onClick={() => {
-                        setSearchTerm(interest.value);
+                        setSearchTerm(interest?.value || '');
                         setActiveTab("matches");
                       }}
                       className="bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border border-primary/20 group-hover:scale-105 active:scale-95"
@@ -208,18 +208,18 @@ export default function MyPageTabs({
             {favoriteMatches.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {favoriteMatches.map(match => (
-                  <div key={match.id} className="glass-card-hover rounded-2xl p-5 group cursor-pointer relative overflow-hidden">
+                  <div key={match?.id || Math.random()} className="glass-card-hover rounded-2xl p-5 group cursor-pointer relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-3">
-                      <Star className={cn("w-4 h-4 transition-opacity", favorites.includes(match.id.toString()) ? "text-[hsl(var(--gold))] fill-current opacity-100" : "text-white/10 opacity-40 group-hover:opacity-100")} />
+                      <Star className={cn("w-4 h-4 transition-opacity", favorites.includes(match?.id?.toString() || '') ? "text-[hsl(var(--gold))] fill-current opacity-100" : "text-white/10 opacity-40 group-hover:opacity-100")} />
                     </div>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 uppercase">
-                          {match.league}
+                          {match?.league || 'LEAGUE'}
                         </span>
-                        {favLeagues.includes(match.league) && <Heart className="w-3 h-3 text-rose-400 fill-current" />}
+                        {favLeagues.includes(match?.league || '') && <Heart className="w-3 h-3 text-rose-400 fill-current" />}
                       </div>
-                      {match.live && (
+                      {match?.live && (
                         <span className="badge-live text-[9px]">
                           <span className="relative flex h-1.5 w-1.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -231,30 +231,30 @@ export default function MyPageTabs({
                     </div>
                     <div className="flex items-center justify-between px-2">
                       <div className="text-center flex-1">
-                        <p className={cn("font-black text-base group-hover:text-primary transition-colors flex items-center justify-center gap-1", favTeams.includes(match.home) && "text-[hsl(var(--gold))]")}>
-                          {favTeams.includes(match.home) && <Star className="w-3 h-3 fill-current" />}
-                          {match.home}
+                        <p className={cn("font-black text-base group-hover:text-primary transition-colors flex items-center justify-center gap-1", favTeams.includes(match?.home || '') && "text-[hsl(var(--gold))]")}>
+                          {favTeams.includes(match?.home || '') && <Star className="w-3 h-3 fill-current" />}
+                          {match?.home || 'Home'}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-1 uppercase">Home</p>
                       </div>
                       <div className="px-4 text-center">
                         <div className="bg-black/40 rounded-xl px-3 py-1.5 border border-white/5 font-mono text-xl font-black text-red-500 shadow-inner">
-                          {match.scores.home} : {match.scores.away}
+                          {match?.scores?.home ?? 0} : {match?.scores?.away ?? 0}
                         </div>
-                        <span className="text-[10px] text-muted-foreground/40 mt-1 block uppercase font-bold tracking-widest">{match.status}</span>
+                        <span className="text-[10px] text-muted-foreground/40 mt-1 block uppercase font-bold tracking-widest">{match?.status || ''}</span>
                       </div>
                       <div className="text-center flex-1">
-                        <p className={cn("font-black text-base group-hover:text-primary transition-colors flex items-center justify-center gap-1", favTeams.includes(match.away) && "text-[hsl(var(--gold))]")}>
-                          {match.away}
-                          {favTeams.includes(match.away) && <Star className="w-3 h-3 fill-current" />}
+                        <p className={cn("font-black text-base group-hover:text-primary transition-colors flex items-center justify-center gap-1", favTeams.includes(match?.away || '') && "text-[hsl(var(--gold))]")}>
+                          {match?.away || 'Away'}
+                          {favTeams.includes(match?.away || '') && <Star className="w-3 h-3 fill-current" />}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-1 uppercase">Away</p>
                       </div>
                     </div>
                     <div className="mt-5 pt-4 border-t border-white/[0.04] flex items-center justify-between text-[10px] text-muted-foreground/60 font-medium">
                       <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {match.time}</span>
-                        <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-primary" /> {match.sport === 'soccer' ? '축구' : match.sport === 'baseball' ? '야구' : '농구'}</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {match?.time || ''}</span>
+                        <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-primary" /> {match?.sport === 'soccer' ? '축구' : match?.sport === 'baseball' ? '야구' : match?.sport === 'basketball' ? '농구' : '경기'}</span>
                       </div>
                       <Link href="/odds" className="text-primary hover:underline font-bold">배당 분석 →</Link>
                     </div>
@@ -294,8 +294,8 @@ export default function MyPageTabs({
                   <Bell className="w-4 h-4 text-primary" />
                 </div>
                 <h3 className="font-bold text-lg">최근 알림</h3>
-                {initialNotifications.filter(n => !n.readAt).length > 0 && (
-                  <span className="badge-primary">{initialNotifications.filter(n => !n.readAt).length} 새 알림</span>
+                {safeNotifications.filter(n => !n.readAt).length > 0 && (
+                  <span className="badge-primary">{safeNotifications.filter(n => !n.readAt).length} 새 알림</span>
                 )}
               </div>
               <Link href="/mypage/notifications" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
@@ -303,8 +303,8 @@ export default function MyPageTabs({
               </Link>
             </div>
             <div className="space-y-2">
-              {initialNotifications.length > 0 ? (
-                initialNotifications.slice(0, 5).map(notif => (
+              {safeNotifications.length > 0 ? (
+                safeNotifications.slice(0, 5).map(notif => (
                   <div key={notif.id} className={cn(
                     "glass-card rounded-xl p-4 flex items-center gap-3 transition-colors cursor-pointer",
                     !notif.readAt && "border-l-2 border-l-primary bg-primary/[0.02]"
@@ -313,8 +313,8 @@ export default function MyPageTabs({
                       <Bell className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={cn("text-sm", !notif.readAt ? "font-bold text-foreground" : "text-muted-foreground")}>{notif.title}</p>
-                      <p className="text-[10px] text-muted-foreground/60">{new Date(notif.createdAt).toLocaleString()}</p>
+                      <p className={cn("text-sm", !notif.readAt ? "font-bold text-foreground" : "text-muted-foreground")}>{notif?.title || '알림'}</p>
+                      <p className="text-[10px] text-muted-foreground/60">{notif?.createdAt ? new Date(notif.createdAt).toLocaleString() : ''}</p>
                     </div>
                     {!notif.readAt && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
                   </div>
@@ -343,18 +343,18 @@ export default function MyPageTabs({
               </Link>
             </div>
             <div className="space-y-2">
-              {initialPosts.length > 0 ? (
-                initialPosts.map(post => (
+              {safePosts.length > 0 ? (
+                safePosts.map(post => (
                   <div key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[9px] font-bold bg-white/5 px-1.5 py-0.5 rounded">{post.category}</span>
+                        <span className="text-[9px] font-bold bg-white/5 px-1.5 py-0.5 rounded">{post?.category || '게시판'}</span>
                       </div>
-                      <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post.title}</h4>
+                      <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post?.title || '제목 없음'}</h4>
                       <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
-                        <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                        <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{post.views}</span>
-                        <span className="flex items-center gap-0.5"><Heart className="w-2.5 h-2.5" />{post.likes}</span>
+                        <span>{post?.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}</span>
+                        <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{post?.views || 0}</span>
+                        <span className="flex items-center gap-0.5"><Heart className="w-2.5 h-2.5" />{post?.likes || 0}</span>
                       </div>
                     </div>
                   </div>
