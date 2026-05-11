@@ -232,11 +232,19 @@ export default function Header({ user }: HeaderProps) {
               </span>
             </div>
             <div className="hidden md:flex items-center gap-4 text-muted-foreground">
+              <button
+                onClick={() => setLang(prev => prev === "ko" ? "en" : "ko")}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/5 bg-white/5 hover:bg-white/10 transition-all text-[10px] font-bold text-foreground"
+              >
+                <Languages className="w-3 h-3 text-primary" />
+                <span>{lang === "ko" ? "English" : "한국어"}</span>
+              </button>
+              <span className="opacity-20">|</span>
               <span className="flex items-center gap-1">
                 <Shield className="w-3 h-3 text-emerald-400" />
                 {lang === "ko" ? "보안 인증됨" : "Security Verified"}
               </span>
-              <span>|</span>
+              <span className="opacity-20">|</span>
               <span className="font-mono">
                 {mounted ? currentDate : "2026.05.04"}
               </span>
@@ -272,7 +280,7 @@ export default function Header({ user }: HeaderProps) {
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-all",
+                      "flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap",
                       isActive(item)
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-white/5"
@@ -305,14 +313,6 @@ export default function Header({ user }: HeaderProps) {
             <div className="flex items-center gap-2 shrink-0">
               {/* Notification Bell */}
               <NotificationBell />
-
-              <button
-                onClick={() => setLang(prev => prev === "ko" ? "en" : "ko")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-xs font-bold"
-              >
-                <Languages className="w-3.5 h-3.5 text-primary" />
-                <span>{lang === "ko" ? "EN" : "한국어"}</span>
-              </button>
 
               {user ? (
                 <div className="flex items-center gap-3">
@@ -360,8 +360,15 @@ export default function Header({ user }: HeaderProps) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
           <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-background border-l border-white/[0.06] overflow-y-auto animate-slide-in-right">
             <div className="p-6 space-y-1">
-              <div className="pb-4 mb-4 border-b border-white/[0.06]">
+              <div className="pb-4 mb-4 border-b border-white/[0.06] flex items-center justify-between">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{lang === "ko" ? "메뉴" : "Menu"}</span>
+                <button
+                  onClick={() => setLang(prev => prev === "ko" ? "en" : "ko")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-[11px] font-bold"
+                >
+                  <Languages className="w-3.5 h-3.5 text-primary" />
+                  <span>{lang === "ko" ? "English" : "한국어"}</span>
+                </button>
               </div>
               {navItems.map((item) => (
                 <div key={item.id}>
