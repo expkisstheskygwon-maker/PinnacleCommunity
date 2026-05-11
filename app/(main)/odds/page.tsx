@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import SportsSidebar from "./SportsSidebar";
 
 const CATEGORIES = [
-  { id: "favorites", label: "⭐ 즐겨찾기", icon: Star },
+
   { id: "live", label: "🔥 라이브", icon: Zap },
   { id: "soccer", label: "축구", icon: Swords },
   { id: "basketball", label: "농구", icon: Activity },
@@ -44,20 +44,9 @@ export default function OddsPage() {
   const [showProView, setShowProView] = useState(false);
   const [expandedMatches, setExpandedMatches] = useState<Record<string, boolean>>({});
 
-  // ★ Favorites (Matches)
-  const [favorites, setFavorites] = useState<string[]>([]);
-  // ★ Favorite Teams
   const [favTeams, setFavTeams] = useState<string[]>([]);
 
-  // Load preferences from API on mount
   useEffect(() => {
-    fetch('/api/user/matches')
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) setFavorites(data.favorites || []);
-      })
-      .catch(() => {});
-    
     fetch('/api/user/interests')
       .then(r => r.json())
       .then(data => {
@@ -73,9 +62,7 @@ export default function OddsPage() {
     setLoading(true);
     setError(null);
     try {
-      // 'favorites'인 경우 'all'을 가져온 뒤 UI에서 필터링함
-      const targetSport = sport === 'favorites' ? 'all' : sport;
-      const res = await fetch(`/api/sports/matches?sport=${targetSport}&t=${Date.now()}`);
+      const res = await fetch(`/api/sports/matches?sport=${sport}&t=${Date.now()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "데이터를 불러오지 못했습니다.");
       setMatches(data.matches || []);
@@ -108,7 +95,6 @@ export default function OddsPage() {
 
   const filtered = useMemo(() => {
     return [...matches]
-      .filter(m => activeCat !== 'favorites' || favorites.includes(m.id.toString()))
       .filter(m => !selectedCountry || m.country === selectedCountry)
       .filter(m => !selectedLeague || m.league === selectedLeague)
       .filter(m => {
@@ -122,51 +108,17 @@ export default function OddsPage() {
         );
       })
       .sort((a, b) => {
-        // Favorites first
-        const aFav = favorites.includes(a.id.toString()) ? 1 : 0;
-        const bFav = favorites.includes(b.id.toString()) ? 1 : 0;
-        if (aFav !== bFav) return bFav - aFav;
         if (a.live && !b.live) return -1;
         if (!a.live && b.live) return 1;
         if (a.finished && !b.finished) return -1;
         if (!a.finished && b.finished) return 1;
         return 0;
       });
-  }, [matches, activeCat, favorites, selectedCountry, selectedLeague, searchTerm]);
+  }, [matches, activeCat, selectedCountry, selectedLeague, searchTerm]);
 
   const liveCount = matches.filter(m => m.live).length;
 
-  const toggleFavorite = async (matchId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const isFav = favorites.includes(matchId);
-    const action = isFav ? 'remove' : 'add';
-    
-    // Optimistic update
-    setFavorites(prev => isFav ? prev.filter(id => id !== matchId) : [...prev, matchId]);
-    
-    try {
-      const res = await fetch('/api/user/matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId, type: 'favorite', action }),
-      });
 
-      if (!res.ok) {
-        const data = await res.json();
-        if (res.status === 401) {
-          alert("관심경기를 저장하려면 로그인이 필요합니다.");
-        } else {
-          console.error("Failed to toggle favorite:", data.error);
-        }
-        // Rollback on error
-        setFavorites(prev => action === 'remove' ? [...prev, matchId] : prev.filter(id => id !== matchId));
-      }
-    } catch (err) {
-      console.error("Network error while toggling favorite:", err);
-      // Rollback on network error
-      setFavorites(prev => action === 'remove' ? [...prev, matchId] : prev.filter(id => id !== matchId));
-    }
-  };
 
   const toggleTeamFavorite = async (teamName: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -298,22 +250,7 @@ export default function OddsPage() {
               </div>
               
               <div className="p-2 max-h-[600px] overflow-y-auto custom-scrollbar">
-                {/* Favorites Shortcut */}
-                <button
-                  onClick={() => setActiveCat("favorites")}
-                  className={cn(
-                    "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all mb-2",
-                    activeCat === "favorites" ? "bg-primary/20 text-primary" : "hover:bg-white/5 text-muted-foreground"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <Star className="w-4 h-4" />
-                    <span className="text-sm font-bold">즐겨찾기 경기</span>
-                  </div>
-                  <span className="text-[10px] font-mono opacity-40">{favorites.length}</span>
-                </button>
 
-                <div className="h-px bg-white/[0.06] my-2 mx-2" />
 
                 {/* Country List */}
                 {Object.entries(sportHierarchy).sort((a, b) => b[1].count - a[1].count).map(([country, data]) => (
@@ -500,17 +437,7 @@ export default function OddsPage() {
                                   >
                                     <td className="px-5 py-4">
                                       <div className="flex items-center gap-2">
-                                        <button
-                                          onClick={(e) => toggleFavorite(m.id.toString(), e)}
-                                          className={cn(
-                                            "p-1 rounded-lg transition-all shrink-0",
-                                            favorites.includes(m.id.toString())
-                                              ? "text-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/10"
-                                              : "text-muted-foreground/30 hover:text-[hsl(var(--gold))]/60 hover:bg-white/5"
-                                          )}
-                                        >
-                                          <Star className={cn("w-3.5 h-3.5", favorites.includes(m.id.toString()) && "fill-current")} />
-                                        </button>
+
                                         <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase max-w-[80px] truncate block w-fit">{m.league}</span>
                                       </div>
                                     </td>

@@ -31,7 +31,6 @@ export default function MyPageTabs({
 }: MyPageTabsProps) {
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests
-  const [favorites, setFavorites] = useState<string[]>(initialFavorites);
   const [interests, setInterests] = useState<any[]>(initialInterests);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -50,15 +49,11 @@ export default function MyPageTabs({
 
   const favoriteMatches = safeMatches.map(m => {
     if (!m) return null;
-    const matchIdStr = String(m.id || '');
-    
     let priority = 0;
-    const isFavMatch = favorites.includes(matchIdStr);
     const hasFavTeam = favTeams.includes(String(m.home || '')) || favTeams.includes(String(m.away || ''));
     const hasFavLeague = favLeagues.includes(String(m.league || ''));
     const hasFavSport = favSports.includes(String(m.sport || ''));
 
-    if (isFavMatch) priority += 1000;
     if (hasFavTeam) priority += 500;
     if (hasFavLeague) priority += 200;
     if (hasFavSport) priority += 10;
@@ -221,7 +216,6 @@ export default function MyPageTabs({
                 {favoriteMatches.map(match => (
                   <div key={match?.id || Math.random()} className="glass-card-hover rounded-2xl p-5 group cursor-pointer relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-3">
-                      <Star className={cn("w-4 h-4 transition-opacity", favorites.includes(match?.id?.toString() || '') ? "text-[hsl(var(--gold))] fill-current opacity-100" : "text-white/10 opacity-40 group-hover:opacity-100")} />
                     </div>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">

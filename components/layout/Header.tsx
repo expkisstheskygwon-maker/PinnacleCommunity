@@ -35,7 +35,6 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "odds", href: "/odds", label: "배당/경기", labelEn: "Odds", icon: TrendingUp,
     children: [
-      { href: "/odds?cat=favorites", label: "즐겨찾기", labelEn: "Favorites" },
       { href: "/odds?cat=live", label: "라이브", labelEn: "Live" },
       { href: "/odds?cat=soccer", label: "축구", labelEn: "Soccer" },
       { href: "/odds?cat=basketball", label: "농구", labelEn: "Basketball" },

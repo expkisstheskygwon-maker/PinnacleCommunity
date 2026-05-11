@@ -102,9 +102,7 @@ export default function HomePage() {
   const [matches, setMatches] = useState<any[]>([]);
   const [hotPosts, setHotPosts] = useState<any[]>(HOT_POSTS); // Fallback to mock initially
   const [spotlightPosts, setSpotlightPosts] = useState<any[]>([]);
-  const [userPrefs, setUserPrefs] = useState<{ favorites: string[], bets: string[], interests: any[] }>({
-    favorites: [],
-    bets: [],
+  const [userPrefs, setUserPrefs] = useState<{ interests: any[] }>({
     interests: []
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -156,17 +154,13 @@ export default function HomePage() {
 
     const fetchUserPrefs = async () => {
       try {
-        const [intRes, matRes] = await Promise.all([
-          fetch("/api/user/interests"),
-          fetch("/api/user/matches")
+        const [intRes] = await Promise.all([
+          fetch("/api/user/interests")
         ]);
         const intData = await intRes.json();
-        const matData = await matRes.json();
         
         setUserPrefs({
-          interests: intData.interests || [],
-          favorites: matData.favorites || [],
-          bets: matData.bets || []
+          interests: intData.interests || []
         });
       } catch (err) {
         console.error("Failed to fetch user preferences", err);
@@ -218,8 +212,6 @@ export default function HomePage() {
       if (!m || !m.id) return null;
       return {
         ...m,
-        isFavorite: (userPrefs?.favorites || []).includes(m.id.toString()),
-        isBet: (userPrefs?.bets || []).includes(m.id.toString()),
         interestScore: 0
       };
     }).filter(Boolean) as any[];
@@ -239,8 +231,6 @@ export default function HomePage() {
         m.interestScore += (pref.priority || 0);
       });
       
-      if (m.isFavorite) m.interestScore += 10000; // Significantly prioritize favorited matches
-      if (m.isBet) m.interestScore += 300;
       if (m.live) m.interestScore += 100;
     });
 
@@ -255,50 +245,10 @@ export default function HomePage() {
     }
     
     if (activeTab === "interest") return list.filter(m => m.interestScore > 0).sort((a, b) => b.interestScore - a.interestScore);
-    if (activeTab === "favorite") return list.filter(m => m.isFavorite).sort((a, b) => b.interestScore - a.interestScore);
-    if (activeTab === "bet") return list.filter(m => m.isBet).sort((a, b) => b.interestScore - a.interestScore);
 
     return list.sort((a, b) => b.interestScore - a.interestScore);
   }, [matches, userPrefs, activeTab]);
 
-  const togglePreference = async (matchId: number | string, type: 'favorite' | 'bet') => {
-    const isCurrentlySet = type === 'favorite' 
-      ? userPrefs.favorites.includes(matchId.toString()) 
-      : userPrefs.bets.includes(matchId.toString());
-    
-    const action = isCurrentlySet ? 'remove' : 'add';
-
-    // Optimistic UI update
-    setUserPrefs(prev => ({
-      ...prev,
-      [type === 'favorite' ? 'favorites' : 'bets']: action === 'add' 
-        ? [...prev[type === 'favorite' ? 'favorites' : 'bets'], matchId.toString()]
-        : prev[type === 'favorite' ? 'favorites' : 'bets'].filter(id => id !== matchId.toString())
-    }));
-
-    try {
-      const res = await fetch("/api/user/matches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId, type, action })
-      });
-      
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "저장에 실패했습니다.");
-      }
-    } catch (err: any) {
-      console.error("Failed to update preference", err);
-      // Revert optimistic update on failure
-      setUserPrefs(prev => ({
-        ...prev,
-        [type === 'favorite' ? 'favorites' : 'bets']: action === 'remove' 
-          ? [...prev[type === 'favorite' ? 'favorites' : 'bets'], matchId.toString()]
-          : prev[type === 'favorite' ? 'favorites' : 'bets'].filter(id => id !== matchId.toString())
-      }));
-      alert(err.message || "로그인이 필요하거나 서버 오류가 발생했습니다.");
-    }
-  };
   return (
     <div className="mesh-gradient overflow-x-hidden">
       {/* Abstract background */}
@@ -392,8 +342,6 @@ export default function HomePage() {
                     {[
                       { id: "all", label: "전체" },
                       { id: "interest", label: "관심" },
-                      { id: "favorite", label: "즐겨찾기" },
-                      { id: "bet", label: "배팅" },
                     ].map(tab => (
                       <button
                         key={tab.id}
@@ -439,20 +387,7 @@ export default function HomePage() {
                           <tr key={m.id} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
-                                <div className="flex flex-col gap-1 shrink-0">
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); togglePreference(m.id, 'favorite'); }}
-                                    className={cn("hover:scale-110 transition-transform", m.isFavorite ? "text-[hsl(var(--gold))]" : "text-white/10 hover:text-white/30")}
-                                  >
-                                    <Star className={cn("w-3.5 h-3.5", m.isFavorite && "fill-current")} />
-                                  </button>
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); togglePreference(m.id, 'bet'); }}
-                                    className={cn("hover:scale-110 transition-transform", m.isBet ? "text-primary" : "text-white/10 hover:text-white/30")}
-                                  >
-                                    <Target className={cn("w-3.5 h-3.5", m.isBet && "fill-current")} />
-                                  </button>
-                                </div>
+
                                 <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0 uppercase truncate max-w-[60px]">{m.league}</span>
                                 <div className="min-w-0 flex-1">
                                   <span className="font-bold text-foreground group-hover:text-primary transition-colors text-[13px]">{m.home}</span>
