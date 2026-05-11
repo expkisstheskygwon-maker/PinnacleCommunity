@@ -237,9 +237,11 @@ export default function HomePage() {
     // Filter by tab
     if (activeTab === "all") {
       return list.sort((a, b) => {
-        if (b.interestScore !== a.interestScore) return b.interestScore - a.interestScore;
+        // Prioritize LIVE games first regardless of interest
         if (a.live && !b.live) return -1;
         if (!a.live && b.live) return 1;
+        // Then sort by interest score
+        if (b.interestScore !== a.interestScore) return b.interestScore - a.interestScore;
         return 0;
       }).slice(0, 7);
     }
