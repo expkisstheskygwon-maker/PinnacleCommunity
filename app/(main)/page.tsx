@@ -243,7 +243,12 @@ export default function HomePage() {
 
     // Filter by tab
     if (activeTab === "all") {
-      }).slice(0, 7); // Show exactly 7 matches as requested
+      return list.sort((a, b) => {
+        if (b.interestScore !== a.interestScore) return b.interestScore - a.interestScore;
+        if (a.live && !b.live) return -1;
+        if (!a.live && b.live) return 1;
+        return 0;
+      }).slice(0, 7);
     }
     
     if (activeTab === "interest") return list.filter(m => m.interestScore > 0).sort((a, b) => b.interestScore - a.interestScore);
