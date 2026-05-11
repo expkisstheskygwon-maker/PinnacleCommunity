@@ -6,7 +6,7 @@ import {
   Shield, Users, FileText, BarChart3, Bell, BookOpen, HelpCircle,
   TrendingUp, LogOut, Home, ChevronRight, Search, Plus, Edit, Trash2,
   Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, 
-  Image as ImageIcon, Star, Info, X
+  Image as ImageIcon, Star, Info, X, Settings
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ const SIDEBAR_ITEMS = [
   { id: "analysis", label: "분석/칼럼 작성", icon: TrendingUp },
   { id: "spotlight", label: "스포트라이트 관리", icon: Star },
   { id: "categories", label: "카테고리 관리", icon: Edit },
+  { id: "settings", label: "사이트 설정", icon: Settings },
 ];
 
 // --- 더미 데이터 ---
@@ -112,6 +113,7 @@ export default function AdminDashboard() {
           {activeTab === "analysis" && <PostEditorView category="분석/칼럼" />}
           {activeTab === "spotlight" && <PostEditorView category="스포트라이트" />}
           {activeTab === "categories" && <CategoryManagementView />}
+          {activeTab === "settings" && <SettingsView />}
         </div>
       </main>
     </div>
@@ -939,6 +941,115 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function SettingsView() {
+  const [settings, setSettings] = useState({
+    top_bar_message: "",
+    top_bar_message_en: ""
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/settings');
+        const data = await res.json();
+        if (data.success) {
+          const s = { top_bar_message: "", top_bar_message_en: "" };
+          data.settings.forEach((row: any) => {
+            if (row.key in s) (s as any)[row.key] = row.value;
+          });
+          setSettings(s);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("설정이 저장되었습니다.");
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("저장 중 오류가 발생했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) return <div className="py-10 text-center animate-pulse font-bold text-muted-foreground">불러오는 중...</div>;
+
+  return (
+    <div className="space-y-8 animate-fade-in max-w-4xl">
+      <div>
+        <h1 className="text-2xl font-black tracking-tight">사이트 설정</h1>
+        <p className="text-sm text-muted-foreground mt-1">사이트 전반의 문구 및 설정을 관리합니다</p>
+      </div>
+
+      <div className="glass-card rounded-3xl p-8 space-y-8">
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="bg-primary/10 p-2 rounded-xl">
+              <Info className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-bold">상단 바 문구 설정</h3>
+              <p className="text-xs text-muted-foreground">헤더 상단에 표시되는 안내 문구를 수정합니다</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">한국어 문구</label>
+              <textarea 
+                value={settings.top_bar_message}
+                onChange={e => setSettings({...settings, top_bar_message: e.target.value})}
+                placeholder="한국어 문구를 입력하세요"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[80px] resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">영어 문구 (English)</label>
+              <textarea 
+                value={settings.top_bar_message_en}
+                onChange={e => setSettings({...settings, top_bar_message_en: e.target.value})}
+                placeholder="English message here"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[80px] resize-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-white/5 flex justify-end">
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className="btn-primary py-3 px-10 flex items-center gap-2 disabled:opacity-50"
+          >
+            {isSaving ? <Plus className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+            저장하기
+          </button>
+        </div>
       </div>
     </div>
   );

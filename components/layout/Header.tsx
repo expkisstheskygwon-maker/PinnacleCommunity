@@ -117,6 +117,7 @@ export default function Header({ user }: HeaderProps) {
   const [currentDate, setCurrentDate] = useState("");
   const [dynamicCategories, setDynamicCategories] = useState<Record<string, SubItem[]>>({});
   const [userStats, setUserStats] = useState<{ level: number, title: string } | null>(null);
+  const [topBarMsg, setTopBarMsg] = useState({ ko: "", en: "" });
 
   useEffect(() => {
     setMounted(true);
@@ -164,8 +165,24 @@ export default function Header({ user }: HeaderProps) {
       }
     };
 
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data.success && data.settings) {
+          setTopBarMsg({
+            ko: data.settings.top_bar_message || "✨ Insight Hub: 피나클 커뮤니티는 24시간 가장 빠르고 정확한 실시간 정보를 제공합니다",
+            en: data.settings.top_bar_message_en || "✨ Insight Hub: Providing the fastest and most accurate real-time information 24/7"
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch site settings", err);
+      }
+    };
+
     fetchAllCats();
     fetchUserStats();
+    fetchSettings();
   }, [lang, user]);
 
   // Merge static NAV_ITEMS with dynamic categories
@@ -228,7 +245,7 @@ export default function Header({ user }: HeaderProps) {
             <div className="flex items-center gap-2 text-primary font-bold">
               <Zap className="w-3 h-3 animate-pulse" />
               <span>
-                {lang === "ko" ? "✨ Insight Hub: 피나클 커뮤니티는 24시간 가장 빠르고 정확한 실시간 정보를 제공합니다" : "✨ Insight Hub: Providing the fastest and most accurate real-time information 24/7"}
+                {lang === "ko" ? topBarMsg.ko : topBarMsg.en}
               </span>
             </div>
             <div className="hidden md:flex items-center gap-4 text-muted-foreground">
