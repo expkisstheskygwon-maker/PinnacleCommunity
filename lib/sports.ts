@@ -14,27 +14,6 @@ function normalizeTeamName(name: string): string {
     .replace(/fc|sc|afc|united|utd|city|town|real|st/g, '');
 }
 
-/**
- * 데모 데이터 생성 (API 호출 실패 시 대비)
- */
-function getDemoMatches(sport: string) {
-  return [
-    {
-      id: 1001,
-      home: "리버풀 (데모)",
-      away: "맨시티 (데모)",
-      league: "Premier League",
-      status: "1H 25'",
-      statusCode: "1H",
-      time: "20:00",
-      live: true,
-      scores: { home: 1, away: 0 },
-      odds: { h: 2.10, d: 3.40, a: 3.20 },
-      sport: "soccer"
-    }
-  ];
-}
-
 export async function getTodayMatches(sportInput: string = 'soccer', providedApiKey?: string) {
   const sport = sportInput.toLowerCase();
   
@@ -57,8 +36,8 @@ export async function getTodayMatches(sportInput: string = 'soccer', providedApi
   }
 
   if (!apiKey) {
-    console.warn("API Key missing in getTodayMatches, returning demo data");
-    return getDemoMatches(sport);
+    console.warn("API Key missing in getTodayMatches");
+    return [];
   }
 
   if (sport === 'all') {

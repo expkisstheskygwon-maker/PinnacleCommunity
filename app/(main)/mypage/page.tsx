@@ -108,7 +108,6 @@ export default async function MyPage() {
             }}
             profile={USER_PROFILE}
             initialMatches={todayMatches || []}
-            initialFavorites={[]}
             initialInterests={allInterests || []}
             initialNotifications={notifResults?.results || []}
             initialPosts={postResults?.results || []}

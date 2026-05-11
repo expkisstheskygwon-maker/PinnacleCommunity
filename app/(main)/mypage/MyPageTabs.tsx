@@ -14,7 +14,6 @@ interface MyPageTabsProps {
   user: any;
   profile: any;
   initialMatches: any[];
-  initialFavorites: string[];
   initialInterests: any[];
   initialNotifications: any[];
   initialPosts: any[];
@@ -24,7 +23,6 @@ export default function MyPageTabs({
   user,
   profile,
   initialMatches = [],
-  initialFavorites = [],
   initialInterests = [],
   initialNotifications = [],
   initialPosts = []
@@ -33,6 +31,7 @@ export default function MyPageTabs({
   const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests
   const [interests, setInterests] = useState<any[]>(initialInterests);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAllMatches, setShowAllMatches] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -73,7 +72,6 @@ export default function MyPageTabs({
 
   const MENU_ITEMS = [
     { id: "overview", label: "마이페이지 홈", icon: Shield, count: 0 },
-    { id: "matches", label: "관심 경기", icon: Star, count: favoriteMatches.length },
     { id: "interests", label: "관심 설정", icon: Heart, count: safeInterests.length },
     { id: "notifications", label: "알림 서랍", icon: Bell, count: safeNotifications.filter(n => n && !n.readAt).length },
     { id: "posts", label: "내 글/댓글", icon: FileText, count: (profile?.postCount || 0) + (profile?.commentCount || 0) },
@@ -192,7 +190,7 @@ export default function MyPageTabs({
                   <div className="bg-emerald-500/15 p-1.5 rounded-lg">
                     <Star className="w-4 h-4 text-emerald-400" />
                   </div>
-                  <h3 className="font-bold text-lg">{searchTerm ? `'${searchTerm}' 경기` : "오늘의 관심 경기"}</h3>
+                  <h3 className="font-bold text-lg">{searchTerm ? `'${searchTerm}' 경기` : "나의 관심 경기"}</h3>
                   <span className="badge-primary">{favoriteMatches.length}</span>
                 </div>
                 {searchTerm && (
@@ -204,16 +202,19 @@ export default function MyPageTabs({
                   </button>
                 )}
               </div>
-              {activeTab === "overview" && (
-                <button onClick={() => setActiveTab("matches")} className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
-                  전체 경기 <ChevronRight className="w-3 h-3" />
+              {favoriteMatches.length > 6 && (
+                <button 
+                  onClick={() => setShowAllMatches(!showAllMatches)} 
+                  className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                >
+                  {showAllMatches ? "간략히 보기" : "전체 보기 (16개+)"} <ChevronRight className={cn("w-3 h-3 transition-transform", showAllMatches && "rotate-90")} />
                 </button>
               )}
             </div>
 
             {favoriteMatches.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {favoriteMatches.map(match => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {favoriteMatches.slice(0, showAllMatches ? 16 : 6).map(match => (
                   <div key={match?.id || Math.random()} className="glass-card-hover rounded-2xl p-5 group cursor-pointer relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-3">
                     </div>
