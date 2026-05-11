@@ -236,20 +236,14 @@ export default function HomePage() {
         m.interestScore += (pref.priority || 0);
       });
       
-      if (m.isFavorite) m.interestScore += 2000; // Increased from 1000
+      if (m.isFavorite) m.interestScore += 10000; // Significantly prioritize favorited matches
       if (m.isBet) m.interestScore += 300;
-      if (m.live) m.interestScore += 100; // Decreased from 500 to prioritize interests
+      if (m.live) m.interestScore += 100;
     });
 
     // Filter by tab
     if (activeTab === "all") {
-      // Sort primarily by interestScore, then by live status
-      return list.sort((a, b) => {
-        if (b.interestScore !== a.interestScore) return b.interestScore - a.interestScore;
-        if (a.live && !b.live) return -1;
-        if (!a.live && b.live) return 1;
-        return 0;
-      }).slice(0, 12); // Show a bit more matches if they have many interests
+      }).slice(0, 7); // Show exactly 7 matches as requested
     }
     
     if (activeTab === "interest") return list.filter(m => m.interestScore > 0).sort((a, b) => b.interestScore - a.interestScore);
