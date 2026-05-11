@@ -231,8 +231,11 @@ export default function HomePage() {
         if (!pref) return;
         // Increase weights to prioritize teams/leagues over generic live status
         if (pref.category === 'sport' && m.sport === pref.value) m.interestScore += 10;
-        if (pref.category === 'league' && m.league === pref.value) m.interestScore += 200; // Increased from 50
-        if (pref.category === 'team' && (m.home === pref.value || m.away === pref.value)) m.interestScore += 500; // Increased from 100
+        if (pref.category === 'league' && m.league === pref.value) m.interestScore += 200;
+        if (pref.category === 'team' && (
+          m.home?.toLowerCase().trim() === pref.value?.toLowerCase().trim() || 
+          m.away?.toLowerCase().trim() === pref.value?.toLowerCase().trim()
+        )) m.interestScore += 500;
         m.interestScore += (pref.priority || 0);
       });
       

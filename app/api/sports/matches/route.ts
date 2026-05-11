@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getTodayMatches } from '@/lib/sports';
 
+// 메모리 내 캐시 시스템 (TTL: 3분)
+const cache: Record<string, { data: any, timestamp: number }> = {};
+const CACHE_TTL = 3 * 60 * 1000;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get('sport') || 'soccer';
@@ -81,8 +85,17 @@ export async function GET(request: Request) {
     // API-Sports의 v1 (농구, 야구 등)은 live=all 파라미터가 존재하지 않으므로, date로 전체 호출 후 자체 필터링
     const url = `https://${config.host}${config.endpoint}?date=${today}&timezone=Asia/Seoul`;
 
+    // 캐시 확인
+    const cacheKey = `route-matches-${sportKey}-${isLiveOnly}`;
+    if (cache[cacheKey] && (Date.now() - cache[cacheKey].timestamp < CACHE_TTL)) {
+      return cache[cacheKey].data;
+    }
+
     try {
-      const response = await fetch(url, { headers: { 'x-apisports-key': apiKey } });
+      const response = await fetch(url, { 
+        headers: { 'x-apisports-key': apiKey },
+        next: { revalidate: 180 }
+      });
       if (!response.ok) {
         // 네트워크 에러 시에도 폴백 시도
         if (!isLiveOnly) return await fetchTheSportsDBData(sportKey);
@@ -110,7 +123,10 @@ export async function GET(request: Request) {
 
       // 배당 데이터
       const oddsUrl = `https://${config.host}/odds?date=${today}&timezone=Asia/Seoul`;
-      const oddsResponse = await fetch(oddsUrl, { headers: { 'x-apisports-key': apiKey } });
+      const oddsResponse = await fetch(oddsUrl, { 
+        headers: { 'x-apisports-key': apiKey },
+        next: { revalidate: 180 }
+      });
       let oddsMap: Record<number, any> = {};
       if (oddsResponse.ok) {
         const oddsData = await oddsResponse.json();
@@ -173,7 +189,12 @@ export async function GET(request: Request) {
         };
       });
 
-      return isLiveOnly ? mappedMatches.filter((m: any) => m.live) : mappedMatches;
+      const result = isLiveOnly ? mappedMatches.filter((m: any) => m.live) : mappedMatches;
+      
+      // 캐시 저장
+      cache[cacheKey] = { data: result, timestamp: Date.now() };
+      
+      return result;
     } catch (err) {
       console.error(`Error fetching ${sportKey}:`, err);
       return [];
