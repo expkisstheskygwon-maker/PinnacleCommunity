@@ -364,15 +364,15 @@ export default function OddsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-white/[0.06] bg-white/[0.02]">
-                        <th className="text-left px-5 py-4 font-bold">리그</th>
-                        <th className="text-left px-3 py-4 font-bold">경기 현황</th>
-                        <th className="text-center px-3 py-4 font-bold">승 (1)</th>
-                        {filtered.some(m => m.odds.d > 0) && <th className="text-center px-3 py-4 font-bold">무 (X)</th>}
-                        <th className="text-center px-3 py-4 font-bold">패 (2)</th>
-                        <th className="text-center px-3 py-4 font-bold">결과</th>
-                        <th className="text-center px-3 py-4 font-bold hidden md:table-cell">핸디캡</th>
-                        <th className="text-center px-3 py-4 font-bold hidden md:table-cell">O/U</th>
-                        <th className="text-right px-5 py-4 font-bold">상태/시간</th>
+                        <th className="text-left px-5 py-4 font-bold whitespace-nowrap">리그</th>
+                        <th className="text-left px-3 py-4 font-bold whitespace-nowrap">경기 현황</th>
+                        <th className="text-center px-3 py-4 font-bold whitespace-nowrap">승 (1)</th>
+                        {filtered.some(m => m.odds.d > 0) && <th className="text-center px-3 py-4 font-bold whitespace-nowrap">무 (X)</th>}
+                        <th className="text-center px-3 py-4 font-bold whitespace-nowrap">패 (2)</th>
+                        <th className="text-center px-3 py-4 font-bold whitespace-nowrap">결과</th>
+                        <th className="text-center px-3 py-4 font-bold hidden md:table-cell whitespace-nowrap">핸디캡</th>
+                        <th className="text-center px-3 py-4 font-bold hidden md:table-cell whitespace-nowrap">O/U</th>
+                        <th className="text-right px-5 py-4 font-bold whitespace-nowrap">상태/시간</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.04]">
@@ -448,7 +448,7 @@ export default function OddsPage() {
                                             <button onClick={(e) => toggleTeamFavorite(m.home, e)} className={cn("transition-opacity p-0.5", favTeams.includes(m.home) ? "text-[hsl(var(--gold))]" : "opacity-0 group-hover/team:opacity-100 text-white/20")}>
                                               <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.home) && "fill-current")} />
                                             </button>
-                                            <span className={cn("font-bold text-sm", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.home) && "text-[hsl(var(--gold))]")}>{m.home}</span>
+                                            <span className={cn("font-bold text-sm whitespace-nowrap", m.scores.home > m.scores.away && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.home) && "text-[hsl(var(--gold))]")}>{m.home}</span>
                                           </div>
                                           <div className="flex items-center bg-black/40 rounded-lg px-2 py-1 border border-white/5 min-w-[50px] justify-center">
                                             <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.home}</span>
@@ -456,7 +456,7 @@ export default function OddsPage() {
                                             <span className={cn("font-black text-sm w-4 text-center", (m.live || m.finished) ? "text-red-500" : "text-muted-foreground")}>{m.scores.away}</span>
                                           </div>
                                           <div className="flex items-center gap-2 min-w-[120px] group/team">
-                                            <span className={cn("font-bold text-sm", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.away) && "text-[hsl(var(--gold))]")}>{m.away}</span>
+                                            <span className={cn("font-bold text-sm whitespace-nowrap", m.scores.away > m.scores.home && (m.live || m.finished) && "text-blue-400", favTeams.includes(m.away) && "text-[hsl(var(--gold))]")}>{m.away}</span>
                                             <button onClick={(e) => toggleTeamFavorite(m.away, e)} className={cn("transition-opacity p-0.5", favTeams.includes(m.away) ? "text-[hsl(var(--gold))]" : "opacity-0 group-hover/team:opacity-100 text-white/20")}>
                                               <Star className={cn("w-2.5 h-2.5", favTeams.includes(m.away) && "fill-current")} />
                                             </button>
@@ -475,8 +475,8 @@ export default function OddsPage() {
                                     <td className="text-center px-3 py-4">
                                       <span className="font-mono text-xs text-foreground font-bold">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
                                     </td>
-                                    <td className="text-center px-3 py-4">
-                                      <span className={cn("text-[10px] font-black px-2 py-1 rounded border", resultColor)}>
+                                    <td className="text-center px-3 py-4 whitespace-nowrap">
+                                      <span className={cn("inline-flex items-center justify-center text-[10px] font-black px-2.5 py-1 rounded border whitespace-nowrap", resultColor)}>
                                         {resultText}
                                       </span>
                                     </td>
@@ -488,10 +488,10 @@ export default function OddsPage() {
                                           {m.live ? (
                                             <div className="flex items-center gap-1.5">
                                               <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
-                                              <span className="text-[10px] font-black text-red-500 uppercase">{getStatusKo(m.statusCode)}</span>
+                                              <span className="text-[10px] font-black text-red-500 uppercase whitespace-nowrap">{getStatusKo(m.statusCode)}</span>
                                             </div>
                                           ) : (
-                                            <span className="text-[10px] font-bold text-muted-foreground/80 uppercase">{getStatusKo(m.statusCode)}</span>
+                                            <span className="text-[10px] font-bold text-muted-foreground/80 uppercase whitespace-nowrap">{getStatusKo(m.statusCode)}</span>
                                           )}
                                           <span className="text-[10px] text-muted-foreground/40 font-mono">{m.time}</span>
                                         </div>
