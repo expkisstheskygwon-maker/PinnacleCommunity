@@ -76,9 +76,9 @@ export default function Footer({ description, copyright }: FooterProps) {
             <h4 className="text-sm font-bold uppercase tracking-wider text-foreground">지원</h4>
             <div className="space-y-2.5">
               {[
-                { href: "/notices?cat=scam", label: "사기주의 안내" },
-                { href: "/notices?cat=policy", label: "이용약관" },
-                { href: "#", label: "개인정보처리방침" },
+                { href: "/policies/scam", label: "사기주의 안내" },
+                { href: "/policies/terms", label: "이용약관" },
+                { href: "/policies/privacy", label: "개인정보처리방침" },
                 { href: "#", label: "문의하기" },
               ].map(l => (
                 <Link key={l.href} href={l.href} className="block text-sm text-muted-foreground hover:text-primary transition-colors">

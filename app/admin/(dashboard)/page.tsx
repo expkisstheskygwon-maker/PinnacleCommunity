@@ -6,7 +6,7 @@ import {
   Shield, Users, FileText, BarChart3, Bell, BookOpen, HelpCircle,
   TrendingUp, LogOut, Home, ChevronRight, Search, Plus, Edit, Trash2,
   Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, 
-  Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet
+  Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet, Gavel
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ const SIDEBAR_ITEMS = [
   { id: "analysis", label: "분석/칼럼 작성", icon: TrendingUp },
   { id: "spotlight", label: "스포트라이트 관리", icon: Star },
   { id: "categories", label: "카테고리 관리", icon: Edit },
+  { id: "policies", label: "정책 관리", icon: Gavel },
   { id: "settings", label: "사이트 설정", icon: Settings },
 ];
 
@@ -113,6 +114,7 @@ export default function AdminDashboard() {
           {activeTab === "analysis" && <PostEditorView category="분석/칼럼" />}
           {activeTab === "spotlight" && <PostEditorView category="스포트라이트" />}
           {activeTab === "categories" && <CategoryManagementView />}
+          {activeTab === "policies" && <PolicyManagementView />}
           {activeTab === "settings" && <SettingsView />}
         </div>
       </main>
@@ -1167,6 +1169,7 @@ function SettingsView() {
               />
             </div>
           </div>
+        </div>
         <div className="space-y-6 pt-6 border-t border-white/5">
           <div className="flex items-center gap-3 border-b border-white/5 pb-4">
             <div className="bg-emerald-500/10 p-2 rounded-xl">
@@ -1210,6 +1213,117 @@ function SettingsView() {
             저장하기
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+function PolicyManagementView() {
+  const [policies, setPolicies] = useState({
+    policy_terms: "",
+    policy_privacy: "",
+    policy_scam: ""
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [activePolicy, setActivePolicy] = useState("terms");
+
+  useEffect(() => {
+    const fetchPolicies = async () => {
+      try {
+        const res = await fetch('/api/admin/settings');
+        const data = await res.json();
+        if (data.success) {
+          setPolicies(prev => ({
+            ...prev,
+            ...data.settings
+          }));
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPolicies();
+  }, []);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(policies)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("정책이 저장되었습니다.");
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      alert("오류가 발생했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) return <div className="py-20 text-center animate-pulse font-bold text-muted-foreground">불러오는 중...</div>;
+
+  const POLICY_TABS = [
+    { id: "terms", label: "이용약관", key: "policy_terms" },
+    { id: "privacy", label: "개인정보처리방침", key: "policy_privacy" },
+    { id: "scam", label: "사기주의 안내", key: "policy_scam" },
+  ];
+
+  return (
+    <div className="space-y-6 animate-fade-in max-w-5xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">정책 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">사이트 이용약관 및 개인정보 처리방침을 관리합니다 (HTML 지원)</p>
+        </div>
+        <button 
+          onClick={handleSave} 
+          disabled={isSaving}
+          className="btn-primary py-2.5 px-8 flex items-center gap-2"
+        >
+          {isSaving ? <Plus className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+          정책 저장하기
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2 border-b border-white/5">
+        {POLICY_TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActivePolicy(tab.id)}
+            className={cn(
+              "px-6 py-3 text-sm font-bold transition-all relative",
+              activePolicy === tab.id ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab.label}
+            {activePolicy === tab.id && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="glass-card rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between ml-1">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            {POLICY_TABS.find(t => t.id === activePolicy)?.label} 내용
+          </label>
+          <span className="text-[10px] text-muted-foreground italic">* HTML 태그를 사용하여 서식을 구성할 수 있습니다.</span>
+        </div>
+        <textarea
+          value={(policies as any)[POLICY_TABS.find(t => t.id === activePolicy)?.key || ""]}
+          onChange={e => setPolicies({...policies, [POLICY_TABS.find(t => t.id === activePolicy)?.key || ""]: e.target.value})}
+          placeholder="정책 내용을 입력하세요..."
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[600px] font-mono leading-relaxed"
+        />
       </div>
     </div>
   );
