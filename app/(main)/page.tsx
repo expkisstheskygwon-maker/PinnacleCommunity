@@ -514,21 +514,42 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {spotlightPosts.length > 0 ? (
                   spotlightPosts.map(post => (
-                    <Link href={`/spotlight/${post.id}`} key={post.id} className="glass-card-hover rounded-2xl p-5 space-y-3 cursor-pointer group">
-                      <div className="flex items-center justify-between">
-                        <span className="badge-primary">{post.tags || "Premium"}</span>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Eye className="w-3 h-3" /> {post.views || 0}
-                        </span>
-                      </div>
-                      <h4 className="font-bold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">{post.title}</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{post.content.replace(/<[^>]*>/g, '').substring(0, 100)}</p>
-                      <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">管</div>
-                          <span className="text-xs font-medium">관리자</span>
+                    <Link href={`/spotlight/${post.id}`} key={post.id} className="glass-card rounded-2xl overflow-hidden hover:bg-white/[0.02] transition-all group flex flex-col h-full border border-white/5">
+                      {post.image ? (
+                        <div className="aspect-[16/9] w-full overflow-hidden relative">
+                          <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <div className="absolute top-3 left-3">
+                            <span className="bg-primary/90 backdrop-blur-md px-2 py-0.5 rounded text-[9px] font-black text-white uppercase tracking-wider">
+                              {post.tags || "Premium"}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">{new Date(post.createdAt).toLocaleDateString()}</span>
+                      ) : (
+                        <div className="aspect-[16/9] w-full bg-gradient-to-br from-primary/10 to-purple-500/10 flex items-center justify-center relative">
+                          <Star className="w-8 h-8 text-primary/20" />
+                          <div className="absolute top-3 left-3">
+                            <span className="bg-primary/90 backdrop-blur-md px-2 py-0.5 rounded text-[9px] font-black text-white uppercase tracking-wider">
+                              {post.tags || "Premium"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="p-5 flex-1 flex flex-col space-y-3">
+                        <h4 className="font-bold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">{post.title}</h4>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 flex-1">
+                          {post.content.replace(/<[^>]*>/g, '').substring(0, 80)}...
+                        </p>
+                        <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary">管</div>
+                            <span className="text-[10px] font-bold">관리자</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[9px] text-muted-foreground/60 font-medium">
+                            <span className="flex items-center gap-1"><Eye className="w-2.5 h-2.5" /> {post.views || 0}</span>
+                            <span>•</span>
+                            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
                       </div>
                     </Link>
                   ))
