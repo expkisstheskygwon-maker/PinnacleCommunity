@@ -6,7 +6,7 @@ import {
   Shield, Users, FileText, BarChart3, Bell, BookOpen, HelpCircle,
   TrendingUp, LogOut, Home, ChevronRight, Search, Plus, Edit, Trash2,
   Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, 
-  Image as ImageIcon, Star, Info, X, Settings
+  Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -597,6 +597,56 @@ function PostEditorView({ category }: { category: string }) {
     }
   };
 
+  const parseCSV = (csvText: string) => {
+    const lines: string[][] = [];
+    let currentLine: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < csvText.length; i++) {
+      const char = csvText[i];
+      const nextChar = csvText[i + 1];
+
+      if (inQuotes) {
+        if (char === '"' && nextChar === '"') {
+          currentField += '"';
+          i++;
+        } else if (char === '"') {
+          inQuotes = false;
+        } else {
+          currentField += char;
+        }
+      } else {
+        if (char === '"') {
+          inQuotes = true;
+        } else if (char === ',') {
+          currentLine.push(currentField);
+          currentField = '';
+        } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
+          currentLine.push(currentField);
+          lines.push(currentLine);
+          currentLine = [];
+          currentField = '';
+          if (char === '\r') i++;
+        } else {
+          currentField += char;
+        }
+      }
+    }
+    if (currentField || currentLine.length > 0) {
+      currentLine.push(currentField);
+      lines.push(currentLine);
+    }
+
+    if (lines.length < 2) return [];
+    const headers = lines[0].map(h => h.trim().toLowerCase());
+    return lines.slice(1).map(row => {
+      const obj: any = {};
+      headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+      return obj;
+    }).filter(row => row.title && row.content); // Filter out empty or invalid rows
+  };
+
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl">
       <div className="flex items-center justify-between">
@@ -623,6 +673,84 @@ function PostEditorView({ category }: { category: string }) {
             {isPublishing ? <Plus className="w-3.5 h-3.5" /> : null}
             {isPublishing ? "발행 중..." : "발행하기"}
           </button>
+        </div>
+      </div>
+
+      {/* Bulk Upload Section */}
+      <div className="glass-card rounded-2xl p-6 border-dashed border-white/10 bg-white/[0.01] flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+            <FileSpreadsheet className="w-6 h-6 text-emerald-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black">대량 게시글 업로드</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">CSV 파일을 업로드하여 여러 개의 {category} 게시글을 한 번에 등록합니다.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              const csvContent = "title,content,subCategory,image\n\"샘플 제목 1\",\"<p>HTML 내용이 들어갈 수 있습니다.</p>\",\"분류1\",\"https://example.com/image1.jpg\"\n\"샘플 제목 2\",\"<p>두 번째 글 내용입니다.</p>\",\"분류2\",";
+              const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.setAttribute("href", url);
+              link.setAttribute("download", `sample_bulk_upload_${type}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold hover:bg-white/10 transition-all"
+          >
+            <Download className="w-3.5 h-3.5" /> 샘플 파일 다운로드
+          </button>
+          <div className="relative">
+            <input
+              type="file"
+              accept=".csv"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                  const text = event.target?.result as string;
+                  const parsed = parseCSV(text);
+                  if (parsed.length === 0) {
+                    alert("데이터가 없거나 형식이 잘못되었습니다.");
+                    return;
+                  }
+                  
+                  if (!confirm(`${parsed.length}개의 게시글을 업로드하시겠습니까?`)) return;
+                  
+                  setIsPublishing(true);
+                  try {
+                    const res = await fetch('/api/admin/posts/bulk', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ posts: parsed, category: type })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert(data.message);
+                    } else {
+                      alert(data.error);
+                    }
+                  } catch (err) {
+                    alert("업로드 중 오류가 발생했습니다.");
+                  } finally {
+                    setIsPublishing(false);
+                    e.target.value = '';
+                  }
+                };
+                reader.readAsText(file);
+              }}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+            <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 text-white text-[11px] font-black hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20">
+              <Upload className="w-3.5 h-3.5" /> CSV 파일 업로드
+            </button>
+          </div>
         </div>
       </div>
 
