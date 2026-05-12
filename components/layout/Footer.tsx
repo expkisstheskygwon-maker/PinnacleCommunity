@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { Trophy, Shield, Mail, MessageCircle } from "lucide-react";
 
-export default function Footer() {
+interface FooterProps {
+  description?: string;
+  copyright?: string;
+}
+
+export default function Footer({ description, copyright }: FooterProps) {
   return (
     <footer className="border-t border-white/[0.04] bg-background/80 mt-auto relative">
       <div className="container mx-auto px-4 py-16">
@@ -17,9 +22,8 @@ export default function Footer() {
                 <p className="text-[9px] uppercase tracking-[0.2em] text-primary font-bold">Information Hub</p>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-              피나클 사용자를 위한 정보 허브. 가입부터 배당 분석까지, 
-              신뢰할 수 있는 정보와 실사용자 경험을 한곳에서 제공합니다.
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-sm whitespace-pre-wrap">
+              {description || "피나클 사용자를 위한 정보 허브. 가입부터 배당 분석까지, 신뢰할 수 있는 정보와 실사용자 경험을 한곳에서 제공합니다."}
             </p>
             <div className="flex items-center gap-3">
               <div className="badge-success">
@@ -88,7 +92,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="pt-8 border-t border-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">
-            © 2026 피나클 커뮤니티. 본 사이트는 피나클(Pinnacle) 공식 사이트가 아닙니다. 독립적인 사용자 커뮤니티입니다.
+            {copyright || "© 2026 피나클 커뮤니티. 본 사이트는 피나클(Pinnacle) 공식 사이트가 아닙니다. 독립적인 사용자 커뮤니티입니다."}
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <Link href="#" className="hover:text-primary transition-colors">이용약관</Link>

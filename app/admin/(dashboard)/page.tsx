@@ -1077,7 +1077,9 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
 function SettingsView() {
   const [settings, setSettings] = useState({
     top_bar_message: "",
-    top_bar_message_en: ""
+    top_bar_message_en: "",
+    footer_description: "",
+    footer_copyright: ""
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -1088,11 +1090,10 @@ function SettingsView() {
         const res = await fetch('/api/admin/settings');
         const data = await res.json();
         if (data.success) {
-          const s = { top_bar_message: "", top_bar_message_en: "" };
-          data.settings.forEach((row: any) => {
-            if (row.key in s) (s as any)[row.key] = row.value;
-          });
-          setSettings(s);
+          setSettings(prev => ({
+            ...prev,
+            ...data.settings
+          }));
         }
       } catch (err) {
         console.error(err);
@@ -1107,9 +1108,9 @@ function SettingsView() {
     setIsSaving(true);
     try {
       const res = await fetch('/api/admin/settings', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings })
+        body: JSON.stringify(settings)
       });
       const data = await res.json();
       if (data.success) {
@@ -1163,6 +1164,37 @@ function SettingsView() {
                 onChange={e => setSettings({...settings, top_bar_message_en: e.target.value})}
                 placeholder="English message here"
                 className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[80px] resize-none"
+              />
+            </div>
+          </div>
+        <div className="space-y-6 pt-6 border-t border-white/5">
+          <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="bg-emerald-500/10 p-2 rounded-xl">
+              <FileText className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="font-bold">푸터(Footer) 정보 설정</h3>
+              <p className="text-xs text-muted-foreground">사이트 하단에 표시되는 브랜드 설명과 카피라이트를 수정합니다</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">푸터 설명 문구</label>
+              <textarea 
+                value={settings.footer_description}
+                onChange={e => setSettings({...settings, footer_description: e.target.value})}
+                placeholder="푸터 설명 문구를 입력하세요"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[100px] resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">카피라이트 (Copyright)</label>
+              <input 
+                value={settings.footer_copyright}
+                onChange={e => setSettings({...settings, footer_copyright: e.target.value})}
+                placeholder="© 2026 피나클 커뮤니티..."
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-all"
               />
             </div>
           </div>

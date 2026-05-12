@@ -1,14 +1,10 @@
--- Comments Table
-CREATE TABLE IF NOT EXISTS comments (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  postId INTEGER NOT NULL,
-  authorId INTEGER NOT NULL,
-  content TEXT NOT NULL,
-  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (postId) REFERENCES posts(id),
-  FOREIGN KEY (authorId) REFERENCES users(id)
+-- Create site_settings table
+CREATE TABLE IF NOT EXISTS site_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_comments_postId ON comments(postId);
-CREATE INDEX IF NOT EXISTS idx_comments_authorId ON comments(authorId);
+-- Insert default values for footer
+INSERT OR IGNORE INTO site_settings (key, value) VALUES ('footer_description', '피나클 사용자를 위한 정보 허브. 가입부터 배당 분석까지, 신뢰할 수 있는 정보와 실사용자 경험을 한곳에서 제공합니다.');
+INSERT OR IGNORE INTO site_settings (key, value) VALUES ('footer_copyright', '© 2026 피나클 커뮤니티. 본 사이트는 피나클(Pinnacle) 공식 사이트가 아닙니다. 독립적인 사용자 커뮤니티입니다.');

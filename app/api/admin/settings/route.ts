@@ -4,39 +4,37 @@ import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const adminSession = cookieStore.get('admin_session');
-    if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
-
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
-    const { results } = await db.prepare('SELECT * FROM site_settings').all();
-    return NextResponse.json({ success: true, settings: results });
+    const { results } = await db.prepare('SELECT key, value FROM site_settings').all();
+    
+    // Convert array to object
+    const settings = results.reduce((acc: any, curr: any) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {});
+
+    return NextResponse.json({ success: true, settings });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const adminSession = cookieStore.get('admin_session');
     if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
 
-    const { settings } = await request.json(); // Expected: { key: value, ... }
-    if (!settings) return NextResponse.json({ success: false, error: '데이터 누락' }, { status: 400 });
-
+    const body = await request.json();
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
-    const statements = [];
-    for (const [key, value] of Object.entries(settings)) {
-      statements.push(
-        db.prepare('INSERT INTO site_settings (key, value, updatedAt) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value, updatedAt = EXCLUDED.updatedAt')
-          .bind(key, value)
-      );
-    }
+    const statements = Object.entries(body).map(([key, value]) => {
+      return db.prepare('INSERT INTO site_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?, updatedAt = CURRENT_TIMESTAMP')
+        .bind(key, value, value);
+    });
 
     await db.batch(statements);
 
