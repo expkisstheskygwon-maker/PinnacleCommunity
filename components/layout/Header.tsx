@@ -56,9 +56,6 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "spotlight", href: "/spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: Star,
     children: [
-      { href: "/spotlight?cat=최신%20동향", label: "최신 동향", labelEn: "Latest Trends" },
-      { href: "/spotlight?cat=pickup", label: "오늘의 픽", labelEn: "Daily Pick" },
-      { href: "/spotlight?cat=column", label: "전문가 칼럼", labelEn: "Expert Column" },
       { href: "/spotlight?cat=news", label: "긴급 뉴스", labelEn: "Breaking News" },
     ]
   },
