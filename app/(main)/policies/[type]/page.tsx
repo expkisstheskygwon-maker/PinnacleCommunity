@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { Shield, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function PolicyPage({ params }: { params: { type: string } }) {
-  const { type } = params;
+export default async function PolicyPage({ params }: { params: Promise<{ type: string }> }) {
+  const { type } = await params;
   
   const policyKeys: any = {
     terms: 'policy_terms',
