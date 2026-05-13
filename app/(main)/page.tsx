@@ -102,6 +102,7 @@ export default function HomePage() {
   const [matches, setMatches] = useState<any[]>([]);
   const [hotPosts, setHotPosts] = useState<any[]>(HOT_POSTS); // Fallback to mock initially
   const [spotlightPosts, setSpotlightPosts] = useState<any[]>([]);
+  const [notices, setNotices] = useState<any[]>([]);
   const [userPrefs, setUserPrefs] = useState<{ interests: any[] }>({
     interests: []
   });
@@ -200,10 +201,23 @@ export default function HomePage() {
       }
     };
 
+    const fetchNotices = async () => {
+      try {
+        const res = await fetch("/api/posts?category=notices&limit=5");
+        const data = await res.json();
+        if (data.success && data.posts) {
+          setNotices(data.posts);
+        }
+      } catch (err) {
+        console.error("Failed to fetch notices", err);
+      }
+    };
+
     fetchMatches();
     fetchUserPrefs();
     fetchPosts();
     fetchSpotlight();
+    fetchNotices();
   }, []);
 
   // Personalized Sorting and Filtering
@@ -306,23 +320,37 @@ export default function HomePage() {
       </section>
 
       {/* Notice Alert Bar */}
-      <section className="border-y border-white/[0.04] bg-secondary/10">
+      <section className="border-y border-white/[0.04] bg-secondary/10 overflow-hidden">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
-            <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-4 relative">
+            <div className="flex items-center gap-1.5 shrink-0 bg-secondary/10 backdrop-blur-md z-10 pr-4 border-r border-white/[0.04]">
               <Megaphone className="w-4 h-4 text-[hsl(var(--gold))]" />
               <span className="text-xs font-bold text-[hsl(var(--gold))] uppercase tracking-wider">공지</span>
             </div>
-            <div className="flex items-center gap-6 text-sm">
-              {NOTICES.map(n => (
-                <Link key={n.id} href="/notices" className="flex items-center gap-2 shrink-0 hover:text-primary transition-colors group">
-                  {n.urgent && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />}
-                  <span className={cn("font-medium", n.urgent ? "text-red-400" : "text-muted-foreground")}>
-                    {n.title}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/50">{n.date}</span>
-                </Link>
-              ))}
+            
+            <div className="flex-1 overflow-hidden">
+              <div className="animate-marquee whitespace-nowrap">
+                {(notices.length > 0 ? [...notices, ...notices] : [...NOTICES, ...NOTICES]).map((n, idx) => (
+                  <Link 
+                    key={`${n.id}-${idx}`} 
+                    href={n.id && (n.category === 'notices' || !n.category) ? `/community/${n.id}` : "/notices"} 
+                    className="inline-flex items-center gap-2 mx-6 hover:text-primary transition-colors group"
+                  >
+                    {(n.urgent || n.tags?.includes('urgent')) && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+                    )}
+                    <span className={cn(
+                      "font-medium text-sm", 
+                      (n.urgent || n.tags?.includes('urgent')) ? "text-red-400" : "text-muted-foreground"
+                    )}>
+                      {n.title}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/50">
+                      {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : n.date}
+                    </span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
