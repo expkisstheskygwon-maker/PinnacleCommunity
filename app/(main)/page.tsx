@@ -97,6 +97,18 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
+const getNoticeLabel = (typeOrTag: string) => {
+  const mapping: Record<string, string> = {
+    scam: "사칭주의",
+    maintenance: "점검안내",
+    policy: "규정안내",
+    event: "이벤트",
+    general: "공지사항",
+    urgent: "긴급공지",
+  };
+  return mapping[typeOrTag] || "공지";
+};
+
 /* ─── Main Page ─── */
 export default function HomePage() {
   const [matches, setMatches] = useState<any[]>([]);
@@ -330,26 +342,39 @@ export default function HomePage() {
             
             <div className="flex-1 overflow-hidden">
               <div className="animate-marquee whitespace-nowrap">
-                {(notices.length > 0 ? [...notices, ...notices] : [...NOTICES, ...NOTICES]).map((n, idx) => (
-                  <Link 
-                    key={`${n.id}-${idx}`} 
-                    href={n.id && (n.category === 'notices' || !n.category) ? `/community/${n.id}` : "/notices"} 
-                    className="inline-flex items-center gap-2 mx-6 hover:text-primary transition-colors group"
-                  >
-                    {(n.urgent || n.tags?.includes('urgent')) && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-                    )}
-                    <span className={cn(
-                      "font-medium text-sm", 
-                      (n.urgent || n.tags?.includes('urgent')) ? "text-red-400" : "text-muted-foreground"
-                    )}>
-                      {n.title}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground/50">
-                      {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : n.date}
-                    </span>
-                  </Link>
-                ))}
+                {(notices.length > 0 ? [...notices, ...notices] : [...NOTICES, ...NOTICES]).map((n, idx) => {
+                  const label = getNoticeLabel(n.tags || n.type || "general");
+                  const isUrgent = n.urgent || n.tags === 'urgent' || n.tags?.includes('urgent');
+                  
+                  return (
+                    <Link 
+                      key={`${n.id}-${idx}`} 
+                      href={n.id && (n.category === 'notices' || !n.category) ? `/community/${n.id}` : "/notices"} 
+                      className="inline-flex items-center gap-3 mx-8 hover:text-primary transition-colors group"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {isUrgent && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+                        )}
+                        <span className={cn(
+                          "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight",
+                          isUrgent ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-white/5 text-muted-foreground border border-white/10"
+                        )}>
+                          {label}
+                        </span>
+                      </div>
+                      <span className={cn(
+                        "font-bold text-sm", 
+                        isUrgent ? "text-red-400" : "text-foreground/90 group-hover:text-primary transition-colors"
+                      )}>
+                        {n.title}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/40 font-mono">
+                        {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : n.date}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>
