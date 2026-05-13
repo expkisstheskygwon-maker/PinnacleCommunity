@@ -106,7 +106,10 @@ const getNoticeLabel = (typeOrTag: string) => {
     general: "공지사항",
     urgent: "긴급공지",
   };
-  return mapping[typeOrTag] || "공지";
+  
+  if (mapping[typeOrTag]) return mapping[typeOrTag];
+  if (typeOrTag && typeOrTag !== 'general' && typeOrTag !== 'none' && typeOrTag !== 'null') return typeOrTag;
+  return "공지";
 };
 
 /* ─── Main Page ─── */
@@ -357,8 +360,10 @@ export default function HomePage() {
                           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
                         )}
                         <span className={cn(
-                          "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight",
-                          isUrgent ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-white/5 text-muted-foreground border border-white/10"
+                          "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight shrink-0",
+                          isUrgent 
+                            ? "bg-red-500/20 text-red-400 border border-red-500/30" 
+                            : "bg-white/10 text-muted-foreground border border-white/10"
                         )}>
                           {label}
                         </span>
