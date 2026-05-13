@@ -1209,6 +1209,7 @@ function SettingsView() {
               />
             </div>
           </div>
+        </div>
         <div className="space-y-6 pt-6 border-t border-white/5">
           <div className="flex items-center gap-3 border-b border-white/5 pb-4">
             <div className="bg-blue-500/10 p-2 rounded-xl">
