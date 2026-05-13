@@ -117,6 +117,7 @@ export default function HomePage() {
   const [matches, setMatches] = useState<any[]>([]);
   const [hotPosts, setHotPosts] = useState<any[]>(HOT_POSTS); // Fallback to mock initially
   const [spotlightPosts, setSpotlightPosts] = useState<any[]>([]);
+  const [qnaPosts, setQnaPosts] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>({});
   const [userPrefs, setUserPrefs] = useState<{ interests: any[] }>({
@@ -241,12 +242,25 @@ export default function HomePage() {
       }
     };
 
+    const fetchQna = async () => {
+      try {
+        const res = await fetch("/api/posts?category=qna&limit=5");
+        const data = await res.json();
+        if (data.success && data.posts) {
+          setQnaPosts(data.posts);
+        }
+      } catch (err) {
+        console.error("Failed to fetch Q&A", err);
+      }
+    };
+
     fetchMatches();
     fetchUserPrefs();
     fetchPosts();
     fetchSpotlight();
     fetchNotices();
     fetchSettings();
+    fetchQna();
   }, []);
 
   // Personalized Sorting and Filtering
@@ -696,32 +710,42 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Recent Q&A */}
+            {/* Interest Q&A (Formerly Recent Q&A) */}
             <div className="glass-card rounded-2xl p-5">
-              <SectionHeader icon={HelpCircle} title="최근 Q&A" href="/qna" />
+              <SectionHeader icon={HelpCircle} title="관심 Q&A" href="/community?category=qna" />
               <div className="space-y-3">
-                {QNA_RECENT.map(q => (
-                  <Link key={q.id} href="/qna" className="block p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
+                {qnaPosts.length > 0 ? qnaPosts.slice(0, 5).map((q, idx) => (
+                  <Link key={q.id} href={`/community/${q.id}`} className="block p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
                     <div className="flex items-start gap-2.5">
                       <div className={cn(
                         "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                        q.solved ? "bg-emerald-500/15" : "bg-[hsl(var(--gold))]/15"
+                        (q.commentsCount > 0) ? "bg-emerald-500/15" : "bg-[hsl(var(--gold))]/15"
                       )}>
-                        {q.solved 
+                        {q.commentsCount > 0 
                           ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                           : <HelpCircle className="w-3 h-3 text-[hsl(var(--gold))]" />
                         }
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-2">{q.question}</p>
-                        <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
-                          <span className="bg-white/5 px-1.5 py-0.5 rounded font-bold">{q.category}</span>
-                          <span className="flex items-center gap-0.5"><MessageSquare className="w-2.5 h-2.5" />답변 {q.answers}</span>
+                        <p className="text-[13px] font-bold group-hover:text-primary transition-colors line-clamp-2 leading-snug">{q.title}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded text-[9px] font-black uppercase",
+                            q.commentsCount > 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-muted-foreground"
+                          )}>
+                            {q.commentsCount > 0 ? "답변완료" : "답변대기"}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground/60 font-medium">{new Date(q.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
                   </Link>
-                ))}
+                )) : (
+                  <div className="py-10 text-center opacity-20">
+                    <HelpCircle className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-[10px] font-bold">등록된 질문이 없습니다.</p>
+                  </div>
+                )}
               </div>
             </div>
 
