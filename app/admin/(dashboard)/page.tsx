@@ -1081,7 +1081,15 @@ function SettingsView() {
     top_bar_message: "",
     top_bar_message_en: "",
     footer_description: "",
-    footer_copyright: ""
+    footer_copyright: "",
+    trust_stat_1_label: "활성 회원",
+    trust_stat_1_value: "12,847",
+    trust_stat_2_label: "오늘 경기",
+    trust_stat_2_value: "319개",
+    trust_stat_3_label: "평균 평점",
+    trust_stat_3_value: "4.3 / 5",
+    trust_stat_4_label: "오늘 게시글",
+    trust_stat_4_value: "234건"
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -1200,6 +1208,49 @@ function SettingsView() {
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-all"
               />
             </div>
+          </div>
+        <div className="space-y-6 pt-6 border-t border-white/5">
+          <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="bg-blue-500/10 p-2 rounded-xl">
+              <Award className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <h3 className="font-bold">메인 페이지 신뢰 지표 설정</h3>
+              <p className="text-xs text-muted-foreground">메인 히어로 섹션 아래 4개의 통계 지표를 수정합니다</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((num) => (
+              <div key={num} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                    {num}
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">지표 {num}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">라벨 (이름)</label>
+                    <input 
+                      value={(settings as any)[`trust_stat_${num}_label`]}
+                      onChange={e => setSettings({...settings, [`trust_stat_${num}_label`]: e.target.value})}
+                      placeholder="활성 회원"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary/50 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">수치 (값)</label>
+                    <input 
+                      value={(settings as any)[`trust_stat_${num}_value`]}
+                      onChange={e => setSettings({...settings, [`trust_stat_${num}_value`]: e.target.value})}
+                      placeholder="12,847"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary/50 transition-all font-bold text-blue-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

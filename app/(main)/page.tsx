@@ -118,6 +118,7 @@ export default function HomePage() {
   const [hotPosts, setHotPosts] = useState<any[]>(HOT_POSTS); // Fallback to mock initially
   const [spotlightPosts, setSpotlightPosts] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
+  const [siteSettings, setSiteSettings] = useState<any>({});
   const [userPrefs, setUserPrefs] = useState<{ interests: any[] }>({
     interests: []
   });
@@ -228,11 +229,24 @@ export default function HomePage() {
       }
     };
 
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        if (data.success) {
+          setSiteSettings(data.settings);
+        }
+      } catch (err) {
+        console.error("Failed to fetch settings", err);
+      }
+    };
+
     fetchMatches();
     fetchUserPrefs();
     fetchPosts();
     fetchSpotlight();
     fetchNotices();
+    fetchSettings();
   }, []);
 
   // Personalized Sorting and Filtering
@@ -317,10 +331,30 @@ export default function HomePage() {
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 max-w-4xl mx-auto stagger-children">
             {[
-              { icon: Users, label: "활성 회원", value: "12,847", color: "text-primary" },
-              { icon: BarChart3, label: "오늘 경기", value: `${matches.length}개`, color: "text-emerald-400" },
-              { icon: Star, label: "평균 평점", value: "4.3 / 5", color: "text-[hsl(var(--gold))]" },
-              { icon: MessageSquare, label: "오늘 게시글", value: "234건", color: "text-purple-400" },
+              { 
+                icon: Users, 
+                label: siteSettings.trust_stat_1_label || "활성 회원", 
+                value: siteSettings.trust_stat_1_value || "12,847", 
+                color: "text-primary" 
+              },
+              { 
+                icon: BarChart3, 
+                label: siteSettings.trust_stat_2_label || "오늘 경기", 
+                value: siteSettings.trust_stat_2_value || `${matches.length}개`, 
+                color: "text-emerald-400" 
+              },
+              { 
+                icon: Star, 
+                label: siteSettings.trust_stat_3_label || "평균 평점", 
+                value: siteSettings.trust_stat_3_value || "4.3 / 5", 
+                color: "text-[hsl(var(--gold))]" 
+              },
+              { 
+                icon: MessageSquare, 
+                label: siteSettings.trust_stat_4_label || "오늘 게시글", 
+                value: siteSettings.trust_stat_4_value || "234건", 
+                color: "text-purple-400" 
+              },
             ].map((stat) => (
               <div key={stat.label} className="stat-card rounded-xl">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
