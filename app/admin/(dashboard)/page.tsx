@@ -1089,7 +1089,17 @@ function SettingsView() {
     trust_stat_3_label: "평균 평점",
     trust_stat_3_value: "4.3 / 5",
     trust_stat_4_label: "오늘 게시글",
-    trust_stat_4_value: "234건"
+    trust_stat_4_value: "234건",
+    scam_alert_title: "사기주의 알림",
+    scam_alert_1_title: "텔레그램 사칭 주의",
+    scam_alert_1_content: "\"피나클 공식 대리점\"을 사칭하는 텔레그램 채널이 확인되었습니다.",
+    scam_alert_1_image: "",
+    scam_alert_2_title: "가짜 도메인 주의",
+    scam_alert_2_content: "pinnac1e.com, pinnakle.com 등 유사 도메인 접속을 주의하세요.",
+    scam_alert_2_image: "",
+    scam_alert_3_title: "",
+    scam_alert_3_content: "",
+    scam_alert_3_image: ""
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -1252,6 +1262,97 @@ function SettingsView() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="space-y-6 pt-6 border-t border-white/5">
+          <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="bg-red-500/10 p-2 rounded-xl">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <h3 className="font-bold">메인 페이지 사기주의 알림 설정</h3>
+              <p className="text-xs text-muted-foreground">사이드바 경고 배너 내용을 수정합니다 (이미지/HTML 지원)</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">전체 섹션 제목</label>
+              <input 
+                value={settings.scam_alert_title}
+                onChange={e => setSettings({...settings, scam_alert_title: e.target.value})}
+                placeholder="사기주의 알림"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-all font-bold text-red-400"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {[1, 2, 3].map((num) => (
+                <div key={num} className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-widest text-red-400">알림 항목 {num}</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">소제목 (이미지 업로드 시 생략 가능)</label>
+                        <input 
+                          value={(settings as any)[`scam_alert_${num}_title`]}
+                          onChange={e => setSettings({...settings, [`scam_alert_${num}_title`]: e.target.value})}
+                          placeholder="소제목 입력..."
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 transition-all font-bold"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">내용 (HTML 지원)</label>
+                        <textarea 
+                          value={(settings as any)[`scam_alert_${num}_content`]}
+                          onChange={e => setSettings({...settings, [`scam_alert_${num}_content`]: e.target.value})}
+                          placeholder="내용 또는 HTML 코드를 입력하세요..."
+                          className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[100px] font-mono"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">배너 이미지 (선택)</label>
+                      <div className="relative aspect-video bg-white/5 border border-dashed border-white/10 rounded-xl overflow-hidden group">
+                        {(settings as any)[`scam_alert_${num}_image`] ? (
+                          <>
+                            <img src={(settings as any)[`scam_alert_${num}_image`]} className="w-full h-full object-cover" alt="Preview" />
+                            <button 
+                              onClick={() => setSettings({...settings, [`scam_alert_${num}_image`]: ""})}
+                              className="absolute top-2 right-2 p-1 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </>
+                        ) : (
+                          <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all">
+                            <Upload className="w-5 h-5 text-muted-foreground mb-2" />
+                            <span className="text-[10px] font-bold text-muted-foreground">이미지 업로드</span>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              className="hidden" 
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => setSettings({...settings, [`scam_alert_${num}_image`]: reader.result as string});
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                      <p className="text-[9px] text-muted-foreground leading-tight mt-2">이미지를 업로드하면 텍스트 대신 이미지가 우선적으로 노출됩니다.</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

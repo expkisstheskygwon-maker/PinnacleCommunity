@@ -749,31 +749,40 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Scam Alert Card */}
+            {/* Scam Alert Card (Dynamic from settings) */}
             <div className="glass-card rounded-2xl p-5 border-red-500/20 bg-red-500/[0.03]">
               <div className="flex items-center gap-2 mb-4">
                 <div className="bg-red-500/15 p-1.5 rounded-lg">
                   <AlertTriangle className="w-4 h-4 text-red-400" />
                 </div>
-                <h3 className="font-bold text-red-400">사기주의 알림</h3>
+                <h3 className="font-bold text-red-400">{siteSettings.scam_alert_title || "사기주의 알림"}</h3>
               </div>
               <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10">
-                  <p className="text-xs font-bold text-red-400 mb-1">텔레그램 사칭 주의</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    &ldquo;피나클 공식 대리점&rdquo;을 사칭하는 텔레그램 채널이 확인되었습니다. 
-                    피나클은 대리점 제도를 운영하지 않습니다.
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10">
-                  <p className="text-xs font-bold text-red-400 mb-1">가짜 도메인 주의</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    pinnac1e.com, pinnakle.com 등 유사 도메인 접속을 주의하세요.
-                    공식 도메인: pinnacle.com
-                  </p>
-                </div>
+                {[1, 2, 3].map((num) => {
+                  const title = siteSettings[`scam_alert_${num}_title`];
+                  const content = siteSettings[`scam_alert_${num}_content`];
+                  const image = siteSettings[`scam_alert_${num}_image`];
+
+                  if (!title && !content && !image) return null;
+
+                  return (
+                    <div key={num} className="rounded-xl overflow-hidden bg-red-500/5 border border-red-500/10">
+                      {image ? (
+                        <img src={image} alt={`Scam Alert ${num}`} className="w-full h-auto object-cover" />
+                      ) : (
+                        <div className="p-3">
+                          {title && <p className="text-xs font-bold text-red-400 mb-1">{title}</p>}
+                          <div 
+                            className="text-[11px] text-muted-foreground leading-relaxed prose prose-invert prose-xs max-w-none"
+                            dangerouslySetInnerHTML={{ __html: content }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <Link href="/notices?cat=scam" className="mt-4 block text-center text-xs font-bold text-red-400 hover:underline">
+              <Link href="/community?category=notices&tag=scam" className="mt-4 block text-center text-xs font-bold text-red-400 hover:underline">
                 사기주의 전체 보기 →
               </Link>
             </div>
