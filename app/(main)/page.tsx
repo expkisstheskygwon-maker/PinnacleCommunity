@@ -661,24 +661,38 @@ export default function HomePage() {
 
           {/* Right Sidebar */}
           <aside className="xl:col-span-4 space-y-6">
-            {/* Popular Guides */}
+            {/* Spotlight List (Formerly Popular Guides) */}
             <div className="glass-card rounded-2xl p-5">
-              <SectionHeader icon={BookOpen} title="인기 가이드" href="/guide" />
+              <SectionHeader icon={Star} title="스포트라이트" href="/community?category=spotlight" />
               <div className="space-y-2">
-                {POPULAR_GUIDES.map((guide, idx) => (
-                  <Link key={guide.id} href="/guide" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                      <guide.icon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold truncate group-hover:text-primary transition-colors">{guide.title}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <span className="bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded text-[9px] font-bold">{guide.difficulty}</span>
-                        <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{guide.views.toLocaleString()}</span>
+                {spotlightPosts.length > 0 ? spotlightPosts.slice(0, 5).map((post, idx) => {
+                  const icons = [Zap, BarChart3, Clock, Shield, Award];
+                  const Icon = icons[idx % icons.length];
+                  return (
+                    <Link key={post.id} href={`/community/${post.id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
+                      <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0 group-hover:bg-yellow-500/20 transition-colors">
+                        <Icon className="w-4 h-4 text-[hsl(var(--gold))]" />
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold truncate group-hover:text-primary transition-colors">{post.title}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded text-[9px] font-bold",
+                            idx % 2 === 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-blue-500/10 text-blue-400"
+                          )}>
+                            {post.subCategory || post.tags || "Hot"}
+                          </span>
+                          <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{(post.views || 0).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                }) : (
+                  <div className="py-10 text-center opacity-20">
+                    <Star className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-[10px] font-bold">등록된 글이 없습니다.</p>
+                  </div>
+                )}
               </div>
             </div>
 
