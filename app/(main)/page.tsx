@@ -368,12 +368,13 @@ export default function HomePage() {
                           {label}
                         </span>
                       </div>
-                      <span className={cn(
-                        "font-bold text-sm", 
-                        isUrgent ? "text-red-400" : "text-foreground/90 group-hover:text-primary transition-colors"
-                      )}>
-                        {n.title}
-                      </span>
+                      <span 
+                        className={cn(
+                          "font-bold text-sm", 
+                          isUrgent ? "text-red-400" : "text-foreground/90 group-hover:text-primary transition-colors"
+                        )}
+                        dangerouslySetInnerHTML={{ __html: n.title }}
+                      />
                       <span className="text-[10px] text-muted-foreground/40 font-mono">
                         {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : n.date}
                       </span>
