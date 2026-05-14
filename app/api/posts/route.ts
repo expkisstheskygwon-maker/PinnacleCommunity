@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
+    const tag = searchParams.get('tag');
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -84,10 +85,20 @@ export async function GET(request: NextRequest) {
       JOIN users u ON p.authorId = u.id 
     `;
     let params: any[] = [];
+    let whereClauses: string[] = [];
 
     if (category && category !== 'all') {
-      query += ' WHERE p.category = ? ';
+      whereClauses.push(' p.category = ? ');
       params.push(category);
+    }
+
+    if (tag) {
+      whereClauses.push(' p.tags = ? ');
+      params.push(tag);
+    }
+
+    if (whereClauses.length > 0) {
+      query += ' WHERE ' + whereClauses.join(' AND ');
     }
 
     query += ' ORDER BY p.createdAt DESC LIMIT ? OFFSET ? ';

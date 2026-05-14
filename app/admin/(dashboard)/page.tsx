@@ -115,7 +115,7 @@ export default function AdminDashboard() {
           {activeTab === "spotlight" && <PostEditorView category="스포트라이트" />}
           {activeTab === "categories" && <CategoryManagementView />}
           {activeTab === "policies" && <PolicyManagementView />}
-          {activeTab === "settings" && <SettingsView />}
+          {activeTab === "settings" && <SettingsView setActiveTab={setActiveTab} />}
         </div>
       </main>
     </div>
@@ -812,8 +812,8 @@ function PostEditorView({ category }: { category: string }) {
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
                         subCategory === c.name 
-                          ? "bg-primary/20 text-primary border-primary/50" 
-                          : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20"
+                          ? (c.name === "사기주의" ? "bg-red-500/20 text-red-400 border-red-500/50" : "bg-primary/20 text-primary border-primary/50")
+                          : (c.name === "사기주의" ? "border-red-500/20 bg-red-500/5 text-red-400/70 hover:bg-red-500/10 hover:text-red-400" : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20")
                       )}
                     >
                       {c.name}
@@ -1048,7 +1048,10 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                     }}
                   />
                 ) : (
-                  <span className="font-bold text-sm">{cat.name}</span>
+                  <span className={cn("font-bold text-sm", cat.name === "사기주의" && "text-red-400")}>
+                    {cat.name}
+                    {cat.name === "사기주의" && <span className="ml-2 text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 uppercase">고정</span>}
+                  </span>
                 )}
 
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1060,7 +1063,9 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                   ) : (
                     <>
                       <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); }} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                      {cat.name !== "사기주의" && (
+                        <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                      )}
                     </>
                   )}
                 </div>
@@ -1076,7 +1081,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   );
 }
 
-function SettingsView() {
+function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
   const [settings, setSettings] = useState({
     top_bar_message: "",
     top_bar_message_en: "",
@@ -1272,87 +1277,22 @@ function SettingsView() {
             </div>
             <div>
               <h3 className="font-bold">메인 페이지 사기주의 알림 설정</h3>
-              <p className="text-xs text-muted-foreground">사이드바 경고 배너 내용을 수정합니다 (이미지/HTML 지원)</p>
+              <p className="text-xs text-muted-foreground">이 설정은 이제 '공지/이슈' 메뉴에서 통합 관리됩니다</p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">전체 섹션 제목</label>
-              <input 
-                value={settings.scam_alert_title}
-                onChange={e => setSettings({...settings, scam_alert_title: e.target.value})}
-                placeholder="사기주의 알림"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-all font-bold text-red-400"
-              />
+          <div className="p-10 rounded-2xl bg-red-500/5 border border-red-500/10 border-dashed text-center space-y-4">
+            <Bell className="w-10 h-10 text-red-400/50 mx-auto" />
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-red-400">사기주의 알림은 이제 게시글 형태로 관리됩니다</p>
+              <p className="text-xs text-muted-foreground">왼쪽 사이드바의 [공지/이슈 작성] 메뉴에서 '사기주의' 카테고리를 선택하여 글을 등록하세요.</p>
             </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {[1, 2, 3].map((num) => (
-                <div key={num} className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-widest text-red-400">알림 항목 {num}</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-2 space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">소제목 (이미지 업로드 시 생략 가능)</label>
-                        <input 
-                          value={(settings as any)[`scam_alert_${num}_title`]}
-                          onChange={e => setSettings({...settings, [`scam_alert_${num}_title`]: e.target.value})}
-                          placeholder="소제목 입력..."
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 transition-all font-bold"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">내용 (HTML 지원)</label>
-                        <textarea 
-                          value={(settings as any)[`scam_alert_${num}_content`]}
-                          onChange={e => setSettings({...settings, [`scam_alert_${num}_content`]: e.target.value})}
-                          placeholder="내용 또는 HTML 코드를 입력하세요..."
-                          className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[100px] font-mono"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">배너 이미지 (선택)</label>
-                      <div className="relative aspect-video bg-white/5 border border-dashed border-white/10 rounded-xl overflow-hidden group">
-                        {(settings as any)[`scam_alert_${num}_image`] ? (
-                          <>
-                            <img src={(settings as any)[`scam_alert_${num}_image`]} className="w-full h-full object-cover" alt="Preview" />
-                            <button 
-                              onClick={() => setSettings({...settings, [`scam_alert_${num}_image`]: ""})}
-                              className="absolute top-2 right-2 p-1 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </>
-                        ) : (
-                          <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all">
-                            <Upload className="w-5 h-5 text-muted-foreground mb-2" />
-                            <span className="text-[10px] font-bold text-muted-foreground">이미지 업로드</span>
-                            <input 
-                              type="file" 
-                              accept="image/*" 
-                              className="hidden" 
-                              onChange={e => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => setSettings({...settings, [`scam_alert_${num}_image`]: reader.result as string});
-                                  reader.readAsDataURL(file);
-                                }
-                              }}
-                            />
-                          </label>
-                        )}
-                      </div>
-                      <p className="text-[9px] text-muted-foreground leading-tight mt-2">이미지를 업로드하면 텍스트 대신 이미지가 우선적으로 노출됩니다.</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <button 
+              onClick={() => setActiveTab("notices")}
+              className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold transition-all border border-red-500/20"
+            >
+              공지/이슈 관리로 이동하기
+            </button>
           </div>
         </div>
 

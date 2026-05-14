@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const TYPE_CONFIG: Record<string, { icon: any; color: string; bgColor: string; label: string }> = {
-  scam: { icon: Shield, color: "text-red-400", bgColor: "bg-red-500/15", label: "사기주의" },
+  사기주의: { icon: Shield, color: "text-red-400", bgColor: "bg-red-500/15", label: "사기주의" },
   maintenance: { icon: Wrench, color: "text-[hsl(var(--gold))]", bgColor: "bg-[hsl(var(--gold))]/15", label: "점검" },
   outage: { icon: XCircle, color: "text-orange-400", bgColor: "bg-orange-500/15", label: "장애" },
   policy: { icon: FileText, color: "text-primary", bgColor: "bg-primary/15", label: "정책" },
@@ -37,6 +37,9 @@ function NoticeContent() {
   useEffect(() => {
     const cat = searchParams.get("cat");
     if (cat) setActiveCat(cat);
+    
+    const id = searchParams.get("id");
+    if (id) setExpandedId(parseInt(id));
 
     const fetchData = async () => {
       setIsLoading(true);

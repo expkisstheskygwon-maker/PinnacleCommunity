@@ -84,7 +84,7 @@ const NAV_ITEMS: NavItem[] = [
     id: "notices", href: "/notices", label: "공지/이슈", labelEn: "Notices", icon: Bell,
     children: [
       { href: "/notices?cat=maintenance", label: "점검 공지", labelEn: "Maintenance" },
-      { href: "/notices?cat=scam", label: "사기주의", labelEn: "Scam Alert" },
+      { href: "/notices?cat=사기주의", label: "사기주의", labelEn: "Scam Alert" },
       { href: "/notices?cat=outage", label: "장애/지연", labelEn: "Outage" },
       { href: "/notices?cat=policy", label: "정책 변경", labelEn: "Policy" },
     ]

@@ -119,6 +119,7 @@ export default function HomePage() {
   const [spotlightPosts, setSpotlightPosts] = useState<any[]>([]);
   const [qnaPosts, setQnaPosts] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
+  const [scamPosts, setScamPosts] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>({});
   const [userPrefs, setUserPrefs] = useState<{ interests: any[] }>({
     interests: []
@@ -254,6 +255,18 @@ export default function HomePage() {
       }
     };
 
+    const fetchScamPosts = async () => {
+      try {
+        const res = await fetch("/api/posts?category=notices&tag=사기주의&limit=3");
+        const data = await res.json();
+        if (data.success && data.posts) {
+          setScamPosts(data.posts);
+        }
+      } catch (err) {
+        console.error("Failed to fetch scam posts", err);
+      }
+    };
+
     fetchMatches();
     fetchUserPrefs();
     fetchPosts();
@@ -261,6 +274,7 @@ export default function HomePage() {
     fetchNotices();
     fetchSettings();
     fetchQna();
+    fetchScamPosts();
   }, []);
 
   // Personalized Sorting and Filtering
@@ -749,40 +763,37 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Scam Alert Card (Dynamic from settings) */}
             <div className="glass-card rounded-2xl p-5 border-red-500/20 bg-red-500/[0.03]">
               <div className="flex items-center gap-2 mb-4">
                 <div className="bg-red-500/15 p-1.5 rounded-lg">
                   <AlertTriangle className="w-4 h-4 text-red-400" />
                 </div>
-                <h3 className="font-bold text-red-400">{siteSettings.scam_alert_title || "사기주의 알림"}</h3>
+                <h3 className="font-bold text-red-400">사기주의 알림</h3>
               </div>
               <div className="space-y-3">
-                {[1, 2, 3].map((num) => {
-                  const title = siteSettings[`scam_alert_${num}_title`];
-                  const content = siteSettings[`scam_alert_${num}_content`];
-                  const image = siteSettings[`scam_alert_${num}_image`];
-
-                  if (!title && !content && !image) return null;
-
-                  return (
-                    <div key={num} className="rounded-xl overflow-hidden bg-red-500/5 border border-red-500/10">
-                      {image ? (
-                        <img src={image} alt={`Scam Alert ${num}`} className="w-full h-auto object-cover" />
+                {scamPosts.length > 0 ? (
+                  scamPosts.map((post) => (
+                    <Link key={post.id} href={`/notices?cat=사기주의&id=${post.id}`} className="block rounded-xl overflow-hidden bg-red-500/5 border border-red-500/10 hover:bg-red-500/10 transition-colors">
+                      {post.image ? (
+                        <img src={post.image} alt={post.title} className="w-full h-auto object-cover" />
                       ) : (
                         <div className="p-3">
-                          {title && <p className="text-xs font-bold text-red-400 mb-1">{title}</p>}
+                          <p className="text-xs font-bold text-red-400 mb-1">{post.title}</p>
                           <div 
-                            className="text-[11px] text-muted-foreground leading-relaxed prose prose-invert prose-xs max-w-none"
-                            dangerouslySetInnerHTML={{ __html: content }}
+                            className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2"
+                            dangerouslySetInnerHTML={{ __html: post.content.replace(/<[^>]*>/g, '') }}
                           />
                         </div>
                       )}
-                    </div>
-                  );
-                })}
+                    </Link>
+                  ))
+                ) : (
+                  <div className="py-4 text-center text-[11px] text-muted-foreground italic">
+                    등록된 사기주의 알림이 없습니다.
+                  </div>
+                )}
               </div>
-              <Link href="/community?category=notices&tag=scam" className="mt-4 block text-center text-xs font-bold text-red-400 hover:underline">
+              <Link href="/notices?cat=사기주의" className="mt-4 block text-center text-xs font-bold text-red-400 hover:underline">
                 사기주의 전체 보기 →
               </Link>
             </div>
