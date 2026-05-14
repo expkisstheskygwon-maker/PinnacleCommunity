@@ -835,10 +835,30 @@ export default function HomePage() {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "검증된 정보", value: "847건", icon: CheckCircle2, color: "text-emerald-400" },
-                  { label: "전문가 칼럼", value: "156편", icon: FileText, color: "text-primary" },
-                  { label: "해결된 Q&A", value: "2,341건", icon: Target, color: "text-purple-400" },
-                  { label: "사기 신고", value: "23건", icon: Shield, color: "text-red-400" },
+                  { 
+                    icon: Users, 
+                    label: siteSettings.trust_stat_1_label || "활성 회원", 
+                    value: siteSettings.trust_stat_1_value || "12,847", 
+                    color: "text-primary" 
+                  },
+                  { 
+                    icon: BarChart3, 
+                    label: siteSettings.trust_stat_2_label || "오늘 경기", 
+                    value: siteSettings.trust_stat_2_value || `${matches.length}개`, 
+                    color: "text-emerald-400" 
+                  },
+                  { 
+                    icon: Star, 
+                    label: siteSettings.trust_stat_3_label || "평균 평점", 
+                    value: siteSettings.trust_stat_3_value || "4.3 / 5", 
+                    color: "text-[hsl(var(--gold))]" 
+                  },
+                  { 
+                    icon: MessageSquare, 
+                    label: siteSettings.trust_stat_4_label || "오늘 게시글", 
+                    value: siteSettings.trust_stat_4_value || "234건", 
+                    color: "text-purple-400" 
+                  },
                 ].map(badge => (
                   <div key={badge.label} className="text-center p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
                     <badge.icon className={cn("w-5 h-5 mx-auto mb-1.5", badge.color)} />
