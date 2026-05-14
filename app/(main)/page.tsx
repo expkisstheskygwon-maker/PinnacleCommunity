@@ -188,15 +188,15 @@ export default function HomePage() {
 
     const fetchPosts = async () => {
       try {
-        const res = await fetch("/api/posts?limit=5");
+        const res = await fetch("/api/posts?category=community&limit=5");
         const data = await res.json();
-        if (data.success && data.posts && data.posts.length > 0) {
+        if (data.success && data.posts) {
           // Normalize post structure to match the UI expectations
           const formattedPosts = data.posts.map((p: any) => ({
             id: p.id,
             title: p.title,
             author: p.author || '익명',
-            category: p.category === 'analysis' ? '분석' : (p.category === 'guide' ? '가이드' : (p.category === 'qna' ? '질문' : (p.category === 'column' ? '칼럼' : p.category))),
+            category: p.category === 'community' ? '커뮤니티' : (p.category === 'analysis' ? '분석' : (p.category === 'guide' ? '가이드' : (p.category === 'qna' ? '질문' : (p.category === 'column' ? '칼럼' : p.category)))),
             views: p.views || 0,
             comments: p.commentsCount || 0,
             likes: p.likes || 0,
