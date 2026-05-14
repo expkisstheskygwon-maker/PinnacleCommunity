@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   FileText, Star, Bell, Shield, Award,
-  MessageSquare, Heart, Eye, ChevronRight,
+  MessageSquare, Heart, Eye, ChevronRight, ThumbsUp,
   Clock, Zap, Trophy, History, MapPin, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
