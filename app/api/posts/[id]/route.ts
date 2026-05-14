@@ -7,6 +7,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const cookieStore = await cookies();
+    const authSession = cookieStore.get('auth_session');
+    let userId: number | null = null;
+    if (authSession?.value) {
+      try {
+        const sessionData = JSON.parse(authSession.value);
+        userId = sessionData.id;
+      } catch (e) {}
+    }
+
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
@@ -28,13 +38,32 @@ export async function GET(
       );
     }
 
-    // 2. Increment view count (async-ish)
+    // 2. Check like/favorite status if logged in
+    let isLiked = false;
+    let isFavorited = false;
+    if (userId) {
+      const [likeRes, favRes] = await Promise.all([
+        db.prepare('SELECT id FROM post_likes WHERE postId = ? AND userId = ?').bind(id, userId).first(),
+        db.prepare('SELECT id FROM post_favorites WHERE postId = ? AND userId = ?').bind(id, userId).first()
+      ]);
+      isLiked = !!likeRes;
+      isFavorited = !!favRes;
+    }
+
+    // 3. Increment view count (async-ish)
     await db
       .prepare('UPDATE posts SET views = views + 1 WHERE id = ?')
       .bind(id)
       .run();
 
-    return NextResponse.json({ success: true, post });
+    return NextResponse.json({ 
+      success: true, 
+      post: {
+        ...post,
+        isLiked,
+        isFavorited
+      } 
+    });
   } catch (error: any) {
     console.error('Fetch post detail error:', error);
     return NextResponse.json(

@@ -20,6 +20,8 @@ export default function PostDetailPage() {
   const [commentContent, setCommentContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+  const [isLiking, setIsLiking] = useState(false);
+  const [isFavoriting, setIsFavoriting] = useState(false);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -56,6 +58,55 @@ export default function PostDetailPage() {
       fetchComments();
     }
   }, [params.id]);
+
+  const handleLike = async () => {
+    if (isLiking) return;
+    setIsLiking(true);
+    try {
+      const res = await fetch(`/api/posts/${params.id}/like`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setPost((prev: any) => ({
+          ...prev,
+          likes: data.liked ? prev.likes + 1 : prev.likes - 1,
+          isLiked: data.liked
+        }));
+        if (data.liked) {
+          setSubmitMessage('게시글을 추천했습니다! 작성자에게 10포인트가 전달됩니다.');
+          setTimeout(() => setSubmitMessage(''), 3000);
+        }
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      alert('추천 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const handleFavorite = async () => {
+    if (isFavoriting) return;
+    setIsFavoriting(true);
+    try {
+      const res = await fetch(`/api/posts/${params.id}/favorite`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setPost((prev: any) => ({
+          ...prev,
+          isFavorited: data.favorited
+        }));
+        setSubmitMessage(data.favorited ? '관심글로 등록되었습니다.' : '관심글에서 해제되었습니다.');
+        setTimeout(() => setSubmitMessage(''), 3000);
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      alert('관심글 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsFavoriting(false);
+    }
+  };
 
   const handleCommentSubmit = async () => {
     if (!commentContent.trim() || isSubmitting) return;
@@ -214,13 +265,31 @@ export default function PostDetailPage() {
 
               {/* Action Bar */}
               <div className="p-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-center gap-4">
-                <button className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-primary/10 hover:bg-primary/20 text-primary transition-all border border-primary/20 group">
-                  <ThumbsUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  <span className="font-bold">추천 {post.likes}</span>
+                <button 
+                  onClick={handleLike}
+                  disabled={isLiking}
+                  className={cn(
+                    "flex items-center gap-2 px-8 py-3 rounded-2xl transition-all border group",
+                    post.isLiked 
+                      ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]" 
+                      : "bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+                  )}
+                >
+                  <ThumbsUp className={cn("w-5 h-5 transition-transform", post.isLiked ? "scale-110" : "group-hover:scale-110")} />
+                  <span className="font-bold">{post.isLiked ? '추천함' : '추천'} {post.likes}</span>
                 </button>
-                <button className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-muted-foreground transition-all border border-white/10 group">
-                  <Heart className="w-5 h-5 group-hover:scale-110 transition-transform text-red-500" />
-                  <span className="font-bold">관심글</span>
+                <button 
+                  onClick={handleFavorite}
+                  disabled={isFavoriting}
+                  className={cn(
+                    "flex items-center gap-2 px-8 py-3 rounded-2xl transition-all border group",
+                    post.isFavorited
+                      ? "bg-red-500 text-white border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                      : "bg-white/5 hover:bg-white/10 text-muted-foreground border-white/10"
+                  )}
+                >
+                  <Heart className={cn("w-5 h-5 transition-transform", post.isFavorited ? "scale-110 fill-current" : "group-hover:scale-110 text-red-500")} />
+                  <span className="font-bold">{post.isFavorited ? '관심글 해제' : '관심글'}</span>
                 </button>
               </div>
             </div>

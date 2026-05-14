@@ -45,9 +45,10 @@ export default async function MyPage() {
     .prepare(`
       SELECT 
         (SELECT COUNT(*) FROM posts WHERE authorId = ?) as postCount,
+        (SELECT SUM(likes) FROM posts WHERE authorId = ?) as totalLikesReceived,
         (SELECT COUNT(*) FROM notifications WHERE userId = ? AND readAt IS NULL) as unreadCount
     `)
-    .bind(user.id, user.id)
+    .bind(user.id, user.id, user.id)
     .first();
 
   const interestResults = await db.prepare("SELECT category, value FROM user_interests WHERE userId = ?").bind(user.id).all();
@@ -64,6 +65,19 @@ export default async function MyPage() {
   // 5. Fetch User's Posts
   const postResults = await db
     .prepare("SELECT id, title, category, views, likes, createdAt FROM posts WHERE authorId = ? ORDER BY createdAt DESC LIMIT 5")
+    .bind(user.id)
+    .all();
+
+  // 5-2. Fetch User's Favorite Posts
+  const favoritePostsResults = await db
+    .prepare(`
+      SELECT p.id, p.title, p.category, p.views, p.likes, p.createdAt 
+      FROM posts p
+      JOIN post_favorites pf ON p.id = pf.postId
+      WHERE pf.userId = ?
+      ORDER BY pf.createdAt DESC
+      LIMIT 10
+    `)
     .bind(user.id)
     .all();
 
@@ -86,6 +100,7 @@ export default async function MyPage() {
     joined: new Date(user.createdAt).toLocaleDateString("ko-KR"),
     postCount: stats?.postCount || 0,
     score: user.score || 0,
+    likeReceived: stats?.totalLikesReceived || 0,
   };
 
   return (
@@ -111,6 +126,7 @@ export default async function MyPage() {
             initialInterests={allInterests || []}
             initialNotifications={notifResults?.results || []}
             initialPosts={postResults?.results || []}
+            initialFavoritePosts={favoritePostsResults?.results || []}
           />
         </ErrorBoundary>
       </div>

@@ -17,6 +17,7 @@ interface MyPageTabsProps {
   initialInterests: any[];
   initialNotifications: any[];
   initialPosts: any[];
+  initialFavoritePosts: any[];
 }
 
 export default function MyPageTabs({
@@ -25,7 +26,8 @@ export default function MyPageTabs({
   initialMatches = [],
   initialInterests = [],
   initialNotifications = [],
-  initialPosts = []
+  initialPosts = [],
+  initialFavoritePosts = []
 }: MyPageTabsProps) {
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests
@@ -41,6 +43,7 @@ export default function MyPageTabs({
   const safeMatches = Array.isArray(initialMatches) ? initialMatches : [];
   const safeNotifications = Array.isArray(initialNotifications) ? initialNotifications : [];
   const safePosts = Array.isArray(initialPosts) ? initialPosts : [];
+  const safeFavoritePosts = Array.isArray(initialFavoritePosts) ? initialFavoritePosts : [];
 
   const favTeams = safeInterests.filter(i => i.category === 'team').map(i => i.value);
   const favLeagues = safeInterests.filter(i => i.category === 'league').map(i => i.value);
@@ -73,6 +76,7 @@ export default function MyPageTabs({
   const MENU_ITEMS = [
     { id: "overview", label: "마이페이지 홈", icon: Shield, count: 0 },
     { id: "interests", label: "관심 설정", icon: Heart, count: safeInterests.length },
+    { id: "favorites", label: "관심 게시글", icon: Star, count: safeFavoritePosts.length },
     { id: "notifications", label: "알림 서랍", icon: Bell, count: safeNotifications.filter(n => n && !n.readAt).length },
     { id: "posts", label: "내 글/댓글", icon: FileText, count: (profile?.postCount || 0) + (profile?.commentCount || 0) },
     { id: "activity", label: "활동 점수", icon: Award, count: profile?.score || 0 },
@@ -357,7 +361,7 @@ export default function MyPageTabs({
             <div className="space-y-2">
               {safePosts.length > 0 ? (
                 safePosts.map(post => (
-                  <div key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                  <Link href={`/community/${post.id}`} key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group block">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[9px] font-bold bg-white/5 px-1.5 py-0.5 rounded">{post?.category || '게시판'}</span>
@@ -369,11 +373,51 @@ export default function MyPageTabs({
                         <span className="flex items-center gap-0.5"><Heart className="w-2.5 h-2.5" />{post?.likes || 0}</span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <div className="p-10 text-center text-sm text-muted-foreground glass-card rounded-2xl">
                   작성한 게시글이 없습니다.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ─── Tab: Favorite Posts ─── */}
+        {(activeTab === "overview" || activeTab === "favorites") && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-[hsl(var(--gold))]/15 p-1.5 rounded-lg">
+                  <Star className="w-4 h-4 text-[hsl(var(--gold))]" />
+                </div>
+                <h3 className="font-bold text-lg">관심 게시글</h3>
+              </div>
+              <Link href="/community" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+                커뮤니티 가기 <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {safeFavoritePosts.length > 0 ? (
+                safeFavoritePosts.map(post => (
+                  <Link href={`/community/${post.id}`} key={post.id} className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group block">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[9px] font-bold bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] px-1.5 py-0.5 rounded">{post?.category || '게시판'}</span>
+                      </div>
+                      <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post?.title || '제목 없음'}</h4>
+                      <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                        <span>{post?.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}</span>
+                        <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{post?.views || 0}</span>
+                        <span className="flex items-center gap-0.5"><ThumbsUp className="w-2.5 h-2.5" />{post?.likes || 0}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="p-10 text-center text-sm text-muted-foreground glass-card rounded-2xl">
+                  등록된 관심 게시글이 없습니다.
                 </div>
               )}
             </div>
