@@ -81,6 +81,12 @@ export default async function MyPage() {
     .bind(user.id)
     .all();
 
+  // 5-3. Fetch User's Inquiries
+  const inquiryResults = await db
+    .prepare("SELECT * FROM inquiries WHERE userId = ? ORDER BY createdAt DESC")
+    .bind(user.id)
+    .all();
+
   // 6. Fetch Today's Matches for multiple sports
   let todayMatches: any[] = [];
   try {
@@ -127,6 +133,7 @@ export default async function MyPage() {
             initialNotifications={notifResults?.results || []}
             initialPosts={postResults?.results || []}
             initialFavoritePosts={favoritePostsResults?.results || []}
+            initialInquiries={inquiryResults?.results || []}
           />
         </ErrorBoundary>
       </div>

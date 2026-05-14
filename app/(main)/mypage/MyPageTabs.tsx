@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProfileSection from "./ProfileSection";
+import ContactModal from "@/components/modals/ContactModal";
 
 interface MyPageTabsProps {
   user: any;
@@ -18,6 +19,7 @@ interface MyPageTabsProps {
   initialNotifications: any[];
   initialPosts: any[];
   initialFavoritePosts: any[];
+  initialInquiries?: any[];
 }
 
 export default function MyPageTabs({
@@ -27,10 +29,12 @@ export default function MyPageTabs({
   initialInterests = [],
   initialNotifications = [],
   initialPosts = [],
-  initialFavoritePosts = []
+  initialFavoritePosts = [],
+  initialInquiries = []
 }: MyPageTabsProps) {
   const [isClient, setIsClient] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests
+  const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests, inquiries
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [interests, setInterests] = useState<any[]>(initialInterests);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllMatches, setShowAllMatches] = useState(false);
@@ -44,6 +48,7 @@ export default function MyPageTabs({
   const safeNotifications = Array.isArray(initialNotifications) ? initialNotifications : [];
   const safePosts = Array.isArray(initialPosts) ? initialPosts : [];
   const safeFavoritePosts = Array.isArray(initialFavoritePosts) ? initialFavoritePosts : [];
+  const safeInquiries = Array.isArray(initialInquiries) ? initialInquiries : [];
 
   const favTeams = safeInterests.filter(i => i.category === 'team').map(i => i.value);
   const favLeagues = safeInterests.filter(i => i.category === 'league').map(i => i.value);
@@ -79,6 +84,7 @@ export default function MyPageTabs({
     { id: "favorites", label: "관심 게시글", icon: Star, count: safeFavoritePosts.length },
     { id: "notifications", label: "알림 서랍", icon: Bell, count: safeNotifications.filter(n => n && !n.readAt).length },
     { id: "posts", label: "내 글/댓글", icon: FileText, count: (profile?.postCount || 0) + (profile?.commentCount || 0) },
+    { id: "inquiries", label: "1:1 문의", icon: MessageSquare, count: safeInquiries.length },
     { id: "activity", label: "활동 점수", icon: Award, count: profile?.score || 0 },
   ];
 
@@ -423,7 +429,60 @@ export default function MyPageTabs({
             </div>
           </section>
         )}
+
+        {/* ─── Tab: Inquiries ─── */}
+        {(activeTab === "overview" || activeTab === "inquiries") && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-blue-500/15 p-1.5 rounded-lg">
+                  <MessageSquare className="w-4 h-4 text-blue-400" />
+                </div>
+                <h3 className="font-bold text-lg">1:1 문의</h3>
+              </div>
+              <button onClick={() => setIsContactModalOpen(true)} className="btn-primary text-xs py-1.5 px-3 rounded-lg">
+                문의하기
+              </button>
+            </div>
+            <div className="space-y-3">
+              {safeInquiries.length > 0 ? (
+                safeInquiries.map((inquiry: any) => (
+                  <div key={inquiry.id} className="glass-card rounded-xl p-5 border-l-4 border-l-blue-500/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded",
+                        inquiry.status === 'pending' ? "bg-yellow-500/10 text-yellow-500" : "bg-emerald-500/10 text-emerald-500"
+                      )}>
+                        {inquiry.status === 'pending' ? '답변 대기' : '답변 완료'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{new Date(inquiry.createdAt).toLocaleString()}</span>
+                    </div>
+                    <h4 className="font-bold text-sm mb-2">{inquiry.title}</h4>
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap bg-white/5 p-3 rounded-lg">{inquiry.content}</p>
+                    
+                    {inquiry.answer && (
+                      <div className="mt-3 bg-primary/10 border border-primary/20 p-3 rounded-lg relative">
+                        <div className="absolute -top-2 left-4 bg-background px-1 text-[10px] font-bold text-primary">답변</div>
+                        <p className="text-xs text-foreground whitespace-pre-wrap">{inquiry.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="p-10 text-center text-sm text-muted-foreground glass-card rounded-2xl">
+                  문의 내역이 없습니다.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </div>
+
+      <ContactModal 
+        isOpen={isContactModalOpen} 
+        onClose={() => setIsContactModalOpen(false)} 
+        isLoggedIn={true}
+      />
     </div>
   );
 }

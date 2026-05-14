@@ -1,13 +1,20 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { Trophy, Shield, Mail, MessageCircle } from "lucide-react";
+import ContactModal from "@/components/modals/ContactModal";
 
 interface FooterProps {
   description?: string;
   copyright?: string;
+  isLoggedIn?: boolean;
 }
 
-export default function Footer({ description, copyright }: FooterProps) {
+export default function Footer({ description, copyright, isLoggedIn = false }: FooterProps) {
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   return (
+    <>
     <footer className="border-t border-white/[0.04] bg-background/80 mt-auto relative">
       <div className="container mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
@@ -79,12 +86,14 @@ export default function Footer({ description, copyright }: FooterProps) {
                 { href: "/policies/scam", label: "사기주의 안내" },
                 { href: "/policies/terms", label: "이용약관" },
                 { href: "/policies/privacy", label: "개인정보처리방침" },
-                { href: "#", label: "문의하기" },
               ].map(l => (
                 <Link key={l.href} href={l.href} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   {l.label}
                 </Link>
               ))}
+              <button onClick={() => setIsContactModalOpen(true)} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                문의하기
+              </button>
             </div>
           </div>
         </div>
@@ -97,9 +106,9 @@ export default function Footer({ description, copyright }: FooterProps) {
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <Link href="#" className="hover:text-primary transition-colors">이용약관</Link>
             <Link href="#" className="hover:text-primary transition-colors">개인정보</Link>
-            <Link href="#" className="hover:text-primary transition-colors flex items-center gap-1">
+            <button onClick={() => setIsContactModalOpen(true)} className="hover:text-primary transition-colors flex items-center gap-1">
               <Mail className="w-3 h-3" /> 문의
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -116,5 +125,11 @@ export default function Footer({ description, copyright }: FooterProps) {
         </div>
       </Link>
     </footer>
+      <ContactModal 
+        isOpen={isContactModalOpen} 
+        onClose={() => setIsContactModalOpen(false)} 
+        isLoggedIn={isLoggedIn}
+      />
+    </>
   );
 }
