@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Users, MessageSquare, Swords, Target, Trophy,
   PenLine, ThumbsUp, Eye, Clock, Flame, ChevronRight,
-  Hash, Award, TrendingUp, Star
+  Hash, Award, TrendingUp, Star, Search, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const CATEGORIES = [
   { id: "all", label: "전체", icon: Users },
@@ -36,15 +36,29 @@ const BADGE_COLORS: Record<string, string> = {
 };
 
 export default function CommunityPage() {
-  const [activeCat, setActiveCat] = useState("all");
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const activeCat = searchParams.get("cat") || "all";
+  const currentSearch = searchParams.get("search") || "";
+
+  useEffect(() => {
+    setSearchQuery(currentSearch);
+  }, [currentSearch]);
 
   useEffect(() => {
     const fetchPosts = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/posts?category=${activeCat}`);
+        const url = new URL("/api/posts", window.location.origin);
+        url.searchParams.set("category", activeCat);
+        if (currentSearch) url.searchParams.set("search", currentSearch);
+        
+        const response = await fetch(url.toString());
         const data = await response.json();
         if (data.success) {
           setPosts(data.posts);
@@ -57,7 +71,30 @@ export default function CommunityPage() {
     };
 
     fetchPosts();
-  }, [activeCat]);
+  }, [activeCat, currentSearch]);
+
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    if (searchQuery) {
+      params.set("search", searchQuery);
+    } else {
+      params.delete("search");
+    }
+    router.push(`/community?${params.toString()}`);
+  };
+
+  const handleTagClick = (tag: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("search", `#${tag}`);
+    router.push(`/community?${params.toString()}`);
+  };
+
+  const setActiveCat = (catId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("cat", catId);
+    router.push(`/community?${params.toString()}`);
+  };
 
   return (
     <div className="mesh-gradient min-h-screen">
@@ -75,9 +112,31 @@ export default function CommunityPage() {
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter">커뮤니티</h1>
             <p className="text-muted-foreground mt-1">경기 토론, 픽 공유, 자유로운 소통의 공간</p>
           </div>
-          <Link href="/community/write" className="btn-primary flex items-center gap-2 w-fit">
-            <PenLine className="w-4 h-4" /> 글쓰기
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <form onSubmit={handleSearch} className="relative w-full sm:w-80">
+              <input 
+                ref={searchInputRef}
+                type="text"
+                placeholder="검색어 또는 #해시태그 입력..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary/50 transition-all"
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              {searchQuery && (
+                <button 
+                  type="button"
+                  onClick={() => { setSearchQuery(""); router.push(`/community?cat=${activeCat}`); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <X className="w-3 h-3 text-muted-foreground" />
+                </button>
+              )}
+            </form>
+            <Link href="/community/write" className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center">
+              <PenLine className="w-4 h-4" /> 글쓰기
+            </Link>
+          </div>
         </div>
 
         {/* Categories */}
@@ -168,11 +227,19 @@ export default function CommunityPage() {
                         {/* Tags */}
                         {post.tags && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
-                            {post.tags.split(',').map((tag: string) => (
-                              <span key={tag} className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5">
-                                <Hash className="w-2 h-2" />{tag.trim()}
-                              </span>
-                            ))}
+                            {post.tags.split(',').map((tag: string) => {
+                              const t = tag.trim();
+                              if (!t) return null;
+                              return (
+                                <button 
+                                  key={t} 
+                                  onClick={(e) => { e.preventDefault(); handleTagClick(t); }}
+                                  className="text-[9px] text-muted-foreground/60 hover:text-primary flex items-center gap-0.5 transition-colors"
+                                >
+                                  <Hash className="w-2 h-2" />{t}
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -252,7 +319,16 @@ export default function CommunityPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {["EPL", "K리그", "LCK", "KBO", "MLB", "배당분석", "핸디캡", "라이브", "오버언더", "축구", "야구", "e스포츠", "전략", "피나클"].map(tag => (
-                  <button key={tag} className="text-xs bg-white/5 text-muted-foreground hover:text-primary hover:bg-primary/10 px-3 py-1.5 rounded-full transition-all font-medium border border-white/[0.04] hover:border-primary/20">
+                  <button 
+                    key={tag} 
+                    onClick={() => handleTagClick(tag)}
+                    className={cn(
+                      "text-xs px-3 py-1.5 rounded-full transition-all font-medium border",
+                      currentSearch === `#${tag}` 
+                        ? "bg-primary/20 text-primary border-primary/30"
+                        : "bg-white/5 text-muted-foreground hover:text-primary hover:bg-primary/10 border-white/[0.04] hover:border-primary/20"
+                    )}
+                  >
                     #{tag}
                   </button>
                 ))}

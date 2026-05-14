@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const tag = searchParams.get('tag');
+    const search = searchParams.get('search');
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -93,8 +94,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (tag) {
-      whereClauses.push(' p.tags = ? ');
-      params.push(tag);
+      whereClauses.push(' p.tags LIKE ? ');
+      params.push(`%${tag}%`);
+    }
+
+    if (search) {
+      if (search.startsWith('#')) {
+        const tagName = search.substring(1);
+        whereClauses.push(' p.tags LIKE ? ');
+        params.push(`%${tagName}%`);
+      } else {
+        whereClauses.push(' (p.title LIKE ? OR p.tags LIKE ?) ');
+        params.push(`%${search}%`, `%${search}%`);
+      }
     }
 
     if (whereClauses.length > 0) {
