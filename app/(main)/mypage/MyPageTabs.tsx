@@ -420,7 +420,21 @@ export default function MyPageTabs({
                       <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post?.title || '제목 없음'}</h4>
                       <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
                         <span>{post?.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}</span>
-                        <span className="flex items-center         {/* ─── Tab: Inquiries ─── */}
+                        <span className="flex items-center gap-0.5"><ThumbsUp className="w-2.5 h-2.5" />{post?.likes || 0}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="p-10 text-center text-sm text-muted-foreground glass-card rounded-2xl">
+                  등록된 관심 게시글이 없습니다.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ─── Tab: Inquiries ─── */}
         {(activeTab === "overview" || activeTab === "inquiries") && (
           <section>
             <div className="flex items-center justify-between mb-4">
@@ -484,22 +498,7 @@ export default function MyPageTabs({
           </section>
         )}
       </div>
-0 p-3 rounded-lg relative">
-                        <div className="absolute -top-2 left-4 bg-background px-1 text-[10px] font-bold text-primary">답변</div>
-                        <p className="text-xs text-foreground whitespace-pre-wrap">{inquiry.answer}</p>
-                      </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="p-10 text-center text-sm text-muted-foreground glass-card rounded-2xl">
-                  문의 내역이 없습니다.
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-      </div>
+
 
       <ContactModal 
         isOpen={isContactModalOpen} 
