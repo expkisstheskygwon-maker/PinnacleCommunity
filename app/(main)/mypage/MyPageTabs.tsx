@@ -20,6 +20,7 @@ interface MyPageTabsProps {
   initialPosts: any[];
   initialFavoritePosts: any[];
   initialInquiries?: any[];
+  initialBettingRecords?: any[];
 }
 
 export default function MyPageTabs({
@@ -30,12 +31,14 @@ export default function MyPageTabs({
   initialNotifications = [],
   initialPosts = [],
   initialFavoritePosts = [],
-  initialInquiries = []
+  initialInquiries = [],
+  initialBettingRecords = []
 }: MyPageTabsProps) {
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests, inquiries
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [interests, setInterests] = useState<any[]>(initialInterests);
+  const [bettingRecords, setBettingRecords] = useState<any[]>(initialBettingRecords);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllMatches, setShowAllMatches] = useState(false);
 
@@ -49,6 +52,7 @@ export default function MyPageTabs({
   const safePosts = Array.isArray(initialPosts) ? initialPosts : [];
   const safeFavoritePosts = Array.isArray(initialFavoritePosts) ? initialFavoritePosts : [];
   const safeInquiries = Array.isArray(initialInquiries) ? initialInquiries : [];
+  const safeBettingRecords = Array.isArray(bettingRecords) ? bettingRecords : [];
 
   const favTeams = safeInterests.filter(i => i.category === 'team').map(i => i.value);
   const favLeagues = safeInterests.filter(i => i.category === 'league').map(i => i.value);
@@ -84,6 +88,7 @@ export default function MyPageTabs({
     { id: "favorites", label: "관심 게시글", icon: Star, count: safeFavoritePosts.length },
     { id: "notifications", label: "알림 서랍", icon: Bell, count: safeNotifications.filter(n => n && !n.readAt).length },
     { id: "posts", label: "내 글/댓글", icon: FileText, count: (profile?.postCount || 0) + (profile?.commentCount || 0) },
+    { id: "betting", label: "베팅 저널", icon: History, count: safeBettingRecords.length },
     { id: "inquiries", label: "1:1 문의", icon: MessageSquare, count: safeInquiries.length },
     { id: "activity", label: "활동 점수", icon: Award, count: profile?.score || 0 },
   ];
@@ -415,22 +420,7 @@ export default function MyPageTabs({
                       <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post?.title || '제목 없음'}</h4>
                       <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
                         <span>{post?.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}</span>
-                        <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{post?.views || 0}</span>
-                        <span className="flex items-center gap-0.5"><ThumbsUp className="w-2.5 h-2.5" />{post?.likes || 0}</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="p-10 text-center text-sm text-muted-foreground glass-card rounded-2xl">
-                  등록된 관심 게시글이 없습니다.
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* ─── Tab: Inquiries ─── */}
+                        <span className="flex items-center         {/* ─── Tab: Inquiries ─── */}
         {(activeTab === "overview" || activeTab === "inquiries") && (
           <section>
             <div className="flex items-center justify-between mb-4">
@@ -451,7 +441,7 @@ export default function MyPageTabs({
                     <div className="flex items-center justify-between mb-2">
                       <span className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded",
-                        inquiry.status === 'pending' ? "bg-yellow-500/10 text-yellow-500" : "bg-emerald-500/10 text-emerald-500"
+                        inquiry.status === 'pending' ? "bg-yellow-500/10 text-yellow-500" : "bg-emerald-500/10 text-emerald-400"
                       )}>
                         {inquiry.status === 'pending' ? '답변 대기' : '답변 완료'}
                       </span>
@@ -476,6 +466,39 @@ export default function MyPageTabs({
             </div>
           </section>
         )}
+
+        {/* ─── Tab: Betting Journal ─── */}
+        {(activeTab === "overview" || activeTab === "betting") && (
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-orange-500/15 p-1.5 rounded-lg">
+                  <History className="w-4 h-4 text-orange-400" />
+                </div>
+                <h3 className="font-bold text-lg">베팅 저널</h3>
+                <span className="badge-primary">{safeBettingRecords.length}</span>
+              </div>
+            </div>
+
+            <BettingJournalView initialRecords={safeBettingRecords} />
+          </section>
+        )}
+      </div>
+0 p-3 rounded-lg relative">
+                        <div className="absolute -top-2 left-4 bg-background px-1 text-[10px] font-bold text-primary">답변</div>
+                        <p className="text-xs text-foreground whitespace-pre-wrap">{inquiry.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="p-10 text-center text-sm text-muted-foreground glass-card rounded-2xl">
+                  문의 내역이 없습니다.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </div>
 
       <ContactModal 
@@ -483,6 +506,264 @@ export default function MyPageTabs({
         onClose={() => setIsContactModalOpen(false)} 
         isLoggedIn={true}
       />
+    </div>
+  );
+}
+
+function BettingJournalView({ initialRecords }: { initialRecords: any[] }) {
+  const [records, setRecords] = useState(initialRecords);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [newRecord, setNewRecord] = useState({
+    sport: 'soccer',
+    league: '',
+    match: '',
+    market: '',
+    selection: '',
+    odds: '',
+    stake: '',
+    betDate: new Date().toISOString().slice(0, 16)
+  });
+
+  const fetchRecords = async () => {
+    try {
+      const res = await fetch('/api/betting-records');
+      const data = await res.json();
+      if (data.success) setRecords(data.records);
+    } catch (e) {}
+  };
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/betting-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRecord)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsAdding(false);
+        setNewRecord({
+          sport: 'soccer',
+          league: '',
+          match: '',
+          market: '',
+          selection: '',
+          odds: '',
+          stake: '',
+          betDate: new Date().toISOString().slice(0, 16)
+        });
+        fetchRecords();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      alert("오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (id: number, status: string, stake: number, odds: number) => {
+    let resultAmount = 0;
+    if (status === 'won') resultAmount = stake * odds;
+    else if (status === 'lost') resultAmount = 0;
+    else if (status === 'void') resultAmount = stake;
+
+    try {
+      const res = await fetch('/api/betting-records', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, resultAmount })
+      });
+      const data = await res.json();
+      if (data.success) fetchRecords();
+    } catch (e) {}
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    try {
+      const res = await fetch(`/api/betting-records?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) fetchRecords();
+    } catch (e) {}
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <button 
+          onClick={() => setIsAdding(!isAdding)}
+          className={cn(
+            "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2",
+            isAdding ? "bg-white/10 text-white" : "bg-primary text-white shadow-lg shadow-primary/20"
+          )}
+        >
+          {isAdding ? <X className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+          {isAdding ? "취소하기" : "새 베팅 기록하기"}
+        </button>
+      </div>
+
+      {isAdding && (
+        <div className="glass-card rounded-2xl p-6 border border-primary/20 animate-slide-in-down">
+          <form onSubmit={handleAdd} className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">종목</label>
+                <select 
+                  value={newRecord.sport}
+                  onChange={e => setNewRecord({...newRecord, sport: e.target.value})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-primary/50 outline-none"
+                >
+                  <option value="soccer">축구</option>
+                  <option value="basketball">농구</option>
+                  <option value="baseball">야구</option>
+                  <option value="volleyball">배구</option>
+                  <option value="hockey">하키</option>
+                  <option value="etc">기타</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">리그</label>
+                <input 
+                  value={newRecord.league}
+                  onChange={e => setNewRecord({...newRecord, league: e.target.value})}
+                  placeholder="예: EPL, NBA"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-primary/50 outline-none"
+                />
+              </div>
+              <div className="space-y-1 col-span-2">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">경기명</label>
+                <input 
+                  value={newRecord.match}
+                  onChange={e => setNewRecord({...newRecord, match: e.target.value})}
+                  placeholder="예: 토트넘 vs 아스널"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-primary/50 outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">마켓</label>
+                <input 
+                  value={newRecord.market}
+                  onChange={e => setNewRecord({...newRecord, market: e.target.value})}
+                  placeholder="예: 승무패, 핸디캡"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-primary/50 outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">선택</label>
+                <input 
+                  value={newRecord.selection}
+                  onChange={e => setNewRecord({...newRecord, selection: e.target.value})}
+                  placeholder="예: 홈승, 2.5 오버"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-primary/50 outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">배당률</label>
+                <input 
+                  type="number" step="0.01"
+                  value={newRecord.odds}
+                  onChange={e => setNewRecord({...newRecord, odds: e.target.value})}
+                  placeholder="예: 1.85"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-primary/50 outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">베팅 금액</label>
+                <input 
+                  type="number"
+                  value={newRecord.stake}
+                  onChange={e => setNewRecord({...newRecord, stake: e.target.value})}
+                  placeholder="금액 입력"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-primary/50 outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button 
+                disabled={isLoading}
+                className="btn-primary py-2 px-8 text-xs flex items-center gap-2"
+              >
+                {isLoading ? "저장 중..." : "저장하기"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-white/5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-white/10">
+                <th className="px-4 py-3 text-left">날짜/종목</th>
+                <th className="px-4 py-3 text-left">경기/마켓</th>
+                <th className="px-4 py-3 text-left">선택/배당</th>
+                <th className="px-4 py-3 text-center">금액</th>
+                <th className="px-4 py-3 text-center">상태</th>
+                <th className="px-4 py-3 text-right">관리</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04]">
+              {records.map(record => (
+                <tr key={record.id} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="px-4 py-4">
+                    <p className="text-[10px] text-muted-foreground">{new Date(record.betDate).toLocaleDateString()}</p>
+                    <p className="font-bold text-xs capitalize">{record.sport}</p>
+                  </td>
+                  <td className="px-4 py-4">
+                    <p className="font-bold text-xs truncate max-w-[150px]">{record.match || '-'}</p>
+                    <p className="text-[10px] text-muted-foreground">{record.league} · {record.market}</p>
+                  </td>
+                  <td className="px-4 py-4">
+                    <p className="font-bold text-xs text-primary">{record.selection}</p>
+                    <p className="text-[10px] text-muted-foreground">@{record.odds}</p>
+                  </td>
+                  <td className="px-4 py-4 text-center font-mono">
+                    {record.stake.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    <div className="flex flex-col items-center gap-1">
+                      {record.status === 'pending' ? (
+                        <div className="flex gap-1">
+                          <button onClick={() => handleUpdateStatus(record.id, 'won', record.stake, record.odds)} className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold">적중</button>
+                          <button onClick={() => handleUpdateStatus(record.id, 'lost', record.stake, record.odds)} className="px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] font-bold">미적중</button>
+                          <button onClick={() => handleUpdateStatus(record.id, 'void', record.stake, record.odds)} className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground border border-white/20 text-[9px] font-bold">적특</button>
+                        </div>
+                      ) : (
+                        <span className={cn(
+                          "text-[10px] font-bold px-2 py-0.5 rounded border",
+                          record.status === 'won' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                          record.status === 'lost' ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                          "bg-white/10 text-muted-foreground border border-white/20"
+                        )}>
+                          {record.status === 'won' ? '적중' : record.status === 'lost' ? '미적중' : '취소/적특'}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <button onClick={() => handleDelete(record.id)} className="p-1 hover:text-red-400 transition-colors">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {records.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-20 text-muted-foreground text-sm italic">
+                    아직 기록된 베팅 내역이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
