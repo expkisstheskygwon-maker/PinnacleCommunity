@@ -73,6 +73,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
       { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
       { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
+      { href: "/community/leaderboard", label: "수익률 랭킹", labelEn: "ROI Leaderboard" },
       { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
     ]
   },

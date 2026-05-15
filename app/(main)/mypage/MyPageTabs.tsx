@@ -5,9 +5,10 @@ import Link from "next/link";
 import {
   FileText, Star, Bell, Shield, Award,
   MessageSquare, Heart, Eye, ChevronRight, ThumbsUp,
-  Clock, Zap, Trophy, History, MapPin, X, BarChart3
+  Clock, Zap, Trophy, History, MapPin, X, BarChart3, ArrowUpRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import ProfileSection from "./ProfileSection";
 import ContactModal from "@/components/modals/ContactModal";
 import BettingStatsDashboard from "@/components/mypage/BettingStatsDashboard";
@@ -36,6 +37,7 @@ export default function MyPageTabs({
   initialBettingRecords = []
 }: MyPageTabsProps) {
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests, inquiries
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [interests, setInterests] = useState<any[]>(initialInterests);
@@ -487,11 +489,28 @@ export default function MyPageTabs({
         {/* ─── Tab: Betting Analysis (Dashboard) ─── */}
         {(activeTab === "overview" || activeTab === "stats") && (
           <section className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="bg-primary/15 p-1.5 rounded-lg">
-                <BarChart3 className="w-4 h-4 text-primary" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-primary/15 p-1.5 rounded-lg">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg">베팅 분석 대시보드</h3>
               </div>
-              <h3 className="font-bold text-lg">베팅 분석 대시보드</h3>
+              <button 
+                onClick={() => {
+                  const finished = safeBettingRecords.filter(r => r.status !== 'pending');
+                  const totalStake = finished.reduce((acc, r) => acc + r.stake, 0);
+                  const totalReturn = finished.reduce((acc, r) => acc + r.resultAmount, 0);
+                  const roi = totalStake > 0 ? ((totalReturn - totalStake) / totalStake * 100).toFixed(1) : "0.0";
+                  const winRate = finished.length > 0 ? (finished.filter(r => r.status === 'won').length / finished.length * 100).toFixed(1) : "0.0";
+                  
+                  const content = `[나의 베팅 성과 인증]\n\n📊 ROI: ${roi}%\n🎯 승률: ${winRate}%\n💰 총 수익: ${(totalReturn - totalStake).toLocaleString()}원\n\n#베팅인증 #수익률 #스포츠분석`;
+                  router.push(`/community/write?content=${encodeURIComponent(content)}&category=review`);
+                }}
+                className="btn-primary text-[10px] py-1.5 px-3 rounded-xl flex items-center gap-1.5"
+              >
+                <ArrowUpRight className="w-3 h-3" /> 성과 공유하기
+              </button>
             </div>
             <BettingStatsDashboard records={safeBettingRecords} />
           </section>

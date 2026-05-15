@@ -81,7 +81,9 @@ export async function GET(request: NextRequest) {
     const db = env.DB as any;
 
     let query = `
-      SELECT p.*, u.nickname as author, u.avatar as authorAvatar 
+      SELECT p.*, u.nickname as author, u.avatar as authorAvatar, u.level,
+        (SELECT COUNT(*) FROM betting_records WHERE userId = u.id AND status IN ('won', 'lost', 'half-won', 'half-lost')) as totalBets,
+        (SELECT ((SUM(resultAmount) - SUM(stake)) / SUM(stake) * 100) FROM betting_records WHERE userId = u.id AND status IN ('won', 'lost', 'half-won', 'half-lost')) as roi
       FROM posts p 
       JOIN users u ON p.authorId = u.id 
     `;

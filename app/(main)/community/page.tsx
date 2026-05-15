@@ -222,6 +222,11 @@ export default function CommunityPage() {
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold text-foreground">{post.author}</span>
                             <span className="text-muted-foreground/40">Lv.{post.level || 1}</span>
+                            {post.totalBets >= 30 && post.roi >= 5 && (
+                              <span className="flex items-center gap-0.5 px-1.5 py-0 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[8px] font-bold">
+                                <Shield className="w-2 h-2" /> 검증됨
+                              </span>
+                            )}
                           </div>
                           <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{new Date(post.createdAt).toLocaleDateString()}</span>
                           <span className="flex items-center gap-1"><Eye className="w-2.5 h-2.5" />{post.views.toLocaleString()}</span>

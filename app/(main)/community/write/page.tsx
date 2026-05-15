@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   PenLine, X, Check, ChevronLeft, Hash, 
   MessageSquare, Swords, Target, Trophy, Info,
@@ -47,6 +47,20 @@ export default function WritePage() {
     tags: '',
     image: '',
   });
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const qContent = searchParams.get('content');
+    const qCat = searchParams.get('category');
+    if (qContent || qCat) {
+      setFormData(prev => ({
+        ...prev,
+        content: qContent || prev.content,
+        category: qCat || prev.category
+      }));
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
