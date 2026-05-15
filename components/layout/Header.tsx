@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Trophy, Home, TrendingUp, BarChart3, Star, HelpCircle,
   BookOpen, Bell, Users, User, Menu, X, ChevronDown,
-  Languages, LogIn, Shield, Zap, Flame, LogOut
+  Languages, LogIn, Shield, Zap, Flame, LogOut, Lightbulb
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -60,26 +60,30 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
-    id: "community", href: "/community", label: "커뮤니티", labelEn: "Forum", icon: Users,
+    id: "concepts", href: "/community?cat=review", label: "개념 탑재", labelEn: "Concepts", icon: Lightbulb,
     children: [
-      { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
       { href: "/community?cat=review", label: "베팅 복기", labelEn: "Betting Review" },
       { href: "/community?cat=bankroll", label: "심리/자금관리", labelEn: "Mindset & Bankroll" },
       { href: "/community?cat=strategy", label: "전략 실험실", labelEn: "Strategy Lab" },
+    ]
+  },
+  {
+    id: "community", href: "/community", label: "커뮤니티", labelEn: "Forum", icon: Users,
+    children: [
+      { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
+      { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
+      { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
       { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
     ]
   },
   {
-    id: "qna", href: "/qna", label: "Q&A", labelEn: "Q&A", icon: HelpCircle,
+    id: "guide", href: "/guide", label: "가이드", labelEn: "Guide", icon: BookOpen,
     children: [
       { href: "/qna?cat=auth", label: "가입/인증", labelEn: "Signup/KYC" },
       { href: "/qna?cat=payment", label: "결제/입출금", labelEn: "Payment" },
       { href: "/qna?cat=odds", label: "배당/정산", labelEn: "Odds/Settlement" },
       { href: "/qna?cat=security", label: "계정/보안", labelEn: "Account/Security" },
     ]
-  },
-  {
-    id: "guide", href: "/guide", label: "가이드", labelEn: "Guide", icon: BookOpen,
   },
   {
     id: "notices", href: "/notices", label: "공지/이슈", labelEn: "Notices", icon: Bell,

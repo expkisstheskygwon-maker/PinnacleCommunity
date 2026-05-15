@@ -6,16 +6,19 @@ import { useRouter } from 'next/navigation';
 import { 
   PenLine, X, Check, ChevronLeft, Hash, 
   MessageSquare, Swords, Target, Trophy, Info,
-  Loader2, AlertTriangle, Image as ImageIcon, Send
+  Loader2, AlertTriangle, Image as ImageIcon, Send,
+  History, Shield, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const CATEGORIES = [
   { id: "free", label: "자유게시판", icon: MessageSquare, desc: "자유로운 일상과 소통" },
-  { id: "review", label: "베팅 복기", icon: Target, desc: "나의 베팅 성과 복기 및 공유" },
-  { id: "bankroll", label: "심리/자금관리", icon: Swords, desc: "마인드 컨트롤 및 자금 관리 전략" },
-  { id: "strategy", label: "전략 실험실", icon: Target, desc: "종목/마켓별 전략 실험 및 토론" },
-  { id: "events", label: "이벤트/랭킹", icon: Trophy, desc: "다양한 혜택과 순위 경쟁" },
+  { id: "match", label: "경기 토론", icon: Swords, desc: "경기 분석 및 토론" },
+  { id: "picks", label: "픽 공유", icon: Target, desc: "승무패/핸디캡 픽 공유" },
+  { id: "review", label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
+  { id: "bankroll", label: "심리/자금관리", icon: Shield, desc: "마인드 및 자금 관리" },
+  { id: "strategy", label: "전략 실험실", icon: Zap, desc: "전략 실험 및 연구" },
+  { id: "events", label: "이벤트/랭킹", icon: Trophy, desc: "혜택과 순위 경쟁" },
 ];
 
 const TEMPLATES = [
@@ -137,7 +140,7 @@ export default function WritePage() {
           )}
 
           {/* Category Picker */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             {CATEGORIES.map(cat => (
               <button
                 key={cat.id}

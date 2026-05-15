@@ -5,7 +5,8 @@ import Link from "next/link";
 import {
   Users, MessageSquare, Swords, Target, Trophy,
   PenLine, ThumbsUp, Eye, Clock, Flame, ChevronRight,
-  Hash, Award, TrendingUp, Star, Search, X
+  Hash, Award, TrendingUp, Star, Search, X,
+  History, Shield, Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,9 @@ const CATEGORIES = [
   { id: "free", label: "자유게시판", icon: MessageSquare },
   { id: "match", label: "경기 토론", icon: Swords },
   { id: "picks", label: "픽 공유", icon: Target },
+  { id: "review", label: "베팅 복기", icon: History, hidden: true },
+  { id: "bankroll", label: "심리/자금관리", icon: Shield, hidden: true },
+  { id: "strategy", label: "전략 실험실", icon: Zap, hidden: true },
   { id: "events", label: "이벤트/랭킹", icon: Trophy },
 ];
 
@@ -141,7 +145,7 @@ export default function CommunityPage() {
 
         {/* Categories */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.filter(c => !c.hidden).map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCat(cat.id)}
