@@ -11,10 +11,24 @@ import {
 import { cn } from '@/lib/utils';
 
 const CATEGORIES = [
-  { id: "free", label: "자유게시판", icon: MessageSquare, desc: "자유로운 일상과 소통의 공간" },
-  { id: "match", label: "경기 토론", icon: Swords, desc: "경기 분석 및 실시간 토론" },
-  { id: "picks", label: "픽 공유", icon: Target, desc: "적중률 높은 승부 예측 공유" },
+  { id: "free", label: "자유게시판", icon: MessageSquare, desc: "자유로운 일상과 소통" },
+  { id: "review", label: "베팅 복기", icon: Target, desc: "나의 베팅 성과 복기 및 공유" },
+  { id: "bankroll", label: "심리/자금관리", icon: Swords, desc: "마인드 컨트롤 및 자금 관리 전략" },
+  { id: "strategy", label: "전략 실험실", icon: Target, desc: "종목/마켓별 전략 실험 및 토론" },
   { id: "events", label: "이벤트/랭킹", icon: Trophy, desc: "다양한 혜택과 순위 경쟁" },
+];
+
+const TEMPLATES = [
+  {
+    id: "report",
+    label: "📊 월간 베팅 리포트",
+    content: `[이번 달 베팅 리포트]\n\n1. 총 손익 및 ROI (투자 수익률):\n- 총 베팅 금액: \n- 총 당첨 금액: \n- 순수익: \n- ROI (%): \n\n2. 주요 성공 요인 (Best Picks):\n- (예: 특정 리그 언더오버 마켓 적중률 우수)\n\n3. 주요 실패 요인 (Worst Picks):\n- (예: 감정적인 라이브 추격 베팅 실패)\n\n4. 다음 달 목표 및 전략 수정:\n- \n`
+  },
+  {
+    id: "mistake",
+    label: "🧠 나의 베팅 실수 복기",
+    content: `[나의 주요 베팅 실수 복기]\n\n1. 실수의 상황 (언제, 어떤 경기에서?):\n- \n\n2. 실수의 원인 (왜 그런 선택을 했는가?):\n- (예: 본전 생각에 무리한 다폴더, 잃고 나서의 분노 베팅 등)\n\n3. 결과 및 손실 규모:\n- \n\n4. 향후 재발 방지 대책:\n- \n`
+  }
 ];
 
 export default function WritePage() {
@@ -123,7 +137,7 @@ export default function WritePage() {
           )}
 
           {/* Category Picker */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {CATEGORIES.map(cat => (
               <button
                 key={cat.id}
@@ -186,9 +200,30 @@ export default function WritePage() {
                     className="p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 text-xs font-bold"
                   >
                     <ImageIcon className="w-4 h-4" />
-                    <span>이미지 첨부</span>
+                    <span className="hidden sm:inline">이미지 첨부</span>
                   </button>
                 </div>
+              </div>
+              
+              {/* Templates */}
+              <div className="flex flex-wrap gap-2 mb-3 ml-1">
+                <span className="text-[10px] text-muted-foreground py-1">글쓰기 템플릿:</span>
+                {TEMPLATES.map(tpl => (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() => {
+                      if (formData.content && !confirm("현재 작성된 내용 아래에 템플릿을 추가하시겠습니까?")) return;
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        content: prev.content ? prev.content + "\n\n" + tpl.content : tpl.content 
+                      }));
+                    }}
+                    className="px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-[10px] font-bold text-foreground flex items-center gap-1"
+                  >
+                    {tpl.label}
+                  </button>
+                ))}
               </div>
               
               {/* Image Preview */}

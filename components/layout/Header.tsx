@@ -63,8 +63,9 @@ const NAV_ITEMS: NavItem[] = [
     id: "community", href: "/community", label: "커뮤니티", labelEn: "Forum", icon: Users,
     children: [
       { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
-      { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
-      { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
+      { href: "/community?cat=review", label: "베팅 복기", labelEn: "Betting Review" },
+      { href: "/community?cat=bankroll", label: "심리/자금관리", labelEn: "Mindset & Bankroll" },
+      { href: "/community?cat=strategy", label: "전략 실험실", labelEn: "Strategy Lab" },
       { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
     ]
   },
