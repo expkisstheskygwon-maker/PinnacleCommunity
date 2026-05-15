@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   FileText, Star, Bell, Shield, Award,
   MessageSquare, Heart, Eye, ChevronRight, ThumbsUp,
-  Clock, Zap, Trophy, History, MapPin, X
+  Clock, Zap, Trophy, History, MapPin, X, BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProfileSection from "./ProfileSection";
