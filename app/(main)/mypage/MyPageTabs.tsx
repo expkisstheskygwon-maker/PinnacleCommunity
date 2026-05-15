@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import ProfileSection from "./ProfileSection";
 import ContactModal from "@/components/modals/ContactModal";
+import BettingStatsDashboard from "@/components/mypage/BettingStatsDashboard";
 
 interface MyPageTabsProps {
   user: any;
@@ -84,6 +85,8 @@ export default function MyPageTabs({
 
   const MENU_ITEMS = [
     { id: "overview", label: "마이페이지 홈", icon: Shield, count: 0 },
+    { id: "stats", label: "베팅 분석", icon: BarChart3, count: 0 },
+    { id: "betting", label: "베팅 저널", icon: History, count: safeBettingRecords.length },
     { id: "interests", label: "관심 설정", icon: Heart, count: safeInterests.length },
     { id: "favorites", label: "관심 게시글", icon: Star, count: safeFavoritePosts.length },
     { id: "notifications", label: "알림 서랍", icon: Bell, count: safeNotifications.filter(n => n && !n.readAt).length },
@@ -478,6 +481,19 @@ export default function MyPageTabs({
                 </div>
               )}
             </div>
+          </section>
+        )}
+
+        {/* ─── Tab: Betting Analysis (Dashboard) ─── */}
+        {(activeTab === "overview" || activeTab === "stats") && (
+          <section className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="bg-primary/15 p-1.5 rounded-lg">
+                <BarChart3 className="w-4 h-4 text-primary" />
+              </div>
+              <h3 className="font-bold text-lg">베팅 분석 대시보드</h3>
+            </div>
+            <BettingStatsDashboard records={safeBettingRecords} />
           </section>
         )}
 
