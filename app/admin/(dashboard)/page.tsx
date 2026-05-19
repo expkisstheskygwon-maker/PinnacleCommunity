@@ -6,7 +6,7 @@ import {
   Shield, Users, FileText, BarChart3, Bell, BookOpen, HelpCircle,
   TrendingUp, LogOut, Home, ChevronRight, Search, Plus, Edit, Trash2,
   Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, 
-  Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet, Gavel, Award
+  Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet, Gavel, Award, Layers
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -1083,6 +1083,26 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   );
 }
 
+interface PopupSetting {
+  id: number;
+  isActive: boolean;
+  title: string;
+  htmlContent: string;
+  image: string;
+  linkUrl: string;
+  position: 'top-left' | 'top-center' | 'top-right' | 'center' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+}
+
+const DEFAULT_POPUPS: PopupSetting[] = Array.from({ length: 5 }, (_, i) => ({
+  id: i + 1,
+  isActive: false,
+  title: `팝업창 #${i + 1}`,
+  htmlContent: "",
+  image: "",
+  linkUrl: "",
+  position: "center"
+}));
+
 function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
   const [settings, setSettings] = useState({
     top_bar_message: "",
@@ -1096,18 +1116,10 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
     trust_stat_3_label: "평균 평점",
     trust_stat_3_value: "4.3 / 5",
     trust_stat_4_label: "오늘 게시글",
-    trust_stat_4_value: "234건",
-    scam_alert_title: "사기주의 알림",
-    scam_alert_1_title: "텔레그램 사칭 주의",
-    scam_alert_1_content: "\"피나클 공식 대리점\"을 사칭하는 텔레그램 채널이 확인되었습니다.",
-    scam_alert_1_image: "",
-    scam_alert_2_title: "가짜 도메인 주의",
-    scam_alert_2_content: "pinnac1e.com, pinnakle.com 등 유사 도메인 접속을 주의하세요.",
-    scam_alert_2_image: "",
-    scam_alert_3_title: "",
-    scam_alert_3_content: "",
-    scam_alert_3_image: ""
+    trust_stat_4_value: "234건"
   });
+  const [popups, setPopups] = useState<PopupSetting[]>(DEFAULT_POPUPS);
+  const [activePopupIndex, setActivePopupIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -1121,6 +1133,21 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
             ...prev,
             ...data.settings
           }));
+
+          if (data.settings.popups) {
+            try {
+              const parsed = JSON.parse(data.settings.popups);
+              if (Array.isArray(parsed)) {
+                const merged = DEFAULT_POPUPS.map(def => {
+                  const found = parsed.find((p: any) => p.id === def.id);
+                  return found ? { ...def, ...found } : def;
+                });
+                setPopups(merged);
+              }
+            } catch (e) {
+              console.error("Failed to parse popups setting:", e);
+            }
+          }
         }
       } catch (err) {
         console.error(err);
@@ -1137,7 +1164,10 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
       const res = await fetch('/api/admin/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify({
+          ...settings,
+          popups: JSON.stringify(popups)
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -1274,27 +1304,183 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
 
         <div className="space-y-6 pt-6 border-t border-white/5">
           <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-            <div className="bg-red-500/10 p-2 rounded-xl">
-              <AlertTriangle className="w-5 h-5 text-red-400" />
+            <div className="bg-primary/10 p-2 rounded-xl">
+              <Layers className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-bold">메인 페이지 사기주의 알림 설정</h3>
-              <p className="text-xs text-muted-foreground">이 설정은 이제 '공지/이슈' 메뉴에서 통합 관리됩니다</p>
+              <h3 className="font-bold">사이트 팝업창 설정</h3>
+              <p className="text-xs text-muted-foreground">사이트 메인화면/전체화면에 표시될 팝업을 설정합니다 (최대 5개)</p>
             </div>
           </div>
 
-          <div className="p-10 rounded-2xl bg-red-500/5 border border-red-500/10 border-dashed text-center space-y-4">
-            <Bell className="w-10 h-10 text-red-400/50 mx-auto" />
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-red-400">사기주의 알림은 이제 게시글 형태로 관리됩니다</p>
-              <p className="text-xs text-muted-foreground">왼쪽 사이드바의 [공지/이슈 작성] 메뉴에서 '사기주의' 카테고리를 선택하여 글을 등록하세요.</p>
+          {/* Popup Index Tabs */}
+          <div className="flex flex-wrap gap-2 border-b border-white/[0.04] pb-2">
+            {popups.map((p, idx) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setActivePopupIndex(idx)}
+                className={cn(
+                  "px-4 py-2 text-xs font-black rounded-lg transition-all border flex items-center gap-2",
+                  activePopupIndex === idx
+                    ? "bg-primary/10 border-primary text-primary"
+                    : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                )}
+              >
+                <span>#{p.id} {p.title || `팝업 ${p.id}`}</span>
+                {p.isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+              </button>
+            ))}
+          </div>
+
+          {/* Active Popup Settings Form */}
+          <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Title & Position */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">활성화 여부</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = [...popups];
+                      updated[activePopupIndex].isActive = !updated[activePopupIndex].isActive;
+                      setPopups(updated);
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-black border transition-all",
+                      popups[activePopupIndex].isActive
+                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                        : "bg-white/5 border-white/10 text-muted-foreground"
+                    )}
+                  >
+                    {popups[activePopupIndex].isActive ? "활성화 됨" : "비활성화 됨"}
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">팝업 제목</label>
+                  <input
+                    value={popups[activePopupIndex].title}
+                    onChange={e => {
+                      const updated = [...popups];
+                      updated[activePopupIndex].title = e.target.value;
+                      setPopups(updated);
+                    }}
+                    placeholder="팝업 제목 (관리용)"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 transition-all font-bold"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">클릭 이동 링크 (URL)</label>
+                  <input
+                    value={popups[activePopupIndex].linkUrl}
+                    onChange={e => {
+                      const updated = [...popups];
+                      updated[activePopupIndex].linkUrl = e.target.value;
+                      setPopups(updated);
+                    }}
+                    placeholder="https://example.com (생략 시 링크 미제공)"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">화면 노출 위치 (Position)</label>
+                  <select
+                    value={popups[activePopupIndex].position}
+                    onChange={e => {
+                      const updated = [...popups];
+                      updated[activePopupIndex].position = e.target.value as any;
+                      setPopups(updated);
+                    }}
+                    className="w-full bg-[#181d2a] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 transition-all text-foreground font-bold"
+                  >
+                    <option value="center">중앙 화면 (Center)</option>
+                    <option value="top-left">좌측 상단 (Top-Left)</option>
+                    <option value="top-center">중앙 상단 (Top-Center)</option>
+                    <option value="top-right">우측 상단 (Top-Right)</option>
+                    <option value="bottom-left">좌측 하단 (Bottom-Left)</option>
+                    <option value="bottom-center">중앙 하단 (Bottom-Center)</option>
+                    <option value="bottom-right">우측 하단 (Bottom-Right)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Image upload */}
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">팝업 이미지</label>
+                <div className="relative group">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 2 * 1024 * 1024) {
+                          alert("이미지 크기는 2MB 이하여야 합니다.");
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          const updated = [...popups];
+                          updated[activePopupIndex].image = reader.result as string;
+                          setPopups(updated);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                    id={`popup-image-upload-${popups[activePopupIndex].id}`}
+                  />
+                  <label
+                    htmlFor={`popup-image-upload-${popups[activePopupIndex].id}`}
+                    className="cursor-pointer block w-full aspect-video bg-white/5 border border-dashed border-white/20 rounded-xl overflow-hidden hover:bg-white/10 transition-all flex flex-col items-center justify-center relative"
+                  >
+                    {popups[activePopupIndex].image ? (
+                      <>
+                        <img src={popups[activePopupIndex].image} alt="Preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const updated = [...popups];
+                            updated[activePopupIndex].image = "";
+                            setPopups(updated);
+                          }}
+                          className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-500/80 text-white rounded-lg transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Upload className="w-5 h-5 opacity-20" />
+                        <span className="text-[10px] font-bold">이미지 선택 (R2 업로드)</span>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
             </div>
-            <button 
-              onClick={() => setActiveTab("notices")}
-              className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold transition-all border border-red-500/20"
-            >
-              공지/이슈 관리로 이동하기
-            </button>
+
+            {/* HTML Editor */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">HTML 내용 (텍스트/공지사항 대체 가능)</label>
+              <textarea
+                value={popups[activePopupIndex].htmlContent}
+                onChange={e => {
+                  const updated = [...popups];
+                  updated[activePopupIndex].htmlContent = e.target.value;
+                  setPopups(updated);
+                }}
+                rows={5}
+                placeholder="<div style='padding: 10px; text-align: center;'>공지사항 내용 등 자유롭게 작성 가능</div>"
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all font-mono leading-relaxed resize-none"
+              />
+            </div>
           </div>
         </div>
 

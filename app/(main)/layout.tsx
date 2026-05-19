@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import AttendanceTracker from '@/components/AttendanceTracker';
+import PopupRenderer from '@/components/layout/PopupRenderer';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export default async function MainLayout({
@@ -44,6 +45,8 @@ export default async function MainLayout({
         copyright={footerSettings.footer_copyright} 
         isLoggedIn={!!user}
       />
+      <PopupRenderer />
     </>
   );
 }
+
