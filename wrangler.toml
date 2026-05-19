@@ -12,3 +12,8 @@ BOT_API_KEY = "pinnacle_bot_secret_2026"
 binding = "DB"
 database_name = "pinnacle_db"
 database_id = "ae8aa34b-ccde-4a6b-803e-1353f3354121"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "pinapo"
+

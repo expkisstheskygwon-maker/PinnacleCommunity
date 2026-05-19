@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { cookies } from 'next/headers';
+import { uploadImageToR2 } from '@/lib/r2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionData = JSON.parse(authSession.value);
-    const { title, content, category, tags, image } = (await request.json()) as any;
+    const { title, content, category, tags, image: rawImage } = (await request.json()) as any;
 
     if (!title || !content || !category) {
       return NextResponse.json(
@@ -23,6 +24,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Base64 이미지가 업로드된 경우 R2에 저장하고 저장 경로 획득
+    const image = rawImage ? await uploadImageToR2(rawImage) : null;
 
     const { env } = getCloudflareContext();
     const db = env.DB as any;
@@ -34,6 +38,7 @@ export async function POST(request: NextRequest) {
       )
       .bind(title, content, sessionData.id, category, tags || null, image || null)
       .run();
+
 
     if (!result.success) {
       throw new Error('데이터베이스 저장 중 오류가 발생했습니다.');

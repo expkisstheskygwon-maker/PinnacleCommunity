@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { cookies } from 'next/headers';
 import { hashPassword } from '@/lib/auth-utils';
+import { uploadImageToR2 } from '@/lib/r2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionData = JSON.parse(authSession.value);
-    const { nickname, email, password, avatar } = (await request.json()) as any;
+    const { nickname, email, password, avatar: rawAvatar } = (await request.json()) as any;
 
     const { env } = getCloudflareContext();
     const db = env.DB as any;
@@ -42,6 +43,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Base64 아바타 이미지를 R2에 업로드
+    const avatar = rawAvatar ? await uploadImageToR2(rawAvatar) : null;
+
     // 2. Prepare update fields
     let query = 'UPDATE users SET nickname = ?, email = ?, updatedAt = CURRENT_TIMESTAMP';
     let params = [nickname, email];
@@ -50,6 +54,7 @@ export async function POST(request: NextRequest) {
       query += ', avatar = ?';
       params.push(avatar);
     }
+
 
     if (password && password.trim() !== '') {
       const passwordHash = await hashPassword(password);
