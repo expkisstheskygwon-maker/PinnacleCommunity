@@ -263,8 +263,8 @@ export default function MyPageTabs({
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-1 uppercase">Home</p>
                       </div>
-                      <div className="px-4 text-center">
-                        <div className="bg-black/40 rounded-xl px-3 py-1.5 border border-white/5 font-mono text-xl font-black text-red-500 shadow-inner">
+                      <div className="px-3 text-center shrink-0">
+                        <div className="bg-black/40 rounded-xl px-4 py-1.5 border border-white/5 font-mono text-xl font-black text-red-500 shadow-inner whitespace-nowrap min-w-[75px] inline-block">
                           {typeof match?.scores?.home === 'object' && match?.scores?.home !== null 
                             ? (match.scores.home.total ?? match.scores.home.goals ?? 0) 
                             : (match?.scores?.home ?? 0)} 
