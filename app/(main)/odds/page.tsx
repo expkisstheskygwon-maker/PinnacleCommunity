@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
   ChevronDown, Filter, Star, Zap, Gamepad2, Trophy,
@@ -22,8 +23,19 @@ const CATEGORIES = [
   { id: "handball", label: "핸드볼", icon: Activity },
 ];
 
-export default function OddsPage() {
+function OddsContent() {
+  const searchParams = useSearchParams();
+  const paramSport = searchParams.get("sport");
+  const paramMatchId = searchParams.get("matchId");
+
   const [activeCat, setActiveCat] = useState("soccer");
+  
+  // URL 파라미터 sport가 존재할 때 기본 카테고리 업데이트
+  useEffect(() => {
+    if (paramSport) {
+      setActiveCat(paramSport);
+    }
+  }, [paramSport]);
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +77,23 @@ export default function OddsPage() {
       const res = await fetch(`/api/sports/matches?sport=${sport}&t=${Date.now()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "데이터를 불러오지 못했습니다.");
-      setMatches(data.matches || []);
+      
+      const fetchedMatches = data.matches || [];
+      setMatches(fetchedMatches);
+
+      // 특정 경기가 파라미터로 지정되었을 경우 아코디언 자동 열기 및 스크롤 이동
+      if (paramMatchId) {
+        const matchExists = fetchedMatches.some((m: any) => String(m.id) === String(paramMatchId));
+        if (matchExists) {
+          setExpandedMatches(prev => ({ ...prev, [paramMatchId]: true }));
+          setTimeout(() => {
+            const targetEl = document.getElementById(`match-row-${paramMatchId}`);
+            if (targetEl) {
+              targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 300);
+        }
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.message);
@@ -429,6 +457,7 @@ export default function OddsPage() {
                               return (
                                 <React.Fragment key={m.id}>
                                   <tr 
+                                    id={`match-row-${m.id}`}
                                     onClick={() => setExpandedMatches(prev => ({ ...prev, [m.id]: !prev[m.id] }))}
                                     className={cn(
                                       "hover:bg-white/[0.03] transition-colors group cursor-pointer border-l-2 border-transparent",
@@ -617,5 +646,18 @@ export default function OddsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OddsPage() {
+  return (
+    <Suspense fallback={
+      <div className="mesh-gradient min-h-screen flex flex-col items-center justify-center p-20 space-y-4">
+        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <p className="text-muted-foreground animate-pulse">실시간 데이터를 가져오는 중...</p>
+      </div>
+    }>
+      <OddsContent />
+    </Suspense>
   );
 }

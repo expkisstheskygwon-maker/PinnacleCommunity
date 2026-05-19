@@ -288,7 +288,7 @@ export default function MyPageTabs({
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {match?.time || ''}</span>
                         <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-primary" /> {match?.sport === 'soccer' ? '축구' : match?.sport === 'baseball' ? '야구' : match?.sport === 'basketball' ? '농구' : '경기'}</span>
                       </div>
-                      <Link href="/odds" className="text-primary hover:underline font-bold">배당 분석 →</Link>
+                      <Link href={`/odds?sport=${match?.sport || 'soccer'}&matchId=${match?.id || ''}`} className="text-primary hover:underline font-bold">배당 분석 →</Link>
                     </div>
                   </div>
                 ))}
