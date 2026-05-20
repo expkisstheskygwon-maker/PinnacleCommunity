@@ -22,6 +22,7 @@ function GuideContent() {
   const searchParams = useSearchParams();
   const initialCat = searchParams.get("cat") || "all";
   const [activeCat, setActiveCat] = useState(initialCat);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [guides, setGuides] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,39 +112,95 @@ function GuideContent() {
         {isLoading ? (
           <div className="py-20 text-center animate-pulse text-muted-foreground font-bold">가이드를 불러오는 중...</div>
         ) : (
-          <div className="space-y-20 max-w-4xl mx-auto">
+          <div className={cn(activeCat === "all" ? "space-y-4" : "space-y-16", "max-w-4xl mx-auto")}>
             {filtered.length > 0 ? (
-              filtered.map((guide, idx) => (
-                <section key={guide.id} className="scroll-mt-32 animate-fade-in">
-                  {/* Section Header */}
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                      <FileText className="w-7 h-7 text-primary" />
-                    </div>
-                    <div>
-                      <h2 className="text-3xl font-black tracking-tight">{guide.title}</h2>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(guide.createdAt).toLocaleDateString()}</span>
-                        <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {guide.views || 0}</span>
-                        <span className="bg-primary/20 text-primary px-2 py-0.5 rounded font-bold uppercase tracking-wider">{guide.tags || "General"}</span>
+              activeCat === "all" ? (
+                filtered.map((guide) => (
+                  <div 
+                    key={guide.id} 
+                    className={cn(
+                      "glass-card rounded-2xl overflow-hidden transition-all duration-300 border border-white/[0.04] hover:border-primary/30",
+                      expandedId === guide.id ? "bg-white/[0.02] shadow-2xl" : "hover:bg-white/[0.01]"
+                    )}
+                  >
+                    <button
+                      onClick={() => setExpandedId(expandedId === guide.id ? null : guide.id)}
+                      className="w-full px-5 py-4 md:px-8 md:py-6 text-left flex items-center justify-between gap-4 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all",
+                          expandedId === guide.id 
+                            ? "bg-primary/20 border-primary/40 text-primary" 
+                            : "bg-white/5 border-white/10 text-muted-foreground group-hover:text-primary group-hover:border-primary/30"
+                        )}>
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-sm md:text-[17px] tracking-tight truncate pr-2 group-hover:text-primary transition-colors">
+                            {guide.title}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-1.5 text-[10px] md:text-xs text-muted-foreground/60">
+                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(guide.createdAt).toLocaleDateString()}</span>
+                            <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {(guide.views || 0).toLocaleString()}</span>
+                            <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-black text-[9px] uppercase tracking-wider">{guide.tags || "General"}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className={cn(
+                        "shrink-0 p-1.5 rounded-lg border text-muted-foreground transition-all duration-300",
+                        expandedId === guide.id 
+                          ? "bg-primary/10 border-primary/20 text-primary rotate-90" 
+                          : "bg-white/5 border-white/10 group-hover:text-primary group-hover:bg-primary/5 group-hover:border-primary/20"
+                      )}>
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
+                    </button>
+
+                    {expandedId === guide.id && (
+                      <div className="px-5 pb-5 md:px-8 md:pb-8 pt-2 border-t border-white/[0.04] animate-fade-in">
+                        <div 
+                          className="prose prose-invert prose-primary max-w-none text-xs md:text-sm leading-relaxed text-muted-foreground/90"
+                          dangerouslySetInnerHTML={{ __html: guide.content }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                filtered.map((guide, idx) => (
+                  <section key={guide.id} className="scroll-mt-32 animate-fade-in">
+                    {/* Section Header */}
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                        <FileText className="w-7 h-7 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl md:text-3xl font-black tracking-tight">{guide.title}</h2>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(guide.createdAt).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {guide.views || 0}</span>
+                          <span className="bg-primary/20 text-primary px-2 py-0.5 rounded font-bold uppercase tracking-wider">{guide.tags || "General"}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* HTML Content */}
-                  <div 
-                    className="glass-card rounded-2xl p-8 md:p-12 prose prose-invert prose-primary max-w-none shadow-2xl border-white/[0.03]"
-                    dangerouslySetInnerHTML={{ __html: guide.content }}
-                  />
-                  
-                  {/* Footer Decoration */}
-                  <div className="mt-8 flex items-center gap-4 opacity-20">
-                    <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-primary" />
-                    <BookOpen className="w-4 h-4 text-primary" />
-                    <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-primary" />
-                  </div>
-                </section>
-              ))
+                    {/* HTML Content */}
+                    <div 
+                      className="glass-card rounded-2xl p-6 md:p-12 prose prose-invert prose-primary max-w-none shadow-2xl border-white/[0.03]"
+                      dangerouslySetInnerHTML={{ __html: guide.content }}
+                    />
+                    
+                    {/* Footer Decoration */}
+                    <div className="mt-8 flex items-center gap-4 opacity-20">
+                      <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-primary" />
+                      <BookOpen className="w-4 h-4 text-primary" />
+                      <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-primary" />
+                    </div>
+                  </section>
+                ))
+              )
             ) : (
               <div className="py-20 text-center glass-card rounded-2xl border-white/[0.05] space-y-4">
                 <Info className="w-12 h-12 text-muted-foreground/20 mx-auto" />
