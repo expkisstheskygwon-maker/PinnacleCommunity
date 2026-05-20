@@ -245,10 +245,10 @@ export default function HomePage() {
 
     const fetchQna = async () => {
       try {
-        const res = await fetch("/api/posts?category=qna&limit=5");
+        const res = await fetch("/api/inquiries?type=featured");
         const data = await res.json();
-        if (data.success && data.posts) {
-          setQnaPosts(data.posts);
+        if (data.success && data.inquiries) {
+          setQnaPosts(data.inquiries);
         }
       } catch (err) {
         console.error("Failed to fetch Q&A", err);
@@ -738,35 +738,38 @@ export default function HomePage() {
 
             {/* Interest Q&A (Formerly Recent Q&A) */}
             <div className="glass-card rounded-2xl p-5">
-              <SectionHeader icon={HelpCircle} title="관심 Q&A" href="/community?category=qna" />
+              <SectionHeader icon={HelpCircle} title="관심 Q&A" href="/qna" />
               <div className="space-y-3">
-                {qnaPosts.length > 0 ? qnaPosts.slice(0, 5).map((q, idx) => (
-                  <Link key={q.id} href={`/community/${q.id}`} className="block p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
-                    <div className="flex items-start gap-2.5">
-                      <div className={cn(
-                        "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                        (q.commentsCount > 0) ? "bg-emerald-500/15" : "bg-[hsl(var(--gold))]/15"
-                      )}>
-                        {q.commentsCount > 0 
-                          ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                          : <HelpCircle className="w-3 h-3 text-[hsl(var(--gold))]" />
-                        }
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-bold group-hover:text-primary transition-colors line-clamp-2 leading-snug">{q.title}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className={cn(
-                            "px-1.5 py-0.5 rounded text-[9px] font-black uppercase",
-                            q.commentsCount > 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-muted-foreground"
-                          )}>
-                            {q.commentsCount > 0 ? "답변완료" : "답변대기"}
-                          </span>
-                          <span className="text-[9px] text-muted-foreground/60 font-medium">{new Date(q.createdAt).toLocaleDateString()}</span>
+                {qnaPosts.length > 0 ? qnaPosts.slice(0, 5).map((q, idx) => {
+                  const isSolved = q.status === 'answered';
+                  return (
+                    <Link key={q.id} href="/qna" className="block p-3 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-pointer">
+                      <div className="flex items-start gap-2.5">
+                        <div className={cn(
+                          "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                          isSolved ? "bg-emerald-500/15" : "bg-[hsl(var(--gold))]/15"
+                        )}>
+                          {isSolved 
+                            ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            : <HelpCircle className="w-3 h-3 text-[hsl(var(--gold))]" />
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-bold group-hover:text-primary transition-colors line-clamp-2 leading-snug">{q.title}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={cn(
+                              "px-1.5 py-0.5 rounded text-[9px] font-black uppercase",
+                              isSolved ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-muted-foreground"
+                            )}>
+                              {isSolved ? "답변완료" : "답변대기"}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground/60 font-medium">{new Date(q.createdAt).toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                )) : (
+                    </Link>
+                  );
+                }) : (
                   <div className="py-10 text-center opacity-20">
                     <HelpCircle className="w-8 h-8 mx-auto mb-2" />
                     <p className="text-[10px] font-bold">등록된 질문이 없습니다.</p>

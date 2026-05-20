@@ -46,14 +46,25 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    const { id, answer } = await request.json();
+    const { id, answer, showOnMain } = await request.json();
 
-    if (!id || !answer) {
-      return NextResponse.json({ success: false, error: 'ID와 답변 내용을 입력해주세요.' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'ID가 필요합니다.' }, { status: 400 });
     }
 
     const { env } = getCloudflareContext();
     const db = env.DB as any;
+
+    if (showOnMain !== undefined) {
+      await db.prepare('UPDATE inquiries SET showOnMain = ? WHERE id = ?')
+        .bind(showOnMain ? 1 : 0, id)
+        .run();
+      return NextResponse.json({ success: true, message: '메인 노출 상태가 수정되었습니다.' });
+    }
+
+    if (!answer) {
+      return NextResponse.json({ success: false, error: '답변 내용을 입력해주세요.' }, { status: 400 });
+    }
 
     await db.prepare('UPDATE inquiries SET answer = ?, status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
       .bind(answer, 'answered', id)

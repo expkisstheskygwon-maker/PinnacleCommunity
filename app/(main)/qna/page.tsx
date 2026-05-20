@@ -16,12 +16,6 @@ const FAQ_ITEMS = [
   { id: 4, question: "2FA(이중인증) 설정은 어떻게 하나요?", answer: "마이 계정 > 보안 설정에서 Google Authenticator 또는 Authy 앱을 연동할 수 있습니다. 설정 시 백업 코드를 반드시 저장해 두세요.", category: "계정/보안" },
 ];
 
-const USER_QUESTIONS = [
-  { id: 1, question: "피나클 가입 시 VPN이 필요한가요?", author: "뉴비질문", date: "2026-04-20", answers: 12, solved: true, category: "가입/인증", views: 345, topAnswer: "가입 시에는 VPN 없이도 가능하지만, 접속 지역에 따라 필요할 수 있습니다. 일반적으로 Chrome 확장 프로그램 형태의 VPN이면 충분합니다." },
-  { id: 2, question: "출금 신청 후 48시간 넘게 처리 안 됩니다", author: "출금대기", date: "2026-04-19", answers: 8, solved: false, category: "결제/입출금", views: 234, topAnswer: "" },
-  { id: 3, question: "아시안핸디캡 정산 기준이 궁금합니다", author: "핸디초보", date: "2026-04-18", answers: 15, solved: true, category: "배당/정산", views: 567, topAnswer: "아시안핸디캡은 경기 결과에 핸디캡을 적용한 후 승패를 판단합니다. 예를 들어 -0.5는 해당 팀이 1골 이상 이겨야 당첨됩니다." },
-];
-
 export default function QnAPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
@@ -37,6 +31,39 @@ function QnAContent() {
   const [categories, setCategories] = useState<any[]>([]);
   const [showFAQ, setShowFAQ] = useState(true);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+
+  // Dynamic Q&A State
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [isLoadingQna, setIsLoadingQna] = useState(true);
+  const [expandedUserQna, setExpandedUserQna] = useState<number | null>(null);
+  
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchQuestions = async () => {
+    setIsLoadingQna(true);
+    try {
+      const res = await fetch("/api/inquiries?type=public");
+      const data = await res.json();
+      if (data.success) {
+        setQuestions(data.inquiries);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user QnA", err);
+    } finally {
+      setIsLoadingQna(false);
+    }
+  };
+
+  useEffect(() => {
+    setIsLoggedIn(document.cookie.includes("auth_session"));
+    fetchQuestions();
+  }, []);
 
   useEffect(() => {
     const cat = searchParams.get("cat");
@@ -56,8 +83,45 @@ function QnAContent() {
     fetchCategories();
   }, [searchParams]);
 
+  const handleSubmitQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !content.trim()) {
+      alert("제목과 내용을 입력해주세요.");
+      return;
+    }
+    if (!isLoggedIn && !email.trim()) {
+      alert("이메일 주소를 입력해주세요.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content, email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("질문이 성공적으로 접수되었습니다. 관리자 답변 후 노출됩니다.");
+        setTitle("");
+        setContent("");
+        setEmail("");
+        setIsModalOpen(false);
+        fetchQuestions();
+      } else {
+        alert(data.error || "질문 등록 중 오류가 발생했습니다.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("서버 오류가 발생했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filteredFAQ = activeCat === "all" ? FAQ_ITEMS : FAQ_ITEMS.filter(f => f.category === activeCat);
-  const filteredQuestions = activeCat === "all" ? USER_QUESTIONS : USER_QUESTIONS.filter(q => q.category === activeCat);
+  const filteredQuestions = questions; // Show all inquiries under Q&A
 
   return (
     <div className="mesh-gradient min-h-screen">
@@ -73,7 +137,7 @@ function QnAContent() {
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter">Q&A</h1>
             <p className="text-muted-foreground mt-1">자주 묻는 질문과 사용자 질문답변</p>
           </div>
-          <button className="btn-primary flex items-center gap-2 w-fit">
+          <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center gap-2 w-fit">
             <PenLine className="w-4 h-4" /> 질문하기
           </button>
         </div>
@@ -152,52 +216,134 @@ function QnAContent() {
             )}
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredQuestions.length > 0 ? (
-              filteredQuestions.map(q => (
-                <div key={q.id} className="glass-card rounded-xl p-5 hover:bg-white/[0.02] transition-colors cursor-pointer group">
-                  <div className="flex items-start gap-3">
-                    <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
-                      q.solved ? "bg-emerald-500/15" : "bg-[hsl(var(--gold))]/15"
-                    )}>
-                      {q.solved
-                        ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        : <HelpCircle className="w-4 h-4 text-[hsl(var(--gold))]" />
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {q.solved
-                          ? <span className="badge-success text-[8px]">해결됨</span>
-                          : <span className="badge-gold text-[8px]">미해결</span>
+          <div className="space-y-3 max-w-3xl">
+            {isLoadingQna ? (
+              <div className="text-center py-10 text-muted-foreground animate-pulse font-bold">로딩 중...</div>
+            ) : filteredQuestions.length > 0 ? (
+              filteredQuestions.map(q => {
+                const isSolved = q.status === "answered";
+                const isExpanded = expandedUserQna === q.id;
+                const authorDisplay = q.userNickname || q.email || "손님";
+                return (
+                  <div key={q.id} className="glass-card rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setExpandedUserQna(isExpanded ? null : q.id)}
+                      className="w-full flex items-start gap-4 p-5 text-left hover:bg-white/[0.02] transition-colors group"
+                    >
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
+                        isSolved ? "bg-emerald-500/15" : "bg-[hsl(var(--gold))]/15"
+                      )}>
+                        {isSolved
+                          ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          : <HelpCircle className="w-4 h-4 text-[hsl(var(--gold))]" />
                         }
-                        <span className="text-[10px] text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded font-bold">
-                          {q.category}
-                        </span>
                       </div>
-                      <h3 className="font-bold text-sm group-hover:text-primary transition-colors mb-2">{q.question}</h3>
-                      {q.topAnswer && (
-                        <div className="bg-white/[0.03] rounded-lg p-3 mb-3 border-l-2 border-primary/30">
-                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{q.topAnswer}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {isSolved
+                            ? <span className="badge-success text-[8px]">해결됨</span>
+                            : <span className="badge-gold text-[8px]">미해결</span>
+                          }
+                          <span className="text-[10px] text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded font-bold">
+                            사용자 Q&A
+                          </span>
                         </div>
-                      )}
-                      <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-                        <span>{q.author}</span>
-                        <span>{q.date}</span>
-                        <span className="flex items-center gap-1"><MessageSquare className="w-2.5 h-2.5" />답변 {q.answers}</span>
-                        <span className="flex items-center gap-1"><Eye className="w-2.5 h-2.5" />{q.views}</span>
+                        <h3 className="font-bold text-sm group-hover:text-primary transition-colors mb-2">{q.title}</h3>
+                        
+                        <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                          <span>{authorDisplay}</span>
+                          <span>{new Date(q.createdAt).toLocaleDateString()}</span>
+                        </div>
                       </div>
-                    </div>
+                      <ChevronRight className={cn("w-4 h-4 text-muted-foreground transition-transform shrink-0 ml-4 mt-2", isExpanded && "rotate-90")} />
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-5 pb-5 pl-16 border-t border-white/[0.04] bg-white/[0.01] pt-4 animate-fade-in">
+                        <div className="mb-4">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block mb-1">질문 내용</span>
+                          <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{q.content}</p>
+                        </div>
+                        {isSolved ? (
+                          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
+                            <span className="text-[10px] uppercase font-black text-primary tracking-widest block mb-1">관리자 답변</span>
+                            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{q.answer}</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">답변을 기다리고 있는 질문입니다.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <p className="text-muted-foreground text-sm py-10">해당 카테고리에 등록된 질문이 없습니다.</p>
+              <p className="text-muted-foreground text-sm py-10">등록된 사용자 질문이 없습니다.</p>
             )}
           </div>
         )}
       </div>
+
+      {/* Write Question Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#101424] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-scale-in">
+            <div className="p-5 border-b border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-lg">질문하기</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">자유롭게 궁금한 점을 질문해 보세요</p>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all">✕</button>
+            </div>
+            <form onSubmit={handleSubmitQuestion}>
+              <div className="p-6 space-y-4">
+                {!isLoggedIn && (
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">이메일 주소</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="답변 알림을 받을 이메일 주소를 입력해 주세요"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">질문 제목</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="질문 제목을 입력해 주세요"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">질문 내용</label>
+                  <textarea
+                    required
+                    rows={6}
+                    placeholder="상세한 질문 내용을 입력해 주세요"
+                    value={content}
+                    onChange={e => setContent(e.target.value)}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all resize-none"
+                  />
+                </div>
+              </div>
+              <div className="p-5 border-t border-white/10 flex justify-end gap-2 bg-black/20">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-muted-foreground hover:bg-white/5 transition-colors">취소</button>
+                <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all">
+                  {isSubmitting ? "등록 중..." : "등록하기"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

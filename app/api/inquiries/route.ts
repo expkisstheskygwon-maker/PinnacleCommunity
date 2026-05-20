@@ -40,6 +40,33 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type');
+    const { env } = getCloudflareContext();
+    const db = env.DB as any;
+
+    if (type === 'featured') {
+      const { results } = await db.prepare(`
+        SELECT i.*, u.nickname as userNickname 
+        FROM inquiries i 
+        LEFT JOIN users u ON i.userId = u.id 
+        WHERE i.status = 'answered' AND i.showOnMain = 1 
+        ORDER BY i.createdAt DESC 
+        LIMIT 5
+      `).all();
+      return NextResponse.json({ success: true, inquiries: results });
+    }
+
+    if (type === 'public') {
+      const { results } = await db.prepare(`
+        SELECT i.*, u.nickname as userNickname 
+        FROM inquiries i 
+        LEFT JOIN users u ON i.userId = u.id 
+        ORDER BY i.createdAt DESC
+      `).all();
+      return NextResponse.json({ success: true, inquiries: results });
+    }
+
     const cookieStore = await cookies();
     const authSession = cookieStore.get('auth_session');
 
@@ -49,9 +76,6 @@ export async function GET(request: NextRequest) {
 
     const sessionData = JSON.parse(authSession.value);
     const userId = sessionData.id;
-
-    const { env } = getCloudflareContext();
-    const db = env.DB as any;
 
     const { results } = await db.prepare('SELECT * FROM inquiries WHERE userId = ? ORDER BY createdAt DESC')
       .bind(userId)

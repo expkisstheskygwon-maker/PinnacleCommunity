@@ -111,7 +111,7 @@ export default function AdminDashboard() {
           {activeTab === "community" && <CommunityView />}
           {activeTab === "inquiries" && <InquiriesView />}
           {activeTab === "guide" && <PostEditorView category="가이드" />}
-          {activeTab === "qna" && <PostEditorView category="Q&A" />}
+          {activeTab === "qna" && <QnaAdminTabsView />}
           {activeTab === "notices" && <PostEditorView category="공지/이슈" />}
           {activeTab === "analysis" && <PostEditorView category="분석/칼럼" />}
           {activeTab === "spotlight" && <PostEditorView category="스포트라이트" />}
@@ -1664,6 +1664,260 @@ function InquiriesView() {
                     value={answer}
                     onChange={e => setAnswer(e.target.value)}
                     placeholder="문의에 대한 답변을 입력하세요..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[200px] leading-relaxed"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-white/10 flex justify-end gap-2 bg-black/20">
+              <button onClick={() => setSelectedInquiry(null)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-muted-foreground hover:bg-white/5 transition-colors">취소</button>
+              <button 
+                onClick={handleSubmitReply} 
+                disabled={isSubmitting}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(239,68,68,0.2)] disabled:opacity-50"
+              >
+                {isSubmitting ? '처리 중...' : '답변 저장하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function QnaAdminTabsView() {
+  const [subTab, setSubTab] = useState("user-qna"); // "user-qna" | "faq-write"
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl w-fit border border-white/[0.06] mb-4">
+        <button
+          onClick={() => setSubTab("user-qna")}
+          className={cn("px-6 py-2.5 rounded-lg text-sm font-bold transition-all", subTab === "user-qna" ? "bg-red-500 text-white" : "text-muted-foreground hover:text-foreground")}
+        >
+          사용자 Q&A 관리
+        </button>
+        <button
+          onClick={() => setSubTab("faq-write")}
+          className={cn("px-6 py-2.5 rounded-lg text-sm font-bold transition-all", subTab === "faq-write" ? "bg-red-500 text-white" : "text-muted-foreground hover:text-foreground")}
+        >
+          공식 FAQ 작성
+        </button>
+      </div>
+
+      {subTab === "faq-write" ? (
+        <PostEditorView category="Q&A" />
+      ) : (
+        <AdminUserQnaView />
+      )}
+    </div>
+  );
+}
+
+function AdminUserQnaView() {
+  const [inquiries, setInquiries] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedInquiry, setSelectedInquiry] = useState<any | null>(null);
+  const [answer, setAnswer] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchInquiries = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/admin/inquiries');
+      const data = await res.json();
+      if (data.success) {
+        setInquiries(data.inquiries);
+      } else {
+        alert(data.error || "Q&A 목록을 불러오지 못했습니다.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInquiries();
+  }, []);
+
+  const handleOpenReply = (inquiry: any) => {
+    setSelectedInquiry(inquiry);
+    setAnswer(inquiry.answer || "");
+  };
+
+  const handleSubmitReply = async () => {
+    if (!answer.trim()) {
+      alert("답변 내용을 입력해주세요.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/admin/inquiries', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedInquiry.id, answer })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("답변이 등록되었습니다.");
+        setSelectedInquiry(null);
+        fetchInquiries();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("답변 등록 중 오류가 발생했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleShowOnMain = async (id: number, currentVal: number) => {
+    try {
+      const res = await fetch('/api/admin/inquiries', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, showOnMain: currentVal === 1 ? 0 : 1 })
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchInquiries();
+      } else {
+        alert(data.error || "메인 노출 수정에 실패했습니다.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("오류가 발생했습니다.");
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">사용자 Q&A 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">사용자 질문 내역을 확인하고 답변하며 메인 사이트 노출을 제어합니다</p>
+        </div>
+        <button onClick={fetchInquiries} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold transition-all">
+          새로고침
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="py-10 text-center text-muted-foreground text-sm font-bold animate-pulse">
+          질문 목록을 불러오는 중...
+        </div>
+      ) : (
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-white/[0.06] bg-white/[0.02]">
+                <th className="text-left px-5 py-4 font-bold">상태</th>
+                <th className="text-center px-3 py-4 font-bold">메인 노출</th>
+                <th className="text-left px-3 py-4 font-bold">제목</th>
+                <th className="text-left px-3 py-4 font-bold">작성자</th>
+                <th className="text-center px-3 py-4 font-bold">작성일</th>
+                <th className="text-right px-5 py-4 font-bold">관리</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04]">
+              {inquiries.map(i => (
+                <tr key={i.id} className="hover:bg-white/[0.03] transition-colors">
+                  <td className="px-5 py-4">
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-1 rounded border",
+                      i.status === 'answered' 
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                        : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                    )}>
+                      {i.status === 'answered' ? '답변 완료' : '답변 대기'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-4 text-center">
+                    <button
+                      disabled={i.status !== 'answered'}
+                      onClick={() => handleToggleShowOnMain(i.id, i.showOnMain || 0)}
+                      className={cn(
+                        "inline-flex items-center justify-center p-1 rounded-lg transition-colors",
+                        i.status !== 'answered' ? "opacity-30 cursor-not-allowed" : "hover:bg-white/5"
+                      )}
+                    >
+                      {i.showOnMain === 1 ? (
+                        <ToggleRight className="w-6 h-6 text-emerald-400" />
+                      ) : (
+                        <ToggleLeft className="w-6 h-6 text-muted-foreground" />
+                      )}
+                    </button>
+                  </td>
+                  <td className="px-3 py-4 font-bold max-w-[300px] truncate">{i.title}</td>
+                  <td className="px-3 py-4 text-muted-foreground">
+                    {i.userNickname || i.email || '익명'}
+                  </td>
+                  <td className="px-3 py-4 text-center text-muted-foreground text-xs">
+                    {new Date(i.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <button 
+                      onClick={() => handleOpenReply(i)}
+                      className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold transition-all border border-white/10"
+                    >
+                      {i.status === 'answered' ? '수정/확인' : '답변하기'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {inquiries.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">
+                    접수된 질문이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Reply Modal */}
+      {selectedInquiry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-white/10 flex items-center justify-between">
+              <h3 className="font-black text-lg">사용자 Q&A 답변</h3>
+              <button onClick={() => setSelectedInquiry(null)} className="text-muted-foreground hover:text-white p-1">✕</button>
+            </div>
+            
+            <div className="p-6 space-y-6 overflow-y-auto">
+              <div className="space-y-4">
+                <div className="bg-white/5 rounded-xl p-4 border border-white/5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">질문 내용</span>
+                    <span className="text-[10px] text-muted-foreground">{new Date(selectedInquiry.createdAt).toLocaleString()}</span>
+                  </div>
+                  <h4 className="font-bold text-sm mb-2">{selectedInquiry.title}</h4>
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {selectedInquiry.content}
+                  </p>
+                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground">작성자:</span>
+                    <span className="text-[10px] font-bold text-white/70">{selectedInquiry.userNickname || selectedInquiry.email || '익명'}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">답변 작성</label>
+                  <textarea
+                    value={answer}
+                    onChange={e => setAnswer(e.target.value)}
+                    placeholder="질문에 대한 답변을 입력하세요..."
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[200px] leading-relaxed"
                   />
                 </div>
