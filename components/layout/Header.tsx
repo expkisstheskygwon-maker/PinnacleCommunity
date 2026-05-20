@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Trophy, Home, TrendingUp, BarChart3, Star, HelpCircle,
   BookOpen, Bell, Users, User, Menu, X, ChevronDown,
@@ -60,11 +60,11 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
-    id: "concepts", href: "/community?cat=review", label: "개념 탑재", labelEn: "Concepts", icon: Lightbulb,
+    id: "concepts", href: "/concepts", label: "개념 탑재", labelEn: "Concepts", icon: Lightbulb,
     children: [
-      { href: "/community?cat=review", label: "베팅 복기", labelEn: "Betting Review" },
-      { href: "/community?cat=bankroll", label: "심리/자금관리", labelEn: "Mindset & Bankroll" },
-      { href: "/community?cat=strategy", label: "전략 실험실", labelEn: "Strategy Lab" },
+      { href: "/concepts?cat=review", label: "베팅 복기", labelEn: "Betting Review" },
+      { href: "/concepts?cat=bankroll", label: "심리/자금관리", labelEn: "Mindset & Bankroll" },
+      { href: "/concepts?cat=strategy", label: "전략 실험실", labelEn: "Strategy Lab" },
     ]
   },
   {
@@ -114,7 +114,6 @@ export default function Header({ user }: HeaderProps) {
   const [lang, setLang] = useState<"ko" | "en">("ko");
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
@@ -222,18 +221,7 @@ export default function Header({ user }: HeaderProps) {
 
   const isActive = (item: NavItem) => {
     if (item.href === "/") return pathname === "/";
-    
-    const activeCat = searchParams.get("cat") || "";
-    const isConceptCat = ["review", "bankroll", "strategy"].includes(activeCat);
-    
-    if (item.id === "concepts") {
-      return pathname.startsWith("/community") && isConceptCat;
-    }
-    if (item.id === "community") {
-      return pathname.startsWith("/community") && !isConceptCat;
-    }
-    
-    return pathname.startsWith(item.href);
+    return pathname.startsWith(item.href.split('?')[0]);
   };
 
   const handleMouseEnter = (id: string) => {

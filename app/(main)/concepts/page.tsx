@@ -3,40 +3,88 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
-  Users, MessageSquare, Swords, Target, Trophy,
-  PenLine, ThumbsUp, Eye, Clock, Flame, ChevronRight,
-  Hash, Award, TrendingUp, Star, Search, X,
-  Shield
+  Users, PenLine, ThumbsUp, Eye, Clock, Flame,
+  Hash, Search, X,
+  History, Shield, Zap, Lightbulb, Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 import { useRouter, useSearchParams } from "next/navigation";
 
-const CATEGORIES = [
-  { id: "all", label: "전체", icon: Users },
-  { id: "free", label: "자유게시판", icon: MessageSquare },
-  { id: "match", label: "경기 토론", icon: Swords },
-  { id: "picks", label: "픽 공유", icon: Target },
-  { id: "events", label: "이벤트/랭킹", icon: Trophy },
+const CONCEPT_CATEGORIES = [
+  { id: "review", label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
+  { id: "bankroll", label: "심리/자금관리", icon: Shield, desc: "마인드 및 자금 관리" },
+  { id: "strategy", label: "전략 실험실", icon: Zap, desc: "전략 실험 및 연구" },
 ];
 
-const TOP_USERS = [
-  { rank: 1, name: "ProBettor", score: 2840, badge: "Expert", streak: 12 },
-  { rank: 2, name: "분석왕", score: 2650, badge: "MVP", streak: 8 },
-  { rank: 3, name: "DataWiz", score: 2420, badge: "Expert", streak: 15 },
-  { rank: 4, name: "e스포츠마니아", score: 1980, badge: "Analyst", streak: 6 },
-  { rank: 5, name: "야구덕후", score: 1750, badge: "Streak", streak: 10 },
-];
+function ConceptsDashboard({ activeCat }: { activeCat: string }) {
+  const stats = {
+    review: { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 },
+    bankroll: { profit: "+850,000원", winRate: 72, avgOdds: "1.75", roi: "109.8%", bets: 28 },
+    strategy: { profit: "+3,120,000원", winRate: 59, avgOdds: "2.10", roi: "128.3%", bets: 65 },
+  }[activeCat as 'review' | 'bankroll' | 'strategy'] || { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 };
 
-const BADGE_COLORS: Record<string, string> = {
-  "Admin": "bg-red-500/20 text-red-400 border-red-500/30",
-  "Expert": "bg-primary/20 text-primary border-primary/30",
-  "MVP": "bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30",
-  "Analyst": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  "Streak": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-};
+  return (
+    <div className="glass-card rounded-3xl p-6 mb-8 border-white/10 relative overflow-hidden animate-fade-in">
+      <div className="absolute -right-24 -top-24 w-48 h-48 rounded-full bg-primary/10 blur-[80px] pointer-events-none" />
+      <div className="absolute -left-24 -bottom-24 w-48 h-48 rounded-full bg-[hsl(var(--gold))]/5 blur-[80px] pointer-events-none" />
 
-export default function CommunityPage() {
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+        <div className="w-full lg:w-1/3 flex flex-col justify-center items-center lg:items-start text-center lg:text-left">
+          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5">My Cumulative Return</span>
+          <h2 className="text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.2)] tracking-tight">
+            {stats.profit}
+          </h2>
+          <p className="text-xs text-muted-foreground/60 mt-2 font-medium">최근 등록된 복기 기록 기반 실시간 집계</p>
+        </div>
+
+        <div className="w-full lg:w-1/3 flex items-center justify-center gap-6 border-y lg:border-y-0 lg:border-x border-white/5 py-6 lg:py-2">
+          <div className="relative w-20 h-20 flex items-center justify-center">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.03)" strokeWidth="8" fill="transparent" />
+              <circle cx="50" cy="50" r="40" stroke="url(#winRateGrad)" strokeWidth="8" fill="transparent"
+                strokeDasharray={251.2}
+                strokeDashoffset={251.2 - (251.2 * stats.winRate) / 100}
+                className="transition-all duration-1000 ease-out"
+              />
+              <defs>
+                <linearGradient id="winRateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#10B981" />
+                  <stop offset="100%" stopColor="#3B82F6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute flex flex-col items-center justify-center">
+              <span className="text-lg font-black font-mono leading-none">{stats.winRate}%</span>
+              <span className="text-[8px] font-bold text-muted-foreground tracking-wider mt-0.5">승률</span>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-bold mb-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span>총 {stats.bets}회 베팅</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 leading-relaxed font-medium">
+              전략적 베팅 및 리스크 분산 관리를 통해<br/>안정적인 Win-rate 비율을 유지 중입니다.
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full lg:w-1/3 grid grid-cols-2 gap-4">
+          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col justify-center items-center group hover:bg-white/[0.04] transition-all">
+            <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1.5">Average Odds</span>
+            <span className="text-xl font-mono font-black text-[hsl(var(--gold))] group-hover:scale-105 transition-transform">{stats.avgOdds}</span>
+          </div>
+          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col justify-center items-center group hover:bg-white/[0.04] transition-all">
+            <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1.5">Return (ROI)</span>
+            <span className="text-xl font-mono font-black text-primary group-hover:scale-105 transition-transform">{stats.roi}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ConceptsPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,7 +92,7 @@ export default function CommunityPage() {
   const router = useRouter();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const activeCat = searchParams.get("cat") || "all";
+  const activeCat = searchParams.get("cat") || "review";
   const currentSearch = searchParams.get("search") || "";
 
   useEffect(() => {
@@ -82,19 +130,19 @@ export default function CommunityPage() {
     } else {
       params.delete("search");
     }
-    router.push(`/community?${params.toString()}`);
+    router.push(`/concepts?${params.toString()}`);
   };
 
   const handleTagClick = (tag: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("search", `#${tag}`);
-    router.push(`/community?${params.toString()}`);
+    router.push(`/concepts?${params.toString()}`);
   };
 
   const setActiveCat = (catId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("cat", catId);
-    router.push(`/community?${params.toString()}`);
+    router.push(`/concepts?${params.toString()}`);
   };
 
   return (
@@ -104,14 +152,20 @@ export default function CommunityPage() {
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
           <Link href="/" className="hover:text-primary transition-colors">홈</Link>
           <span>/</span>
-          <span className="text-foreground font-bold">커뮤니티</span>
+          <span className="hover:text-primary transition-colors cursor-pointer" onClick={() => router.push('/concepts')}>개념 탑재</span>
+          <span>/</span>
+          <span className="text-foreground font-bold">
+            {CONCEPT_CATEGORIES.find(c => c.id === activeCat)?.label || "베팅 복기"}
+          </span>
         </div>
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">커뮤니티</h1>
-            <p className="text-muted-foreground mt-1">경기 토론, 픽 공유, 자유로운 소통의 공간</p>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter flex items-center gap-2">
+              <Lightbulb className="w-8 h-8 text-[hsl(var(--gold))] animate-pulse" /> 개념 탑재
+            </h1>
+            <p className="text-muted-foreground mt-1">성공적인 베팅을 위한 복기 및 자금 관리 전략 수립 공간</p>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <form onSubmit={handleSearch} className="relative w-full sm:w-80">
@@ -127,14 +181,14 @@ export default function CommunityPage() {
               {searchQuery && (
                 <button 
                   type="button"
-                  onClick={() => { setSearchQuery(""); router.push(`/community?cat=${activeCat}`); }}
+                  onClick={() => { setSearchQuery(""); router.push(`/concepts?cat=${activeCat}`); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
                 >
                   <X className="w-3 h-3 text-muted-foreground" />
                 </button>
               )}
             </form>
-            <Link href="/community/write" className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center">
+            <Link href={`/concepts/write?category=${activeCat}`} className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center">
               <PenLine className="w-4 h-4" /> 글쓰기
             </Link>
           </div>
@@ -142,7 +196,7 @@ export default function CommunityPage() {
 
         {/* Categories */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {CATEGORIES.map(cat => (
+          {CONCEPT_CATEGORIES.map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCat(cat.id)}
@@ -158,6 +212,9 @@ export default function CommunityPage() {
             </button>
           ))}
         </div>
+
+        {/* Mini Dashboard */}
+        <ConceptsDashboard activeCat={activeCat} />
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           {/* Posts List */}
@@ -180,7 +237,6 @@ export default function CommunityPage() {
                 <Link key={post.id} href={`/community/${post.id}`}>
                   <div className="glass-card rounded-xl p-5 hover:bg-white/[0.03] transition-all hover:scale-[1.01] hover:shadow-2xl border-white/5 hover:border-primary/20 cursor-pointer group mb-3">
                     <div className="flex items-start gap-4">
-                      {/* Avatar */}
                       <div className="w-10 h-10 rounded-xl bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-primary text-lg shrink-0 group-hover:scale-105 transition-transform">
                         {post.authorAvatar ? (
                           <img src={post.authorAvatar} className="w-full h-full object-cover" alt={post.author} />
@@ -188,12 +244,10 @@ export default function CommunityPage() {
                           post.author[0]
                         )}
                       </div>
-
                       <div className="flex-1 min-w-0">
-                        {/* Meta */}
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <span className="text-[9px] font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">
-                            {CATEGORIES.find(c => c.id === post.category)?.label}
+                            {CONCEPT_CATEGORIES.find(c => c.id === post.category)?.label || post.category}
                           </span>
                           {post.views > 1000 && (
                             <span className="badge-danger text-[8px]">
@@ -201,8 +255,6 @@ export default function CommunityPage() {
                             </span>
                           )}
                         </div>
-
-                        {/* Title */}
                         <div className="flex items-start justify-between gap-4">
                           {post.authorId === 0 ? (
                             <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2 flex-1" dangerouslySetInnerHTML={{ __html: post.title }} />
@@ -217,24 +269,15 @@ export default function CommunityPage() {
                             </div>
                           )}
                         </div>
-
-                        {/* Author & Stats */}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold text-foreground">{post.author}</span>
                             <span className="text-muted-foreground/40">Lv.{post.level || 1}</span>
-                            {post.totalBets >= 30 && post.roi >= 5 && (
-                              <span className="flex items-center gap-0.5 px-1.5 py-0 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[8px] font-bold">
-                                <Shield className="w-2 h-2" /> 검증됨
-                              </span>
-                            )}
                           </div>
                           <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{new Date(post.createdAt).toLocaleDateString()}</span>
                           <span className="flex items-center gap-1"><Eye className="w-2.5 h-2.5" />{post.views.toLocaleString()}</span>
                           <span className="flex items-center gap-1"><ThumbsUp className="w-2.5 h-2.5" />{post.likes}</span>
                         </div>
-
-                        {/* Tags */}
                         {post.tags && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
                             {post.tags.split(',').map((tag: string) => {
@@ -264,9 +307,9 @@ export default function CommunityPage() {
                 </div>
                 <div>
                   <p className="font-bold">등록된 게시글이 없습니다.</p>
-                  <p className="text-xs text-muted-foreground">가장 먼저 새로운 이야기를 시작해보세요!</p>
+                  <p className="text-xs text-muted-foreground">나의 베팅 경험을 기록하고 공유해보세요!</p>
                 </div>
-                <Link href="/community/write" className="btn-primary inline-flex items-center gap-2 py-3 px-6 text-xs mx-auto">
+                <Link href={`/concepts/write?category=${activeCat}`} className="btn-primary inline-flex items-center gap-2 py-3 px-6 text-xs mx-auto">
                   첫 글 작성하기
                 </Link>
               </div>
@@ -281,41 +324,16 @@ export default function CommunityPage() {
 
           {/* Sidebar */}
           <aside className="xl:col-span-4 space-y-6">
-            {/* Rankings */}
+            {/* Top Contributors */}
             <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <div className="bg-[hsl(var(--gold))]/15 p-1.5 rounded-lg">
                   <Trophy className="w-4 h-4 text-[hsl(var(--gold))]" />
                 </div>
-                <h3 className="font-bold">활동 랭킹</h3>
+                <h3 className="font-bold">복기 랭킹</h3>
               </div>
-              <div className="space-y-2">
-                {TOP_USERS.map(user => (
-                  <div key={user.rank} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group">
-                    <span className={cn(
-                      "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0",
-                      user.rank <= 3 ? "bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]" : "bg-white/5 text-muted-foreground"
-                    )}>
-                      {user.rank}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold group-hover:text-primary transition-colors">{user.name}</span>
-                        {user.badge && (
-                          <span className={cn("text-[7px] font-bold px-1 py-0.5 rounded border", BADGE_COLORS[user.badge])}>
-                            {user.badge}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
-                        <span>{user.score.toLocaleString()}점</span>
-                        <span className="flex items-center gap-0.5 text-emerald-400">
-                          <Flame className="w-2 h-2" />{user.streak}연승
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="py-6 text-center">
+                <p className="text-xs text-muted-foreground">데이터 집계 중...</p>
               </div>
             </div>
 
@@ -328,7 +346,7 @@ export default function CommunityPage() {
                 <h3 className="font-bold">인기 태그</h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                {["EPL", "K리그", "LCK", "KBO", "MLB", "배당분석", "핸디캡", "라이브", "오버언더", "축구", "야구", "e스포츠", "전략", "피나클"].map(tag => (
+                {["복기", "자금관리", "전략", "ROI", "적중", "배당분석", "핸디캡", "오버언더", "심리관리", "뱅크롤"].map(tag => (
                   <button 
                     key={tag} 
                     onClick={() => handleTagClick(tag)}
@@ -346,11 +364,11 @@ export default function CommunityPage() {
             </div>
 
             {/* Write CTA */}
-            <div className="glass-card rounded-2xl p-6 bg-gradient-to-br from-primary/[0.06] to-transparent text-center">
-              <PenLine className="w-8 h-8 text-primary mx-auto mb-3" />
-              <h4 className="font-bold mb-1">커뮤니티에 참여하세요</h4>
-              <p className="text-xs text-muted-foreground mb-4">경기 분석, 픽 공유, 질문 등</p>
-              <Link href="/community/write" className="btn-primary w-full text-sm py-3 block">글쓰기</Link>
+            <div className="glass-card rounded-2xl p-6 bg-gradient-to-br from-[hsl(var(--gold))]/[0.06] to-transparent text-center">
+              <Lightbulb className="w-8 h-8 text-[hsl(var(--gold))] mx-auto mb-3" />
+              <h4 className="font-bold mb-1">나의 베팅을 기록하세요</h4>
+              <p className="text-xs text-muted-foreground mb-4">베팅 복기, 전략 공유, 자금 관리 노하우</p>
+              <Link href={`/concepts/write?category=${activeCat}`} className="btn-primary w-full text-sm py-3 block">글쓰기</Link>
             </div>
           </aside>
         </div>

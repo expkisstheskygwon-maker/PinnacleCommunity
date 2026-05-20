@@ -1,20 +1,18 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   PenLine, X, Check, ChevronLeft, Hash, 
-  MessageSquare, Swords, Target, Trophy, Info,
-  Loader2, AlertTriangle, Image as ImageIcon, Send
+  Info, Loader2, AlertTriangle, Image as ImageIcon, Send,
+  History, Shield, Zap, Lightbulb
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const CATEGORIES = [
-  { id: "free", label: "자유게시판", icon: MessageSquare, desc: "자유로운 일상과 소통" },
-  { id: "match", label: "경기 토론", icon: Swords, desc: "경기 분석 및 토론" },
-  { id: "picks", label: "픽 공유", icon: Target, desc: "승무패/핸디캡 픽 공유" },
-  { id: "events", label: "이벤트/랭킹", icon: Trophy, desc: "혜택과 순위 경쟁" },
+const CONCEPT_CATEGORIES = [
+  { id: "review", label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
+  { id: "bankroll", label: "심리/자금관리", icon: Shield, desc: "마인드 및 자금 관리" },
+  { id: "strategy", label: "전략 실험실", icon: Zap, desc: "전략 실험 및 연구" },
 ];
 
 const TEMPLATES = [
@@ -30,7 +28,7 @@ const TEMPLATES = [
   }
 ];
 
-export default function WritePage() {
+export default function ConceptsWritePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,23 +36,48 @@ export default function WritePage() {
   
   const [formData, setFormData] = useState({
     title: '',
-    category: 'free',
+    category: 'review',
     content: '',
     tags: '',
     image: '',
   });
 
+  const [betLog, setBetLog] = useState({
+    match: '',
+    odds: '',
+    stake: '',
+    result: 'win'
+  });
+
+  const isBetLogCategory = formData.category === 'review' || formData.category === 'strategy';
+
+  const calculateNetProfit = () => {
+    const oddsNum = parseFloat(betLog.odds) || 0;
+    const stakeNum = parseFloat(betLog.stake) || 0;
+    
+    if (oddsNum <= 0 || stakeNum <= 0) return 0;
+    
+    switch (betLog.result) {
+      case 'win':
+        return Math.round(stakeNum * (oddsNum - 1));
+      case 'lose':
+        return -Math.round(stakeNum);
+      case 'half-win':
+        return Math.round(stakeNum * (oddsNum - 1) * 0.5);
+      case 'half-lose':
+        return -Math.round(stakeNum * 0.5);
+      case 'void':
+      default:
+        return 0;
+    }
+  };
+
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const qContent = searchParams.get('content');
     const qCat = searchParams.get('category');
-    if (qContent || qCat) {
-      setFormData(prev => ({
-        ...prev,
-        content: qContent || prev.content,
-        category: qCat || prev.category
-      }));
+    if (qCat && CONCEPT_CATEGORIES.find(c => c.id === qCat)) {
+      setFormData(prev => ({ ...prev, category: qCat }));
     }
   }, [searchParams]);
 
@@ -71,7 +94,6 @@ export default function WritePage() {
         setError('이미지 크기는 5MB 이하여야 합니다.');
         return;
       }
-
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, image: reader.result as string }));
@@ -98,11 +120,27 @@ export default function WritePage() {
     setIsLoading(true);
     setError('');
 
+    let finalContent = formData.content;
+    if (isBetLogCategory && betLog.match && betLog.odds && betLog.stake) {
+      const net = calculateNetProfit();
+      const logTag = `[BETLOG:${JSON.stringify({
+        match: betLog.match,
+        odds: parseFloat(betLog.odds),
+        stake: parseFloat(betLog.stake),
+        result: betLog.result,
+        net: net
+      })}]`;
+      finalContent = logTag + "\n" + finalContent;
+    }
+
     try {
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          content: finalContent
+        }),
       });
 
       const data = await response.json();
@@ -111,7 +149,7 @@ export default function WritePage() {
         throw new Error(data.error || '글 저장 중 오류가 발생했습니다.');
       }
 
-      router.push('/community');
+      router.push(`/concepts?cat=${formData.category}`);
       router.refresh();
     } catch (err: any) {
       setError(err.message);
@@ -134,9 +172,9 @@ export default function WritePage() {
             </button>
             <div>
               <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-                <PenLine className="w-6 h-6 text-primary" /> 새 글 작성
+                <Lightbulb className="w-6 h-6 text-[hsl(var(--gold))]" /> 개념 탑재 글 작성
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">피나클 커뮤니티의 새로운 이야기를 시작하세요.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">나의 베팅 경험과 전략을 기록하세요.</p>
             </div>
           </div>
         </div>
@@ -149,9 +187,9 @@ export default function WritePage() {
             </div>
           )}
 
-          {/* Category Picker */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {CATEGORIES.map(cat => (
+          {/* Category Picker - Only Concept Categories */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {CONCEPT_CATEGORIES.map(cat => (
               <button
                 key={cat.id}
                 type="button"
@@ -171,6 +209,7 @@ export default function WritePage() {
                   "text-xs font-black tracking-widest",
                   formData.category === cat.id ? "text-primary" : "text-muted-foreground"
                 )}>{cat.label}</span>
+                <span className="text-[9px] text-muted-foreground/50 mt-1">{cat.desc}</span>
                 {formData.category === cat.id && (
                   <div className="absolute top-1.5 right-1.5">
                     <Check className="w-3.5 h-3.5 text-primary" />
@@ -194,6 +233,94 @@ export default function WritePage() {
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-primary/50 focus:bg-white/10 transition-all text-lg font-bold placeholder:text-muted-foreground/30"
               />
             </div>
+
+            {/* Interactive Bet Logger */}
+            {isBetLogCategory && (
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Interactive Bet Logger (베팅 결과 기록기)</span>
+                  <span className="text-[10px] text-muted-foreground/60">본문 글 상단에 성과 카드로 자동 박제됩니다.</span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="space-y-1.5 col-span-1 md:col-span-2">
+                    <label className="text-[10px] text-muted-foreground font-bold">대상 경기 / 베팅 팀</label>
+                    <input
+                      type="text"
+                      placeholder="예: 레알 마드리드 승"
+                      value={betLog.match}
+                      onChange={(e) => setBetLog(prev => ({ ...prev, match: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 text-sm placeholder:text-muted-foreground/30 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground font-bold">배당률 (Odds)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="1.95"
+                      value={betLog.odds}
+                      onChange={(e) => setBetLog(prev => ({ ...prev, odds: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 text-sm font-mono placeholder:text-muted-foreground/30 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground font-bold">베팅 금액 (Stake)</label>
+                    <input
+                      type="number"
+                      placeholder="100000"
+                      value={betLog.stake}
+                      onChange={(e) => setBetLog(prev => ({ ...prev, stake: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 text-sm font-mono placeholder:text-muted-foreground/30 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground font-bold">베팅 결과</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { id: 'win', label: '적중' },
+                        { id: 'lose', label: '미적중' },
+                        { id: 'void', label: '적특/무효' },
+                        { id: 'half-win', label: '절반 적중' },
+                        { id: 'half-lose', label: '절반 미적중' }
+                      ].map(resItem => (
+                        <button
+                          key={resItem.id}
+                          type="button"
+                          onClick={() => setBetLog(prev => ({ ...prev, result: resItem.id }))}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg border text-xs font-bold transition-all",
+                            betLog.result === resItem.id
+                              ? resItem.id === 'win' || resItem.id === 'half-win'
+                                ? "bg-emerald-500 text-white border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                                : resItem.id === 'lose' || resItem.id === 'half-lose'
+                                  ? "bg-red-500 text-white border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.3)]"
+                                  : "bg-white text-black border-white"
+                              : "bg-white/5 text-muted-foreground border-white/5 hover:bg-white/10"
+                          )}
+                        >
+                          {resItem.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-3 pt-3 md:pt-0">
+                    <div className="text-right">
+                      <span className="text-[9px] text-muted-foreground uppercase tracking-widest block">Expected Net Profit</span>
+                      <span className={cn(
+                        "text-lg font-mono font-black",
+                        calculateNetProfit() > 0 ? "text-emerald-400" : calculateNetProfit() < 0 ? "text-red-400" : "text-muted-foreground"
+                      )}>
+                        {calculateNetProfit() > 0 ? "+" : ""}{calculateNetProfit().toLocaleString()}원
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Content Area */}
             <div className="space-y-2">
@@ -262,7 +389,7 @@ export default function WritePage() {
                 name="content"
                 value={formData.content}
                 onChange={handleChange}
-                placeholder="내용을 입력하세요 (팁: 분석 내용이나 경기 결과를 포함하면 좋습니다)"
+                placeholder="내용을 입력하세요 (팁: 베팅 분석 내용이나 경기 결과를 포함하면 좋습니다)"
                 rows={12}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-primary/50 focus:bg-white/10 transition-all text-[15px] leading-relaxed resize-none placeholder:text-muted-foreground/30 font-medium"
               />
@@ -278,7 +405,7 @@ export default function WritePage() {
                   name="tags"
                   value={formData.tags}
                   onChange={handleChange}
-                  placeholder="EPL, 분석, 적중 (쉼표로 구분)"
+                  placeholder="복기, ROI, 전략 (쉼표로 구분)"
                   className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-11 pr-6 outline-none focus:border-primary/50 focus:bg-white/10 transition-all text-sm font-medium"
                 />
               </div>
@@ -286,13 +413,13 @@ export default function WritePage() {
           </div>
 
           {/* Info Card */}
-          <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 flex gap-3">
-            <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+          <div className="bg-[hsl(var(--gold))]/5 border border-[hsl(var(--gold))]/10 rounded-2xl p-4 flex gap-3">
+            <Lightbulb className="w-5 h-5 text-[hsl(var(--gold))] shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-xs font-bold text-primary">글 작성 안내</p>
+              <p className="text-xs font-bold text-[hsl(var(--gold))]">개념 탑재 안내</p>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                부적절한 게시물이나 도배는 차단될 수 있습니다. <br />
-                경기 분석이나 픽 공유 게시물은 활동 점수가 더 많이 부여됩니다.
+                베팅 결과 기록기에 입력하신 정보는 글 상단에 시각적 카드로 자동 생성됩니다. <br />
+                정확한 배당률과 금액을 입력해 주시면 통계 집계에 활용됩니다.
               </p>
             </div>
           </div>
