@@ -6,7 +6,7 @@ import {
   Users, MessageSquare, Swords, Target, Trophy,
   PenLine, ThumbsUp, Eye, Clock, Flame, ChevronRight,
   Hash, Award, TrendingUp, Star, Search, X,
-  History, Shield, Zap
+  History, Shield, Zap, Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,77 @@ const CATEGORIES = [
   { id: "strategy", label: "전략 실험실", icon: Zap, hidden: true },
   { id: "events", label: "이벤트/랭킹", icon: Trophy },
 ];
+
+const CONCEPT_CATS = ["review", "bankroll", "strategy"];
+const COMMUNITY_CATS = ["all", "free", "match", "picks", "events"];
+
+function ConceptsDashboard({ activeCat }: { activeCat: string }) {
+  const stats = {
+    review: { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 },
+    bankroll: { profit: "+850,000원", winRate: 72, avgOdds: "1.75", roi: "109.8%", bets: 28 },
+    strategy: { profit: "+3,120,000원", winRate: 59, avgOdds: "2.10", roi: "128.3%", bets: 65 },
+  }[activeCat as 'review' | 'bankroll' | 'strategy'] || { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 };
+
+  return (
+    <div className="glass-card rounded-3xl p-6 mb-8 border-white/10 relative overflow-hidden animate-fade-in">
+      <div className="absolute -right-24 -top-24 w-48 h-48 rounded-full bg-primary/10 blur-[80px] pointer-events-none" />
+      <div className="absolute -left-24 -bottom-24 w-48 h-48 rounded-full bg-[hsl(var(--gold))]/5 blur-[80px] pointer-events-none" />
+
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+        <div className="w-full lg:w-1/3 flex flex-col justify-center items-center lg:items-start text-center lg:text-left">
+          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5">My Cumulative Return</span>
+          <h2 className="text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.2)] tracking-tight">
+            {stats.profit}
+          </h2>
+          <p className="text-xs text-muted-foreground/60 mt-2 font-medium">최근 등록된 복기 기록 기반 실시간 집계</p>
+        </div>
+
+        <div className="w-full lg:w-1/3 flex items-center justify-center gap-6 border-y lg:border-y-0 lg:border-x border-white/5 py-6 lg:py-2">
+          <div className="relative w-20 h-20 flex items-center justify-center">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.03)" strokeWidth="8" fill="transparent" />
+              <circle cx="50" cy="50" r="40" stroke="url(#winRateGrad)" strokeWidth="8" fill="transparent"
+                strokeDasharray={251.2}
+                strokeDashoffset={251.2 - (251.2 * stats.winRate) / 100}
+                className="transition-all duration-1000 ease-out"
+              />
+              <defs>
+                <linearGradient id="winRateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#10B981" />
+                  <stop offset="100%" stopColor="#3B82F6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute flex flex-col items-center justify-center">
+              <span className="text-lg font-black font-mono leading-none">{stats.winRate}%</span>
+              <span className="text-[8px] font-bold text-muted-foreground tracking-wider mt-0.5">승률</span>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-bold mb-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span>총 {stats.bets}회 베팅</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 leading-relaxed font-medium">
+              전략적 베팅 및 리스크 분산 관리를 통해<br/>안정적인 Win-rate 비율을 유지 중입니다.
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full lg:w-1/3 grid grid-cols-2 gap-4">
+          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col justify-center items-center group hover:bg-white/[0.04] transition-all">
+            <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1.5">Average Odds</span>
+            <span className="text-xl font-mono font-black text-[hsl(var(--gold))] group-hover:scale-105 transition-transform">{stats.avgOdds}</span>
+          </div>
+          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col justify-center items-center group hover:bg-white/[0.04] transition-all">
+            <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1.5">Return (ROI)</span>
+            <span className="text-xl font-mono font-black text-primary group-hover:scale-105 transition-transform">{stats.roi}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const TOP_USERS = [
   { rank: 1, name: "ProBettor", score: 2840, badge: "Expert", streak: 12 },
@@ -49,6 +120,7 @@ export default function CommunityPage() {
 
   const activeCat = searchParams.get("cat") || "all";
   const currentSearch = searchParams.get("search") || "";
+  const isConcept = CONCEPT_CATS.includes(activeCat);
 
   useEffect(() => {
     setSearchQuery(currentSearch);
@@ -107,14 +179,35 @@ export default function CommunityPage() {
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
           <Link href="/" className="hover:text-primary transition-colors">홈</Link>
           <span>/</span>
-          <span className="text-foreground font-bold">커뮤니티</span>
+          {isConcept ? (
+            <>
+              <span className="hover:text-primary transition-colors cursor-pointer" onClick={() => router.push('/community?cat=review')}>개념 탑재</span>
+              <span>/</span>
+              <span className="text-foreground font-bold">
+                {CATEGORIES.find(c => c.id === activeCat)?.label || "베팅 복기"}
+              </span>
+            </>
+          ) : (
+            <span className="text-foreground font-bold">커뮤니티</span>
+          )}
         </div>
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">커뮤니티</h1>
-            <p className="text-muted-foreground mt-1">경기 토론, 픽 공유, 자유로운 소통의 공간</p>
+            {isConcept ? (
+              <>
+                <h1 className="text-3xl md:text-4xl font-black tracking-tighter flex items-center gap-2">
+                  <Lightbulb className="w-8 h-8 text-[hsl(var(--gold))] animate-pulse" /> 개념 탑재
+                </h1>
+                <p className="text-muted-foreground mt-1">성공적인 베팅을 위한 복기 및 자금 관리 전략 수립 공간</p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-3xl md:text-4xl font-black tracking-tighter">커뮤니티</h1>
+                <p className="text-muted-foreground mt-1">경기 토론, 픽 공유, 자유로운 소통의 공간</p>
+              </>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <form onSubmit={handleSearch} className="relative w-full sm:w-80">
@@ -137,7 +230,7 @@ export default function CommunityPage() {
                 </button>
               )}
             </form>
-            <Link href="/community/write" className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center">
+            <Link href={`/community/write?category=${isConcept ? activeCat : 'free'}`} className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center">
               <PenLine className="w-4 h-4" /> 글쓰기
             </Link>
           </div>
@@ -145,7 +238,7 @@ export default function CommunityPage() {
 
         {/* Categories */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {CATEGORIES.filter(c => !c.hidden).map(cat => (
+          {CATEGORIES.filter(c => isConcept ? CONCEPT_CATS.includes(c.id) : !c.hidden).map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCat(cat.id)}
@@ -161,6 +254,9 @@ export default function CommunityPage() {
             </button>
           ))}
         </div>
+
+        {/* Mini Dashboard for Concepts board */}
+        {isConcept && <ConceptsDashboard activeCat={activeCat} />}
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           {/* Posts List */}

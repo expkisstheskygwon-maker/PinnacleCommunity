@@ -48,6 +48,36 @@ export default function WritePage() {
     image: '',
   });
 
+  const [betLog, setBetLog] = useState({
+    match: '',
+    odds: '',
+    stake: '',
+    result: 'win'
+  });
+
+  const isBetLogCategory = formData.category === 'review' || formData.category === 'strategy';
+
+  const calculateNetProfit = () => {
+    const oddsNum = parseFloat(betLog.odds) || 0;
+    const stakeNum = parseFloat(betLog.stake) || 0;
+    
+    if (oddsNum <= 0 || stakeNum <= 0) return 0;
+    
+    switch (betLog.result) {
+      case 'win':
+        return Math.round(stakeNum * (oddsNum - 1));
+      case 'lose':
+        return -Math.round(stakeNum);
+      case 'half-win':
+        return Math.round(stakeNum * (oddsNum - 1) * 0.5);
+      case 'half-lose':
+        return -Math.round(stakeNum * 0.5);
+      case 'void':
+      default:
+        return 0;
+    }
+  };
+
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -102,11 +132,27 @@ export default function WritePage() {
     setIsLoading(true);
     setError('');
 
+    let finalContent = formData.content;
+    if (isBetLogCategory && betLog.match && betLog.odds && betLog.stake) {
+      const net = calculateNetProfit();
+      const logTag = `[BETLOG:${JSON.stringify({
+        match: betLog.match,
+        odds: parseFloat(betLog.odds),
+        stake: parseFloat(betLog.stake),
+        result: betLog.result,
+        net: net
+      })}]`;
+      finalContent = logTag + "\n" + finalContent;
+    }
+
     try {
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          content: finalContent
+        }),
       });
 
       const data = await response.json();
@@ -198,7 +244,102 @@ export default function WritePage() {
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-primary/50 focus:bg-white/10 transition-all text-lg font-bold placeholder:text-muted-foreground/30"
               />
             </div>
+ 
+            {/* Interactive Bet Logger (Concepts board specific) */}
+            {isBetLogCategory && (
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Interactive Bet Logger (베팅 결과 기록기)</span>
+                  <span className="text-[10px] text-muted-foreground/60">본문 글 상단에 성과 카드로 자동 박제됩니다.</span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Match Name */}
+                  <div className="space-y-1.5 col-span-1 md:col-span-2">
+                    <label className="text-[10px] text-muted-foreground font-bold">대상 경기 / 베팅 팀</label>
+                    <input
+                      type="text"
+                      placeholder="예: 레알 마드리드 승"
+                      value={betLog.match}
+                      onChange={(e) => setBetLog(prev => ({ ...prev, match: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 text-sm placeholder:text-muted-foreground/30 font-bold"
+                    />
+                  </div>
 
+                  {/* Odds */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground font-bold">배당률 (Odds)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="1.95"
+                      value={betLog.odds}
+                      onChange={(e) => setBetLog(prev => ({ ...prev, odds: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 text-sm font-mono placeholder:text-muted-foreground/30 font-bold"
+                    />
+                  </div>
+
+                  {/* Stake */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground font-bold">베팅 금액 (Stake)</label>
+                    <input
+                      type="number"
+                      placeholder="100000"
+                      value={betLog.stake}
+                      onChange={(e) => setBetLog(prev => ({ ...prev, stake: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 text-sm font-mono placeholder:text-muted-foreground/30 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  {/* Result selection buttons */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground font-bold">베팅 결과</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { id: 'win', label: '적중', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 active:bg-emerald-500' },
+                        { id: 'lose', label: '미적중', color: 'bg-red-500/10 text-red-400 border-red-500/20 active:bg-red-500' },
+                        { id: 'void', label: '적특/무효', color: 'bg-white/5 text-muted-foreground border-white/10' },
+                        { id: 'half-win', label: '절반 적중', color: 'bg-teal-500/10 text-teal-400 border-teal-500/20' },
+                        { id: 'half-lose', label: '절반 미적중', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' }
+                      ].map(resItem => (
+                        <button
+                          key={resItem.id}
+                          type="button"
+                          onClick={() => setBetLog(prev => ({ ...prev, result: resItem.id }))}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg border text-xs font-bold transition-all",
+                            betLog.result === resItem.id
+                              ? resItem.id === 'win' || resItem.id === 'half-win'
+                                ? "bg-emerald-500 text-white border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                                : resItem.id === 'lose' || resItem.id === 'half-lose'
+                                  ? "bg-red-500 text-white border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.3)]"
+                                  : "bg-white text-black border-white"
+                              : "bg-white/5 text-muted-foreground border-white/5 hover:bg-white/10"
+                          )}
+                        >
+                          {resItem.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-3 md:pt-0">
+                    <div className="text-right">
+                      <span className="text-[9px] text-muted-foreground uppercase tracking-widest block">Expected Net Profit</span>
+                      <span className={cn(
+                        "text-lg font-mono font-black",
+                        calculateNetProfit() > 0 ? "text-emerald-400" : calculateNetProfit() < 0 ? "text-red-400" : "text-muted-foreground"
+                      )}>
+                        {calculateNetProfit() > 0 ? "+" : ""}{calculateNetProfit().toLocaleString()}원
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+ 
             {/* Content Area */}
             <div className="space-y-2">
               <div className="flex items-center justify-between ml-1">

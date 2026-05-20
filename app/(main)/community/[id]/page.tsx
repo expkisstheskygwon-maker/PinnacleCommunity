@@ -10,6 +10,22 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const parseBetLog = (content: string) => {
+  if (!content) return { cleanContent: '', betData: null };
+  
+  const match = content.match(/\[BETLOG:(\{.*?\})\]/);
+  if (match) {
+    try {
+      const betData = JSON.parse(match[1]);
+      const cleanContent = content.replace(match[0], '').trim();
+      return { cleanContent, betData };
+    } catch (err) {
+      console.error("Failed to parse bet log", err);
+    }
+  }
+  return { cleanContent: content, betData: null };
+};
+
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -22,6 +38,8 @@ export default function PostDetailPage() {
   const [submitMessage, setSubmitMessage] = useState('');
   const [isLiking, setIsLiking] = useState(false);
   const [isFavoriting, setIsFavoriting] = useState(false);
+  
+  const { cleanContent, betData } = parseBetLog(post?.content || '');
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -250,9 +268,73 @@ export default function PostDetailPage() {
                     <img src={post.image} className="w-full h-auto object-contain max-h-[600px] mx-auto" alt="Attached Image" />
                   </div>
                 )}
+ 
+                {/* Bet Summary Card (Parsed from [BETLOG:...]) */}
+                {betData && (
+                  <div className={cn(
+                    "relative overflow-hidden border rounded-3xl p-6 md:p-8 transition-all duration-500",
+                    (betData.result === 'win' || betData.result === 'half-win')
+                      ? "bg-emerald-500/5 border-emerald-500/30 shadow-[0_0_24px_rgba(16,185,129,0.08)]"
+                      : (betData.result === 'lose' || betData.result === 'half-lose')
+                        ? "bg-red-500/5 border-red-500/30 shadow-[0_0_24px_rgba(239,68,68,0.08)]"
+                        : "bg-white/[0.02] border-white/10"
+                  )}>
+                    {/* Glowing Accent */}
+                    <div className={cn(
+                      "absolute -right-20 -top-20 w-40 h-40 rounded-full blur-[60px] pointer-events-none",
+                      (betData.result === 'win' || betData.result === 'half-win') ? "bg-emerald-500/10" : (betData.result === 'lose' || betData.result === 'half-lose') ? "bg-red-500/10" : "bg-white/5"
+                    )} />
+
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                      {/* Left: Info */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md",
+                            (betData.result === 'win' || betData.result === 'half-win')
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : (betData.result === 'lose' || betData.result === 'half-lose')
+                                ? "bg-red-500/15 text-red-400"
+                                : "bg-white/10 text-muted-foreground"
+                          )}>
+                            {
+                              betData.result === 'win' ? 'WIN (적중)' :
+                              betData.result === 'lose' ? 'LOSE (미적중)' :
+                              betData.result === 'half-win' ? 'HALF-WIN (절반 적중)' :
+                              betData.result === 'half-lose' ? 'HALF-LOSE (절반 미적중)' : 'VOID (적특/무효)'
+                            }
+                          </span>
+                          <span className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">Verified Bet Record</span>
+                        </div>
+                        <h3 className="text-xl md:text-2xl font-black tracking-tight">{betData.match}</h3>
+                      </div>
+
+                      {/* Right: Stats Grid */}
+                      <div className="flex flex-wrap items-center gap-6 md:gap-10">
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest mb-1">Odds</span>
+                          <span className="text-lg font-mono font-black text-[hsl(var(--gold))]">{betData.odds.toFixed(2)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest mb-1">Stake</span>
+                          <span className="text-lg font-mono font-black text-foreground">{betData.stake.toLocaleString()}원</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest mb-1">Net Profit</span>
+                          <span className={cn(
+                            "text-xl font-mono font-black",
+                            betData.net > 0 ? "text-emerald-400" : betData.net < 0 ? "text-red-400" : "text-muted-foreground"
+                          )}>
+                            {betData.net > 0 ? "+" : ""}{betData.net.toLocaleString()}원
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="text-base md:text-lg leading-relaxed whitespace-pre-wrap font-medium opacity-90">
-                  {post.content}
+                  {cleanContent}
                 </div>
 
                 {/* Tags */}
