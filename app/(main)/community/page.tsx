@@ -207,9 +207,13 @@ export default function CommunityPage() {
 
                         {/* Title */}
                         <div className="flex items-start justify-between gap-4">
-                          <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2 flex-1">
-                            {post.title}
-                          </h3>
+                          {post.authorId === 0 ? (
+                            <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2 flex-1" dangerouslySetInnerHTML={{ __html: post.title }} />
+                          ) : (
+                            <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2 flex-1">
+                              {post.title}
+                            </h3>
+                          )}
                           {post.image && (
                             <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-white/5 bg-white/5">
                               <img src={post.image} className="w-full h-full object-cover" alt="Thumbnail" />

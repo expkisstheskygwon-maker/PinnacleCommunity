@@ -204,9 +204,13 @@ export default function PostDetailPage() {
                   </span>
                 </div>
                 
-                <h1 className="text-2xl md:text-4xl font-black tracking-tight leading-tight mb-6">
-                  {post.title}
-                </h1>
+                {post.authorId === 0 ? (
+                  <h1 className="text-2xl md:text-4xl font-black tracking-tight leading-tight mb-6" dangerouslySetInnerHTML={{ __html: post.title }} />
+                ) : (
+                  <h1 className="text-2xl md:text-4xl font-black tracking-tight leading-tight mb-6">
+                    {post.title}
+                  </h1>
+                )}
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

@@ -138,7 +138,11 @@ function NoticeContent() {
                             <span className={cn("badge text-[8px]", config.bgColor, config.color)}>{notice.tags || "공지"}</span>
                             <span className="badge-primary text-[8px]"><Pin className="w-2 h-2" />고정</span>
                           </div>
-                          <h3 className="font-bold text-sm">{notice.title}</h3>
+                          {notice.authorId === 0 ? (
+                            <h3 className="font-bold text-sm" dangerouslySetInnerHTML={{ __html: notice.title }} />
+                          ) : (
+                            <h3 className="font-bold text-sm">{notice.title}</h3>
+                          )}
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-[10px] text-muted-foreground">{new Date(notice.createdAt).toLocaleDateString()}</span>
@@ -173,7 +177,11 @@ function NoticeContent() {
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className={cn("text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded", config.bgColor, config.color)}>{notice.tags || "공지"}</span>
                           </div>
-                          <h3 className="font-bold text-sm">{notice.title}</h3>
+                          {notice.authorId === 0 ? (
+                            <h3 className="font-bold text-sm" dangerouslySetInnerHTML={{ __html: notice.title }} />
+                          ) : (
+                            <h3 className="font-bold text-sm">{notice.title}</h3>
+                          )}
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-[10px] text-muted-foreground hidden sm:block">{new Date(notice.createdAt).toLocaleDateString()}</span>

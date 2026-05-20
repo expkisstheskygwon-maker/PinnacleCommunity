@@ -612,7 +612,11 @@ export default function HomePage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         {post.hot && <Flame className="w-3 h-3 text-orange-400 shrink-0" />}
-                        <span className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post.title}</span>
+                        {post.authorId === 0 ? (
+                          <span className="text-sm font-bold truncate group-hover:text-primary transition-colors" dangerouslySetInnerHTML={{ __html: post.title }} />
+                        ) : (
+                          <span className="text-sm font-bold truncate group-hover:text-primary transition-colors">{post.title}</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                         <span className="bg-white/5 px-1.5 py-0.5 rounded text-[9px] font-bold">{post.category}</span>
@@ -656,7 +660,11 @@ export default function HomePage() {
                         </div>
                       )}
                       <div className="p-5 flex-1 flex flex-col space-y-3">
-                        <h4 className="font-bold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">{post.title}</h4>
+                        {post.authorId === 0 ? (
+                          <h4 className="font-bold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2" dangerouslySetInnerHTML={{ __html: post.title }} />
+                        ) : (
+                          <h4 className="font-bold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">{post.title}</h4>
+                        )}
                         <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 flex-1">
                           {post.content.replace(/<[^>]*>/g, '').substring(0, 80)}...
                         </p>
@@ -702,7 +710,11 @@ export default function HomePage() {
                         <Icon className="w-4 h-4 text-[hsl(var(--gold))]" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold truncate group-hover:text-primary transition-colors">{post.title}</p>
+                        {post.authorId === 0 ? (
+                          <p className="text-[13px] font-semibold truncate group-hover:text-primary transition-colors" dangerouslySetInnerHTML={{ __html: post.title }} />
+                        ) : (
+                          <p className="text-[13px] font-semibold truncate group-hover:text-primary transition-colors">{post.title}</p>
+                        )}
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                           <span className={cn(
                             "px-1.5 py-0.5 rounded text-[9px] font-bold",
@@ -778,7 +790,11 @@ export default function HomePage() {
                         <img src={post.image} alt={post.title} className="w-full h-auto object-cover" />
                       ) : (
                         <div className="p-3">
-                          <p className="text-xs font-bold text-red-400 mb-1">{post.title}</p>
+                          {post.authorId === 0 ? (
+                            <p className="text-xs font-bold text-red-400 mb-1" dangerouslySetInnerHTML={{ __html: post.title }} />
+                          ) : (
+                            <p className="text-xs font-bold text-red-400 mb-1">{post.title}</p>
+                          )}
                           <div 
                             className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2"
                             dangerouslySetInnerHTML={{ __html: post.content.replace(/<[^>]*>/g, '') }}

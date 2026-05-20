@@ -138,7 +138,11 @@ function SpotlightContent() {
                   )}
                   <div className="p-6 flex-1 flex flex-col space-y-4">
                     <div className="space-y-2 flex-1">
-                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors leading-tight line-clamp-2">{post.title}</h3>
+                      {post.authorId === 0 ? (
+                        <h3 className="text-xl font-bold group-hover:text-primary transition-colors leading-tight line-clamp-2" dangerouslySetInnerHTML={{ __html: post.title }} />
+                      ) : (
+                        <h3 className="text-xl font-bold group-hover:text-primary transition-colors leading-tight line-clamp-2">{post.title}</h3>
+                      )}
                       <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
                         {post.content.replace(/<[^>]*>/g, '').substring(0, 150)}...
                       </p>
