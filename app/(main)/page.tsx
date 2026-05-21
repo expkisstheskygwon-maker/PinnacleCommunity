@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Trophy, Activity, TrendingUp, ShieldAlert, BarChart3, Users,
@@ -127,6 +127,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showInterestModal, setShowInterestModal] = useState(false);
   const [activeTab, setActiveTab] = useState("all"); // all, interest, favorite, bet
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
 
   const handleInterestChange = async (category: string, value: string, action: 'add' | 'remove') => {
     try {
@@ -506,46 +507,68 @@ export default function HomePage() {
                     </thead>
                     <tbody className="divide-y divide-white/[0.04]">
                       {processedMatches.length > 0 ? (
-                        processedMatches.map((m) => (
-                          <tr key={m.id} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
-                            <td className="px-5 py-4">
-                              <div className="flex items-center gap-3">
-
-                                <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0 uppercase truncate max-w-[60px]">{m.league}</span>
-                                <div className="min-w-0 flex-1">
-                                  <span className="font-bold text-foreground group-hover:text-primary transition-colors text-[13px]">{m.home}</span>
-                                  <span className="text-muted-foreground mx-1.5 text-xs">vs</span>
-                                  <span className="font-bold text-foreground text-[13px]">{m.away}</span>
+                        processedMatches.map((m, idx) => {
+                          const matchKey = `${m.id}-${m.sport}-${idx}`;
+                          return (
+                          <React.Fragment key={matchKey}>
+                            <tr onClick={(e) => {
+                              e.preventDefault();
+                              setExpandedMatchId(expandedMatchId === matchKey ? null : matchKey);
+                            }} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
+                              <td className="px-5 py-4">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0 uppercase truncate max-w-[60px]">{m.league}</span>
+                                  <div className="min-w-0 flex-1">
+                                    <span className="font-bold text-foreground group-hover:text-primary transition-colors text-[13px]">{m.home}</span>
+                                    <span className="text-muted-foreground mx-1.5 text-xs">vs</span>
+                                    <span className="font-bold text-foreground text-[13px]">{m.away}</span>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="text-center px-3 py-4">
-                              <span className="font-mono text-xs font-bold text-emerald-400">{m.odds?.h?.toFixed(2) || "0.00"}</span>
-                            </td>
-                            <td className="text-center px-3 py-4">
-                              <span className="font-mono text-xs text-muted-foreground">{m.odds?.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
-                            </td>
-                            <td className="text-center px-3 py-4">
-                              <span className="font-mono text-xs text-muted-foreground">{m.odds?.a?.toFixed(2) || "0.00"}</span>
-                            </td>
-                            <td className="text-center px-3 py-4 hidden md:table-cell">
-                              <span className="font-mono text-[11px] text-muted-foreground">{m.ah || "-"}</span>
-                            </td>
-                            <td className="text-center px-3 py-4 hidden md:table-cell">
-                              <span className="font-mono text-[11px] text-muted-foreground">{m.ou || "-"}</span>
-                            </td>
-                            <td className="px-5 py-4 text-right">
-                              {m.live ? (
-                                <span className="badge-live">
-                                  <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
-                                  LIVE
-                                </span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground font-mono">{m.time}</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))
+                              </td>
+                              <td className="text-center px-3 py-4">
+                                <span className="font-mono text-xs font-bold text-emerald-400">{m.odds?.h?.toFixed(2) || "0.00"}</span>
+                              </td>
+                              <td className="text-center px-3 py-4">
+                                <span className="font-mono text-xs text-muted-foreground">{m.odds?.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
+                              </td>
+                              <td className="text-center px-3 py-4">
+                                <span className="font-mono text-xs text-muted-foreground">{m.odds?.a?.toFixed(2) || "0.00"}</span>
+                              </td>
+                              <td className="text-center px-3 py-4 hidden md:table-cell">
+                                <span className="font-mono text-[11px] text-muted-foreground">{m.ah || "-"}</span>
+                              </td>
+                              <td className="text-center px-3 py-4 hidden md:table-cell">
+                                <span className="font-mono text-[11px] text-muted-foreground">{m.ou || "-"}</span>
+                              </td>
+                              <td className="px-5 py-4 text-right">
+                                {m.live ? (
+                                  <span className="badge-live">
+                                    <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
+                                    LIVE
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground font-mono">{m.time}</span>
+                                )}
+                              </td>
+                            </tr>
+                            {expandedMatchId === matchKey && (
+                              <tr className="bg-white/[0.01] border-b border-white/[0.04]">
+                                <td colSpan={7} className="px-5 py-4">
+                                  <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-xl border border-white/5">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-bold mb-1 text-primary">경기 상세 정보</p>
+                                      <p className="text-xs text-muted-foreground">종목: {m.sport || "기타"} | 리그: {m.league}</p>
+                                      <p className="text-xs text-muted-foreground mt-1">이 경기에 대한 자세한 배당 흐름과 분석 정보를 확인하세요.</p>
+                                    </div>
+                                    <Link href={`/odds`} className="btn-primary py-2 px-4 text-xs shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                      배당/경기 페이지로 이동 <ArrowUpRight className="w-3 h-3" />
+                                    </Link>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        )})
                       ) : (
                         <tr>
                           <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">
