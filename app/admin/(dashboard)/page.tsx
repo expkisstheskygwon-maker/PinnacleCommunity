@@ -419,6 +419,7 @@ function CommunityView() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedPostId, setExpandedPostId] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const fetchPosts = async () => {
     setIsLoading(true);
@@ -480,14 +481,83 @@ function CommunityView() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight">커뮤니티 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">게시글 및 댓글을 관리합니다</p>
         </div>
-        <button onClick={fetchPosts} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold transition-all">
-          새로고침
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              const csvContent = "category,title,content,subCategory,image\n\"free\",\"자유게시판 샘플\",\"<p>자유로운 글</p>\",\"일반\",\"\"\n\"analysis\",\"분석 샘플\",\"<p>분석 내용</p>\",\"분류1\",";
+              const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.setAttribute("href", url);
+              link.setAttribute("download", `sample_bulk_upload_community.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-all"
+          >
+            <Download className="w-4 h-4" /> 양식 다운로드
+          </button>
+          
+          <div className="relative">
+            <input
+              type="file"
+              accept=".csv"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                  const text = event.target?.result as string;
+                  const parsed = parseCSV(text);
+                  if (parsed.length === 0) {
+                    alert("데이터가 없거나 형식이 잘못되었습니다.");
+                    return;
+                  }
+                  
+                  if (!confirm(`${parsed.length}개의 게시글을 일괄 업로드하시겠습니까?`)) return;
+                  
+                  setIsUploading(true);
+                  try {
+                    const res = await fetch('/api/admin/posts/bulk', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ posts: parsed, category: 'free' }) // fallback category
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert(data.message);
+                      fetchPosts();
+                    } else {
+                      alert(data.error);
+                    }
+                  } catch (err) {
+                    alert("업로드 중 오류가 발생했습니다.");
+                  } finally {
+                    setIsUploading(false);
+                    e.target.value = '';
+                  }
+                };
+                reader.readAsText(file);
+              }}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+            <button disabled={isUploading} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-all">
+              {isUploading ? <Upload className="w-4 h-4 animate-bounce" /> : <Upload className="w-4 h-4" />} 
+              {isUploading ? "업로드 중..." : "CSV 업로드"}
+            </button>
+          </div>
+
+          <button onClick={fetchPosts} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all ml-2">
+            새로고침
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -582,6 +652,56 @@ function CommunityView() {
   );
 }
 
+const parseCSV = (csvText: string) => {
+  const lines: string[][] = [];
+  let currentLine: string[] = [];
+  let currentField = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        currentField += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        currentLine.push(currentField);
+        currentField = '';
+      } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
+        currentLine.push(currentField);
+        lines.push(currentLine);
+        currentLine = [];
+        currentField = '';
+        if (char === '\r') i++;
+      } else {
+        currentField += char;
+      }
+    }
+  }
+  if (currentField || currentLine.length > 0) {
+    currentLine.push(currentField);
+    lines.push(currentLine);
+  }
+
+  if (lines.length < 2) return [];
+  const headers = lines[0].map(h => h.trim().toLowerCase());
+  return lines.slice(1).map(row => {
+    const obj: any = {};
+    headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+    return obj;
+  }).filter(row => row.title && row.content); // Filter out empty or invalid rows
+};
+
 function PostEditorView({ category }: { category: string }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -659,55 +779,7 @@ function PostEditorView({ category }: { category: string }) {
     }
   };
 
-  const parseCSV = (csvText: string) => {
-    const lines: string[][] = [];
-    let currentLine: string[] = [];
-    let currentField = '';
-    let inQuotes = false;
 
-    for (let i = 0; i < csvText.length; i++) {
-      const char = csvText[i];
-      const nextChar = csvText[i + 1];
-
-      if (inQuotes) {
-        if (char === '"' && nextChar === '"') {
-          currentField += '"';
-          i++;
-        } else if (char === '"') {
-          inQuotes = false;
-        } else {
-          currentField += char;
-        }
-      } else {
-        if (char === '"') {
-          inQuotes = true;
-        } else if (char === ',') {
-          currentLine.push(currentField);
-          currentField = '';
-        } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
-          currentLine.push(currentField);
-          lines.push(currentLine);
-          currentLine = [];
-          currentField = '';
-          if (char === '\r') i++;
-        } else {
-          currentField += char;
-        }
-      }
-    }
-    if (currentField || currentLine.length > 0) {
-      currentLine.push(currentField);
-      lines.push(currentLine);
-    }
-
-    if (lines.length < 2) return [];
-    const headers = lines[0].map(h => h.trim().toLowerCase());
-    return lines.slice(1).map(row => {
-      const obj: any = {};
-      headers.forEach((h, i) => { obj[h] = row[i] || ''; });
-      return obj;
-    }).filter(row => row.title && row.content); // Filter out empty or invalid rows
-  };
 
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl">

@@ -39,10 +39,11 @@ export async function POST(request: NextRequest) {
       const content = p.content || p.Content;
       const subCat = p.subCategory || p.subcategory || p.SubCategory || p.Subcategory;
       const img = p.image || p.Image;
+      const cat = p.category || p.Category || category;
       
       return db.prepare(
         'INSERT INTO posts (title, content, authorId, category, tags, image) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(title, content, 0, category, subCat || null, img || null);
+      ).bind(title, content, 0, cat, subCat || null, img || null);
     });
 
     const results = await db.batch(statements);
