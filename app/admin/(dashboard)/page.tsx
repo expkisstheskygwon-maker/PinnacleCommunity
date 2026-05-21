@@ -16,12 +16,9 @@ const SIDEBAR_ITEMS = [
   { id: "members", label: "회원 관리", icon: Users },
   { id: "community", label: "커뮤니티 관리", icon: FileText },
   { id: "inquiries", label: "1:1 문의 관리", icon: MessageSquare },
-  { id: "guide", label: "가이드 작성", icon: BookOpen },
+  { id: "content", label: "콘텐츠 작성", icon: BookOpen },
   { id: "qna", label: "Q&A 관리", icon: HelpCircle },
-  { id: "notices", label: "공지/이슈 작성", icon: Bell },
-  { id: "analysis", label: "분석/칼럼 작성", icon: TrendingUp },
-  { id: "spotlight", label: "스포트라이트 관리", icon: Star },
-  { id: "categories", label: "카테고리 관리", icon: Edit },
+  { id: "categories", label: "카테고리 관리", icon: Layers },
   { id: "policies", label: "정책 관리", icon: Gavel },
   { id: "settings", label: "사이트 설정", icon: Settings },
 ];
@@ -110,11 +107,8 @@ export default function AdminDashboard() {
           {activeTab === "members" && <MembersView search={searchQuery} setSearch={setSearchQuery} />}
           {activeTab === "community" && <CommunityView />}
           {activeTab === "inquiries" && <InquiriesView />}
-          {activeTab === "guide" && <PostEditorView category="가이드" />}
+          {activeTab === "content" && <ContentEditorTabsView />}
           {activeTab === "qna" && <QnaAdminTabsView />}
-          {activeTab === "notices" && <PostEditorView category="공지/이슈" />}
-          {activeTab === "analysis" && <PostEditorView category="분석/칼럼" />}
-          {activeTab === "spotlight" && <PostEditorView category="스포트라이트" />}
           {activeTab === "categories" && <CategoryManagementView />}
           {activeTab === "policies" && <PolicyManagementView />}
           {activeTab === "settings" && <SettingsView setActiveTab={setActiveTab} />}
@@ -125,6 +119,41 @@ export default function AdminDashboard() {
 }
 
 /* ============ Sub Views ============ */
+
+function ContentEditorTabsView() {
+  const [activeCategory, setActiveCategory] = useState("공지/이슈");
+  
+  const TABS = [
+    { id: "공지/이슈", icon: Bell },
+    { id: "가이드", icon: BookOpen },
+    { id: "분석/칼럼", icon: TrendingUp },
+    { id: "스포트라이트", icon: Star },
+  ];
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex gap-2 p-1.5 bg-white/5 border border-white/10 rounded-2xl w-fit">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveCategory(tab.id)}
+            className={cn(
+              "px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
+              activeCategory === tab.id 
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                : "text-muted-foreground hover:bg-white/10 hover:text-foreground"
+            )}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.id}
+          </button>
+        ))}
+      </div>
+      
+      <PostEditorView key={activeCategory} category={activeCategory} />
+    </div>
+  );
+}
 
 function DashboardView() {
   return (
