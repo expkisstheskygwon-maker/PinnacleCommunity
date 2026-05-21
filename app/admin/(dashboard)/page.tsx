@@ -389,6 +389,7 @@ function MembersView({ search, setSearch }: { search: string; setSearch: (v: str
 function CommunityView() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedPostId, setExpandedPostId] = useState<number | null>(null);
 
   const fetchPosts = async () => {
     setIsLoading(true);
@@ -479,35 +480,63 @@ function CommunityView() {
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
               {posts.map(p => (
-                <tr key={p.id} className="hover:bg-white/[0.03] transition-colors">
-                  <td className="px-5 py-4 font-bold max-w-[200px] truncate" title={p.title}>{p.title}</td>
-                  <td className="px-3 py-4 text-muted-foreground">{p.author}</td>
-                  <td className="px-3 py-4 text-center">
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                      {p.category}
-                    </span>
-                  </td>
-                  <td className="px-3 py-4 text-center text-muted-foreground">{p.views || 0}</td>
-                  <td className="px-3 py-4 text-center">
-                    <button 
-                      onClick={() => handleToggleStatus(p.id, p.status || 'public')}
-                      className={cn("text-[10px] font-bold px-2 py-1 rounded border hover:opacity-80 transition-opacity", 
-                        (!p.status || p.status === "public") 
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                          : "bg-red-500/10 text-red-400 border-red-500/20"
-                      )}
-                    >
-                      {(!p.status || p.status === "public") ? "공개" : "숨김"}
-                    </button>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors" title="삭제">
-                        <Trash2 className="w-3.5 h-3.5" />
+                <React.Fragment key={p.id}>
+                  <tr 
+                    onClick={() => setExpandedPostId(expandedPostId === p.id ? null : p.id)}
+                    className="hover:bg-white/[0.03] transition-colors cursor-pointer group"
+                  >
+                    <td className="px-5 py-4 font-bold max-w-[200px] truncate group-hover:text-primary transition-colors" title={p.title}>
+                      {p.authorId === 0 ? <span dangerouslySetInnerHTML={{ __html: p.title }} /> : p.title}
+                    </td>
+                    <td className="px-3 py-4 text-muted-foreground">{p.author}</td>
+                    <td className="px-3 py-4 text-center">
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                        {p.category}
+                      </span>
+                    </td>
+                    <td className="px-3 py-4 text-center text-muted-foreground">{p.views || 0}</td>
+                    <td className="px-3 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        onClick={() => handleToggleStatus(p.id, p.status || 'public')}
+                        className={cn("text-[10px] font-bold px-2 py-1 rounded border hover:opacity-80 transition-opacity", 
+                          (!p.status || p.status === "public") 
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                            : "bg-red-500/10 text-red-400 border-red-500/20"
+                        )}
+                      >
+                        {(!p.status || p.status === "public") ? "공개" : "숨김"}
                       </button>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                    <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors" title="삭제">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {expandedPostId === p.id && (
+                    <tr className="bg-white/[0.01]">
+                      <td colSpan={6} className="px-5 py-4 border-t border-white/[0.02]">
+                        <div className="p-5 bg-black/20 rounded-xl border border-white/5 space-y-4 max-h-[500px] overflow-y-auto">
+                          <h4 className="font-bold text-sm text-primary flex items-center gap-2">
+                            <FileText className="w-4 h-4" /> 게시글 본문 확인
+                          </h4>
+                          <div 
+                            className="text-sm text-muted-foreground prose prose-invert prose-sm max-w-none break-all" 
+                            dangerouslySetInnerHTML={{ __html: p.content || '<p class="italic">내용이 없습니다.</p>' }} 
+                          />
+                          {p.image && (
+                            <div className="mt-4 border-t border-white/5 pt-4">
+                              <p className="text-[10px] font-bold text-muted-foreground mb-2">첨부 이미지</p>
+                              <img src={p.image} alt="첨부 이미지" className="max-h-[300px] rounded-lg object-contain border border-white/10 bg-black/40" />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
               {posts.length === 0 && (
                 <tr>

@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     const db = env.DB as any;
 
     const { results } = await db.prepare(`
-      SELECT p.id, p.title, p.category, p.views, p.createdAt as date, p.status, u.nickname as author
+      SELECT p.id, p.title, p.content, p.image, p.category, p.views, p.createdAt as date, p.status, u.nickname as author
       FROM posts p
       JOIN users u ON p.authorId = u.id
       ORDER BY p.createdAt DESC
