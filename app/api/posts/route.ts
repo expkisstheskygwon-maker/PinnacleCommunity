@@ -85,6 +85,7 @@ export async function GET(request: NextRequest) {
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
+    let countQuery = `SELECT COUNT(*) as total FROM posts p JOIN users u ON p.authorId = u.id`;
     let query = `
       SELECT p.*, u.nickname as author, u.avatar as authorAvatar, u.level,
         (SELECT COUNT(*) FROM betting_records WHERE userId = u.id AND status IN ('won', 'lost', 'half-won', 'half-lost')) as totalBets,
@@ -117,15 +118,20 @@ export async function GET(request: NextRequest) {
     }
 
     if (whereClauses.length > 0) {
-      query += ' WHERE ' + whereClauses.join(' AND ');
+      const whereString = ' WHERE ' + whereClauses.join(' AND ');
+      query += whereString;
+      countQuery += whereString;
     }
+
+    const { results: countResults } = await db.prepare(countQuery).bind(...params).all();
+    const total = countResults[0]?.total || 0;
 
     query += ' ORDER BY p.createdAt DESC LIMIT ? OFFSET ? ';
     params.push(limit, offset);
 
     const { results } = await db.prepare(query).bind(...params).all();
 
-    return NextResponse.json({ success: true, posts: results });
+    return NextResponse.json({ success: true, posts: results, total });
   } catch (error: any) {
     console.error('Fetch posts error:', error);
     return NextResponse.json(

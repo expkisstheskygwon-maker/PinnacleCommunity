@@ -38,6 +38,7 @@ const BADGE_COLORS: Record<string, string> = {
 
 export default function CommunityPage() {
   const [posts, setPosts] = useState<any[]>([]);
+  const [totalPosts, setTotalPosts] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const searchParams = useSearchParams();
@@ -46,6 +47,8 @@ export default function CommunityPage() {
 
   const activeCat = searchParams.get("cat") || "all";
   const currentSearch = searchParams.get("search") || "";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const pageSize = 15;
 
   useEffect(() => {
     setSearchQuery(currentSearch);
@@ -57,12 +60,15 @@ export default function CommunityPage() {
       try {
         const url = new URL("/api/posts", window.location.origin);
         url.searchParams.set("category", activeCat);
+        url.searchParams.set("limit", pageSize.toString());
+        url.searchParams.set("offset", ((currentPage - 1) * pageSize).toString());
         if (currentSearch) url.searchParams.set("search", currentSearch);
         
         const response = await fetch(url.toString());
         const data = await response.json();
         if (data.success) {
           setPosts(data.posts);
+          if (data.total !== undefined) setTotalPosts(data.total);
         }
       } catch (error) {
         console.error("Error fetching posts:", error);
@@ -72,7 +78,28 @@ export default function CommunityPage() {
     };
 
     fetchPosts();
-  }, [activeCat, currentSearch]);
+  }, [activeCat, currentSearch, currentPage]);
+
+  const totalPages = Math.ceil(totalPosts / pageSize) || 1;
+  
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", page.toString());
+    router.push(`/community?${params.toString()}`);
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+    
+    if (isToday) {
+      return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    } else {
+      return date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace(/\.$/, '');
+    }
+  };
 
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -161,121 +188,160 @@ export default function CommunityPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           {/* Posts List */}
-          <div className="xl:col-span-8 space-y-3">
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="glass-card rounded-xl p-5 animate-pulse">
-                  <div className="flex gap-4">
-                    <div className="w-10 h-10 bg-white/5 rounded-xl shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-2 w-20 bg-white/5 rounded" />
-                      <div className="h-4 w-full bg-white/5 rounded" />
-                      <div className="h-2 w-40 bg-white/5 rounded" />
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : posts.length > 0 ? (
-              posts.map((post) => (
-                <Link key={post.id} href={`/community/${post.id}`}>
-                  <div className="glass-card rounded-xl p-5 hover:bg-white/[0.03] transition-all hover:scale-[1.01] hover:shadow-2xl border-white/5 hover:border-primary/20 cursor-pointer group mb-3">
-                    <div className="flex items-start gap-4">
-                      {/* Avatar */}
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-primary text-lg shrink-0 group-hover:scale-105 transition-transform">
-                        {post.authorAvatar ? (
-                          <img src={post.authorAvatar} className="w-full h-full object-cover" alt={post.author} />
-                        ) : (
-                          post.author[0]
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        {/* Meta */}
-                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span className="text-[9px] font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">
-                            {CATEGORIES.find(c => c.id === post.category)?.label}
-                          </span>
-                          {post.views > 1000 && (
-                            <span className="badge-danger text-[8px]">
-                              <Flame className="w-2.5 h-2.5" /> HOT
+          <div className="xl:col-span-8">
+            <div className="glass-card rounded-2xl overflow-hidden border border-white/5">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-muted-foreground uppercase bg-white/[0.02] border-b border-white/[0.06]">
+                  <tr>
+                    <th className="px-4 py-3.5 text-center w-20 hidden sm:table-cell">번호</th>
+                    <th className="px-4 py-3.5 text-center w-24 hidden md:table-cell">카테고리</th>
+                    <th className="px-4 py-3.5">제목</th>
+                    <th className="px-4 py-3.5 text-center w-28">글쓴이</th>
+                    <th className="px-4 py-3.5 text-center w-20">날짜</th>
+                    <th className="px-4 py-3.5 text-center w-16 hidden sm:table-cell">조회</th>
+                    <th className="px-4 py-3.5 text-center w-16 hidden sm:table-cell">추천</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {isLoading ? (
+                    Array.from({ length: pageSize }).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="px-4 py-4 hidden sm:table-cell"><div className="h-4 bg-white/5 rounded w-8 mx-auto" /></td>
+                        <td className="px-4 py-4 hidden md:table-cell"><div className="h-4 bg-white/5 rounded w-12 mx-auto" /></td>
+                        <td className="px-4 py-4"><div className="h-4 bg-white/5 rounded w-3/4" /></td>
+                        <td className="px-4 py-4"><div className="h-4 bg-white/5 rounded w-16 mx-auto" /></td>
+                        <td className="px-4 py-4"><div className="h-4 bg-white/5 rounded w-10 mx-auto" /></td>
+                        <td className="px-4 py-4 hidden sm:table-cell"><div className="h-4 bg-white/5 rounded w-6 mx-auto" /></td>
+                        <td className="px-4 py-4 hidden sm:table-cell"><div className="h-4 bg-white/5 rounded w-6 mx-auto" /></td>
+                      </tr>
+                    ))
+                  ) : posts.length > 0 ? (
+                    posts.map((post, idx) => {
+                      const postNumber = totalPosts - ((currentPage - 1) * pageSize) - idx;
+                      const isNew = new Date(post.createdAt).getTime() > Date.now() - 24 * 60 * 60 * 1000;
+                      return (
+                        <tr key={post.id} onClick={() => router.push(`/community/${post.id}`)} className="hover:bg-white/[0.03] transition-colors group cursor-pointer">
+                          <td className="px-4 py-3.5 text-center text-muted-foreground hidden sm:table-cell font-mono">{postNumber}</td>
+                          <td className="px-4 py-3.5 text-center hidden md:table-cell">
+                            <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded uppercase">
+                              {CATEGORIES.find(c => c.id === post.category)?.label || post.category}
                             </span>
-                          )}
-                        </div>
-
-                        {/* Title */}
-                        <div className="flex items-start justify-between gap-4">
-                          {post.authorId === 0 ? (
-                            <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2 flex-1" dangerouslySetInnerHTML={{ __html: post.title }} />
-                          ) : (
-                            <h3 className="font-bold text-[15px] leading-snug group-hover:text-primary transition-colors mb-2 flex-1">
-                              {post.title}
-                            </h3>
-                          )}
-                          {post.image && (
-                            <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-white/5 bg-white/5">
-                              <img src={post.image} className="w-full h-full object-cover" alt="Thumbnail" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Author & Stats */}
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-foreground">{post.author}</span>
-                            <span className="text-muted-foreground/40">Lv.{post.level || 1}</span>
-                            {post.totalBets >= 30 && post.roi >= 5 && (
-                              <span className="flex items-center gap-0.5 px-1.5 py-0 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[8px] font-bold">
-                                <Shield className="w-2 h-2" /> 검증됨
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center gap-2">
+                              {/* 모바일용 카테고리 뱃지 */}
+                              <span className="md:hidden text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded uppercase shrink-0">
+                                {CATEGORIES.find(c => c.id === post.category)?.label || post.category}
                               </span>
-                            )}
+                              
+                              <span className="font-medium group-hover:text-primary transition-colors line-clamp-1 break-all">
+                                {post.authorId === 0 ? <span dangerouslySetInnerHTML={{ __html: post.title }} /> : post.title}
+                              </span>
+                              
+                              {(post.commentsCount || 0) > 0 && (
+                                <span className="text-[10px] font-bold text-emerald-400 shrink-0">[{post.commentsCount}]</span>
+                              )}
+                              
+                              {post.image && (
+                                <span className="text-muted-foreground shrink-0"><Search className="w-3 h-3" /></span>
+                              )}
+                              
+                              {isNew && (
+                                <span className="w-3.5 h-3.5 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-[8px] font-black text-red-400 shrink-0">N</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5 text-center">
+                            <div className="flex items-center justify-center gap-1.5 text-xs">
+                              {post.level > 0 && (
+                                <span className="w-4 h-4 rounded bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))] flex items-center justify-center text-[9px] font-bold border border-[hsl(var(--gold))]/30 shrink-0">
+                                  {post.level}
+                                </span>
+                              )}
+                              <span className="truncate max-w-[80px]">{post.author}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5 text-center text-muted-foreground text-xs">{formatDate(post.createdAt)}</td>
+                          <td className="px-4 py-3.5 text-center text-muted-foreground text-xs hidden sm:table-cell">{post.views}</td>
+                          <td className="px-4 py-3.5 text-center text-muted-foreground text-xs hidden sm:table-cell">{post.likes}</td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-16 text-center">
+                        <div className="flex flex-col items-center justify-center space-y-4">
+                          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-muted-foreground/20">
+                            <PenLine className="w-8 h-8" />
                           </div>
-                          <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{new Date(post.createdAt).toLocaleDateString()}</span>
-                          <span className="flex items-center gap-1"><Eye className="w-2.5 h-2.5" />{post.views.toLocaleString()}</span>
-                          <span className="flex items-center gap-1"><ThumbsUp className="w-2.5 h-2.5" />{post.likes}</span>
+                          <div>
+                            <p className="font-bold">등록된 게시글이 없습니다.</p>
+                            <p className="text-xs text-muted-foreground mt-1">가장 먼저 새로운 이야기를 시작해보세요!</p>
+                          </div>
+                          <Link href="/community/write" className="btn-primary inline-flex items-center gap-2 py-2 px-5 text-xs">
+                            첫 글 작성하기
+                          </Link>
                         </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-                        {/* Tags */}
-                        {post.tags && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {post.tags.split(',').map((tag: string) => {
-                              const t = tag.trim();
-                              if (!t) return null;
-                              return (
-                                <button 
-                                  key={t} 
-                                  onClick={(e) => { e.preventDefault(); handleTagClick(t); }}
-                                  className="text-[9px] text-muted-foreground/60 hover:text-primary flex items-center gap-0.5 transition-colors"
-                                >
-                                  <Hash className="w-2 h-2" />{t}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="glass-card rounded-xl p-10 text-center space-y-4">
-                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto text-muted-foreground/20">
-                  <PenLine className="w-8 h-8" />
-                </div>
-                <div>
-                  <p className="font-bold">등록된 게시글이 없습니다.</p>
-                  <p className="text-xs text-muted-foreground">가장 먼저 새로운 이야기를 시작해보세요!</p>
-                </div>
-                <Link href="/community/write" className="btn-primary inline-flex items-center gap-2 py-3 px-6 text-xs mx-auto">
-                  첫 글 작성하기
-                </Link>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-1.5 mt-8">
+                <button 
+                  onClick={() => handlePageChange(1)} 
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                >
+                  &laquo;
+                </button>
+                <button 
+                  onClick={() => handlePageChange(currentPage - 1)} 
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                >
+                  &lsaquo;
+                </button>
+                
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let start = Math.max(1, currentPage - 2);
+                  if (start + 4 > totalPages) start = Math.max(1, totalPages - 4);
+                  const page = start + i;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={cn(
+                        "w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-all border",
+                        currentPage === page 
+                          ? "bg-primary text-white border-primary/50 shadow-md shadow-primary/20" 
+                          : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground hover:border-white/10"
+                      )}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+
+                <button 
+                  onClick={() => handlePageChange(currentPage + 1)} 
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                >
+                  &rsaquo;
+                </button>
+                <button 
+                  onClick={() => handlePageChange(totalPages)} 
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                >
+                  &raquo;
+                </button>
               </div>
-            )}
-
-            {posts.length > 0 && (
-              <button className="w-full py-5 rounded-xl border-2 border-dashed border-white/[0.06] text-muted-foreground hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all font-bold text-xs uppercase tracking-widest">
-                더 보기
-              </button>
             )}
           </div>
 
