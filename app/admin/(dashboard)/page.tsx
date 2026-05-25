@@ -156,43 +156,80 @@ function ContentEditorTabsView() {
 }
 
 function DashboardView() {
+  const [stats, setStats] = useState<any>({ totalUsers: 0, totalPosts: 0, todayJoined: 0 });
+  const [activities, setActivities] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/admin/dashboard');
+        const data = await res.json();
+        if (data.success) {
+          setStats(data.stats);
+          setActivities(data.activities);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const displayStats = [
+    { label: "총 회원", value: stats.totalUsers.toLocaleString(), change: "", icon: Users, color: "text-blue-400" },
+    { label: "오늘 가입", value: stats.todayJoined.toLocaleString(), change: "", icon: Eye, color: "text-emerald-400" },
+    { label: "총 게시글", value: stats.totalPosts.toLocaleString(), change: "", icon: FileText, color: "text-purple-400" },
+    { label: "신고 접수", value: "0", change: "", icon: AlertTriangle, color: "text-red-400" }, // Mock for now
+  ];
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="text-2xl font-black tracking-tight">대시보드</h1>
         <p className="text-sm text-muted-foreground mt-1">피나클 커뮤니티 운영 현황</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {STATS.map(s => (
-          <div key={s.label} className="glass-card rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider">{s.label}</span>
-              <s.icon className={cn("w-4 h-4", s.color)} />
-            </div>
-            <div className="flex items-end gap-2">
-              <span className="text-2xl font-black">{s.value}</span>
-              <span className={cn("text-xs font-bold mb-0.5", s.change.startsWith("+") ? "text-emerald-400" : "text-red-400")}>{s.change}</span>
+      
+      {isLoading ? (
+        <div className="py-10 text-center text-muted-foreground text-sm font-bold animate-pulse">
+          데이터를 불러오는 중...
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {displayStats.map(s => (
+              <div key={s.label} className="glass-card rounded-2xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider">{s.label}</span>
+                  <s.icon className={cn("w-4 h-4", s.color)} />
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-2xl font-black">{s.value}</span>
+                  {s.change && (
+                    <span className={cn("text-xs font-bold mb-0.5", s.change.startsWith("+") ? "text-emerald-400" : "text-red-400")}>{s.change}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="glass-card rounded-2xl p-6 space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">최근 활동</h2>
+            <div className="space-y-3">
+              {activities.length > 0 ? activities.map((a, i) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
+                  <span className="text-sm">{a.text}</span>
+                  <span className="text-[10px] text-muted-foreground">{a.timeStr}</span>
+                </div>
+              )) : (
+                <div className="text-sm text-muted-foreground py-2">최근 활동이 없습니다.</div>
+              )}
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="glass-card rounded-2xl p-6 space-y-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">최근 활동</h2>
-        <div className="space-y-3">
-          {[
-            { text: "새 회원 가입: newbie01", time: "10분 전", type: "user" },
-            { text: "게시글 신고 접수: 광고성 게시물", time: "25분 전", type: "report" },
-            { text: "공지사항 발행: 서버 점검 안내", time: "1시간 전", type: "notice" },
-            { text: "회원 차단: spammer", time: "2시간 전", type: "ban" },
-          ].map((a, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
-              <span className="text-sm">{a.text}</span>
-              <span className="text-[10px] text-muted-foreground">{a.time}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
