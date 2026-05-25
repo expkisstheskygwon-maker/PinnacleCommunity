@@ -420,6 +420,8 @@ function CommunityView() {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedPostId, setExpandedPostId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [activeTag, setActiveTag] = useState<string>("all");
 
   const fetchPosts = async () => {
     setIsLoading(true);
@@ -560,6 +562,61 @@ function CommunityView() {
         </div>
       </div>
 
+      {/* Category Tabs */}
+      {!isLoading && posts.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            <button
+              onClick={() => { setActiveCategory("all"); setActiveTag("all"); }}
+              className={cn(
+                "px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
+                activeCategory === "all" ? "bg-primary text-white shadow-[0_0_16px_rgba(59,130,246,0.3)]" : "bg-white/5 text-muted-foreground hover:bg-white/10"
+              )}
+            >
+              전체 보기
+            </button>
+            {Array.from(new Set(posts.map(p => p.category))).map(cat => (
+              <button
+                key={cat}
+                onClick={() => { setActiveCategory(cat); setActiveTag("all"); }}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
+                  activeCategory === cat ? "bg-primary text-white shadow-[0_0_16px_rgba(59,130,246,0.3)]" : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {activeCategory !== "all" && Array.from(new Set(posts.filter(p => p.category === activeCategory).map(p => p.tags).filter(Boolean))).length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 pl-2 border-l-2 border-primary/30">
+              <button
+                onClick={() => setActiveTag("all")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                  activeTag === "all" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-muted-foreground hover:bg-white/10 border border-transparent"
+                )}
+              >
+                소분류 전체
+              </button>
+              {Array.from(new Set(posts.filter(p => p.category === activeCategory).map(p => p.tags).filter(Boolean))).map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => setActiveTag(tag as string)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                    activeTag === tag ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-muted-foreground hover:bg-white/10 border border-transparent"
+                  )}
+                >
+                  {tag as string}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="py-10 text-center text-muted-foreground text-sm font-bold animate-pulse">
           게시글을 불러오는 중...
@@ -578,72 +635,90 @@ function CommunityView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
-              {posts.map(p => (
-                <React.Fragment key={p.id}>
-                  <tr 
-                    onClick={() => setExpandedPostId(expandedPostId === p.id ? null : p.id)}
-                    className="hover:bg-white/[0.03] transition-colors cursor-pointer group"
-                  >
-                    <td className="px-5 py-4 font-bold max-w-[200px] truncate group-hover:text-primary transition-colors" title={p.title}>
-                      {p.authorId === 0 ? <span dangerouslySetInnerHTML={{ __html: p.title }} /> : p.title}
-                    </td>
-                    <td className="px-3 py-4 text-muted-foreground">{p.author}</td>
-                    <td className="px-3 py-4 text-center">
-                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                        {p.category}
-                      </span>
-                    </td>
-                    <td className="px-3 py-4 text-center text-muted-foreground">{p.views || 0}</td>
-                    <td className="px-3 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                      <button 
-                        onClick={() => handleToggleStatus(p.id, p.status || 'public')}
-                        className={cn("text-[10px] font-bold px-2 py-1 rounded border hover:opacity-80 transition-opacity", 
-                          (!p.status || p.status === "public") 
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                            : "bg-red-500/10 text-red-400 border-red-500/20"
-                        )}
-                      >
-                        {(!p.status || p.status === "public") ? "공개" : "숨김"}
-                      </button>
-                    </td>
-                    <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors" title="삭제">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  {expandedPostId === p.id && (
-                    <tr className="bg-white/[0.01]">
-                      <td colSpan={6} className="px-5 py-4 border-t border-white/[0.02]">
-                        <div className="p-5 bg-black/20 rounded-xl border border-white/5 space-y-4 max-h-[500px] overflow-y-auto">
-                          <h4 className="font-bold text-sm text-primary flex items-center gap-2">
-                            <FileText className="w-4 h-4" /> 게시글 본문 확인
-                          </h4>
-                          <div 
-                            className="text-sm text-muted-foreground prose prose-invert prose-sm max-w-none break-all" 
-                            dangerouslySetInnerHTML={{ __html: p.content || '<p class="italic">내용이 없습니다.</p>' }} 
-                          />
-                          {p.image && (
-                            <div className="mt-4 border-t border-white/5 pt-4">
-                              <p className="text-[10px] font-bold text-muted-foreground mb-2">첨부 이미지</p>
-                              <img src={p.image} alt="첨부 이미지" className="max-h-[300px] rounded-lg object-contain border border-white/10 bg-black/40" />
-                            </div>
+              {(() => {
+                const filteredPosts = posts.filter(p => {
+                  if (activeCategory !== "all" && p.category !== activeCategory) return false;
+                  if (activeCategory !== "all" && activeTag !== "all" && p.tags !== activeTag) return false;
+                  return true;
+                });
+
+                if (filteredPosts.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">
+                        해당 분류에 등록된 게시글이 없습니다.
+                      </td>
+                    </tr>
+                  );
+                }
+
+                return filteredPosts.map(p => (
+                  <React.Fragment key={p.id}>
+                    <tr 
+                      onClick={() => setExpandedPostId(expandedPostId === p.id ? null : p.id)}
+                      className="hover:bg-white/[0.03] transition-colors cursor-pointer group"
+                    >
+                      <td className="px-5 py-4 font-bold max-w-[200px] truncate group-hover:text-primary transition-colors" title={p.title}>
+                        {p.authorId === 0 ? <span dangerouslySetInnerHTML={{ __html: p.title }} /> : p.title}
+                      </td>
+                      <td className="px-3 py-4 text-muted-foreground">{p.author}</td>
+                      <td className="px-3 py-4 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                            {p.category}
+                          </span>
+                          {p.tags && (
+                            <span className="text-[9px] font-bold text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
+                              {p.tags}
+                            </span>
                           )}
                         </div>
                       </td>
+                      <td className="px-3 py-4 text-center text-muted-foreground">{p.views || 0}</td>
+                      <td className="px-3 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          onClick={() => handleToggleStatus(p.id, p.status || 'public')}
+                          className={cn("text-[10px] font-bold px-2 py-1 rounded border hover:opacity-80 transition-opacity", 
+                            (!p.status || p.status === "public") 
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                              : "bg-red-500/10 text-red-400 border-red-500/20"
+                          )}
+                        >
+                          {(!p.status || p.status === "public") ? "공개" : "숨김"}
+                        </button>
+                      </td>
+                      <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors" title="삭제">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  )}
-                </React.Fragment>
-              ))}
-              {posts.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">
-                    등록된 게시글이 없습니다.
-                  </td>
-                </tr>
-              )}
+                    {expandedPostId === p.id && (
+                      <tr className="bg-white/[0.01]">
+                        <td colSpan={6} className="px-5 py-4 border-t border-white/[0.02]">
+                          <div className="p-5 bg-black/20 rounded-xl border border-white/5 space-y-4 max-h-[500px] overflow-y-auto">
+                            <h4 className="font-bold text-sm text-primary flex items-center gap-2">
+                              <FileText className="w-4 h-4" /> 게시글 본문 확인
+                            </h4>
+                            <div 
+                              className="text-sm text-muted-foreground prose prose-invert prose-sm max-w-none break-all" 
+                              dangerouslySetInnerHTML={{ __html: p.content || '<p class="italic">내용이 없습니다.</p>' }} 
+                            />
+                            {p.image && (
+                              <div className="mt-4 border-t border-white/5 pt-4">
+                                <p className="text-[10px] font-bold text-muted-foreground mb-2">첨부 이미지</p>
+                                <img src={p.image} alt="첨부 이미지" className="max-h-[300px] rounded-lg object-contain border border-white/10 bg-black/40" />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ));
+              })()}
             </tbody>
           </table>
         </div>
