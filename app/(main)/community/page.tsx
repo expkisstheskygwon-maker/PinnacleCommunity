@@ -59,7 +59,12 @@ export default function CommunityPage() {
       setIsLoading(true);
       try {
         const url = new URL("/api/posts", window.location.origin);
-        url.searchParams.set("category", activeCat);
+        if (activeCat === "all") {
+          const communityCats = CATEGORIES.filter(c => c.id !== "all").map(c => c.id).join(",");
+          url.searchParams.set("category", communityCats);
+        } else {
+          url.searchParams.set("category", activeCat);
+        }
         url.searchParams.set("limit", pageSize.toString());
         url.searchParams.set("offset", ((currentPage - 1) * pageSize).toString());
         if (currentSearch) url.searchParams.set("search", currentSearch);

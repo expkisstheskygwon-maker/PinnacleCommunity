@@ -97,8 +97,14 @@ export async function GET(request: NextRequest) {
     let whereClauses: string[] = [];
 
     if (category && category !== 'all') {
-      whereClauses.push(' p.category = ? ');
-      params.push(category);
+      if (category.includes(',')) {
+        const cats = category.split(',');
+        whereClauses.push(` p.category IN (${cats.map(() => '?').join(',')}) `);
+        params.push(...cats);
+      } else {
+        whereClauses.push(' p.category = ? ');
+        params.push(category);
+      }
     }
 
     if (tag) {
