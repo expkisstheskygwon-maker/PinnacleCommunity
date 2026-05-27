@@ -460,6 +460,7 @@ function CommunityView() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeTag, setActiveTag] = useState<string>("all");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCatManageModalOpen, setIsCatManageModalOpen] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [deleteForm, setDeleteForm] = useState({
     deleteType: 'range', // 'all', 'range', 'date'
@@ -721,6 +722,13 @@ function CommunityView() {
                 {cat}
               </button>
             ))}
+
+            <button
+              onClick={() => setIsCatManageModalOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm font-bold hover:bg-primary/20 transition-all ml-auto"
+            >
+              <Settings className="w-4 h-4" /> 카테고리 설정
+            </button>
           </div>
 
           {activeCategory !== "all" && Array.from(new Set(posts.filter(p => p.category === activeCategory).map(p => p.tags).filter(Boolean))).length > 0 && (
@@ -974,6 +982,42 @@ function CommunityView() {
                 className="px-6 py-2.5 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-colors shadow-[0_0_15px_rgba(239,68,68,0.2)]"
               >
                 삭제하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Category Management Modal */}
+      {isCatManageModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in">
+            <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+              <div>
+                <h3 className="font-black text-lg">커뮤니티 카테고리 관리</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">자유게시판, 가이드 등 커뮤니티의 카테고리를 생성/삭제/관리합니다.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsCatManageModalOpen(false);
+                  fetchCommunityCategories();
+                }} 
+                className="text-muted-foreground hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <CategoryManagementView initialType="community" hideHeader={true} />
+            </div>
+            <div className="p-4 border-t border-white/10 flex justify-end bg-black/20">
+              <button 
+                onClick={() => {
+                  setIsCatManageModalOpen(false);
+                  fetchCommunityCategories();
+                }} 
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all"
+              >
+                닫기
               </button>
             </div>
           </div>
