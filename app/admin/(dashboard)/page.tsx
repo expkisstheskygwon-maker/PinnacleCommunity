@@ -546,7 +546,7 @@ function CommunityView() {
           <div className="relative">
             <input
               type="file"
-              accept=".csv"
+              accept=".csv,.json"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
@@ -554,7 +554,18 @@ function CommunityView() {
                 const reader = new FileReader();
                 reader.onload = async (event) => {
                   const text = event.target?.result as string;
-                  const parsed = parseCSV(text);
+                  let parsed: any[] = [];
+                  if (file.name.toLowerCase().endsWith('.json')) {
+                    try {
+                      const json = JSON.parse(text);
+                      parsed = Array.isArray(json) ? json : [json];
+                    } catch (e) {
+                      alert("JSON 형식이 올바르지 않습니다.");
+                      return;
+                    }
+                  } else {
+                    parsed = parseCSV(text);
+                  }
                   if (parsed.length === 0) {
                     alert("데이터가 없거나 형식이 잘못되었습니다.");
                     return;
@@ -589,7 +600,7 @@ function CommunityView() {
             />
             <button disabled={isUploading} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-all">
               {isUploading ? <Upload className="w-4 h-4 animate-bounce" /> : <Upload className="w-4 h-4" />} 
-              {isUploading ? "업로드 중..." : "CSV 업로드"}
+              {isUploading ? "업로드 중..." : "CSV/JSON 업로드"}
             </button>
           </div>
 
@@ -953,7 +964,7 @@ function PostEditorView({ category }: { category: string }) {
           <div className="relative">
             <input
               type="file"
-              accept=".csv"
+              accept=".csv,.json"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
@@ -961,7 +972,18 @@ function PostEditorView({ category }: { category: string }) {
                 const reader = new FileReader();
                 reader.onload = async (event) => {
                   const text = event.target?.result as string;
-                  const parsed = parseCSV(text);
+                  let parsed: any[] = [];
+                  if (file.name.toLowerCase().endsWith('.json')) {
+                    try {
+                      const json = JSON.parse(text);
+                      parsed = Array.isArray(json) ? json : [json];
+                    } catch (e) {
+                      alert("JSON 형식이 올바르지 않습니다.");
+                      return;
+                    }
+                  } else {
+                    parsed = parseCSV(text);
+                  }
                   if (parsed.length === 0) {
                     alert("데이터가 없거나 형식이 잘못되었습니다.");
                     return;
@@ -994,7 +1016,7 @@ function PostEditorView({ category }: { category: string }) {
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
             <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 text-white text-[11px] font-black hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20">
-              <Upload className="w-3.5 h-3.5" /> CSV 파일 업로드
+              <Upload className="w-3.5 h-3.5" /> CSV/JSON 파일 업로드
             </button>
           </div>
         </div>
