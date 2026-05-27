@@ -526,83 +526,91 @@ function CommunityView() {
           <p className="text-sm text-muted-foreground mt-1">게시글 및 댓글을 관리합니다</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => {
-              const csvContent = "category,title,content,subCategory,image\n\"free\",\"자유게시판 샘플\",\"<p>자유로운 글</p>\",\"일반\",\"\"\n\"analysis\",\"분석 샘플\",\"<p>분석 내용</p>\",\"분류1\",";
-              const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement("a");
-              link.setAttribute("href", url);
-              link.setAttribute("download", `sample_bulk_upload_community.csv`);
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-all"
-          >
-            <Download className="w-4 h-4" /> 양식 다운로드
-          </button>
-          
-          <div className="relative">
-            <input
-              type="file"
-              accept=".csv,.json"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                  const text = event.target?.result as string;
-                  let parsed: any[] = [];
-                  if (file.name.toLowerCase().endsWith('.json')) {
-                    try {
-                      const json = JSON.parse(text);
-                      parsed = Array.isArray(json) ? json : [json];
-                    } catch (e) {
-                      alert("JSON 형식이 올바르지 않습니다.");
-                      return;
-                    }
-                  } else {
-                    parsed = parseCSV(text);
-                  }
-                  if (parsed.length === 0) {
-                    alert("데이터가 없거나 형식이 잘못되었습니다.");
-                    return;
-                  }
-                  
-                  if (!confirm(`${parsed.length}개의 게시글을 일괄 업로드하시겠습니까?`)) return;
-                  
-                  setIsUploading(true);
-                  try {
-                    const res = await fetch('/api/admin/posts/bulk', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ posts: parsed, category: 'free' }) // fallback category
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                      alert(data.message);
-                      fetchPosts();
-                    } else {
-                      alert(data.error);
-                    }
-                  } catch (err) {
-                    alert("업로드 중 오류가 발생했습니다.");
-                  } finally {
-                    setIsUploading(false);
-                    e.target.value = '';
-                  }
-                };
-                reader.readAsText(file);
-              }}
-              className="absolute inset-0 opacity-0 cursor-pointer"
-            />
-            <button disabled={isUploading} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-all">
-              {isUploading ? <Upload className="w-4 h-4 animate-bounce" /> : <Upload className="w-4 h-4" />} 
-              {isUploading ? "업로드 중..." : "CSV/JSON 업로드"}
-            </button>
-          </div>
+          {activeCategory !== "all" ? (
+            <>
+              <button
+                onClick={() => {
+                  const csvContent = "category,title,content,subCategory,image\n\"" + activeCategory + "\",\"샘플 제목\",\"<p>본문 내용</p>\",\"일반\",\"\"";
+                  const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.setAttribute("href", url);
+                  link.setAttribute("download", `sample_bulk_upload_${activeCategory}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-all"
+              >
+                <Download className="w-4 h-4" /> 양식 다운로드
+              </button>
+              
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".csv,.json"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                      const text = event.target?.result as string;
+                      let parsed: any[] = [];
+                      if (file.name.toLowerCase().endsWith('.json')) {
+                        try {
+                          const json = JSON.parse(text);
+                          parsed = Array.isArray(json) ? json : [json];
+                        } catch (e) {
+                          alert("JSON 형식이 올바르지 않습니다.");
+                          return;
+                        }
+                      } else {
+                        parsed = parseCSV(text);
+                      }
+                      if (parsed.length === 0) {
+                        alert("데이터가 없거나 형식이 잘못되었습니다.");
+                        return;
+                      }
+                      
+                      if (!confirm(`${parsed.length}개의 게시글을 일괄 업로드하시겠습니까?`)) return;
+                      
+                      setIsUploading(true);
+                      try {
+                        const res = await fetch('/api/admin/posts/bulk', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ posts: parsed, category: activeCategory })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          alert(data.message);
+                          fetchPosts();
+                        } else {
+                          alert(data.error);
+                        }
+                      } catch (err) {
+                        alert("업로드 중 오류가 발생했습니다.");
+                      } finally {
+                        setIsUploading(false);
+                        e.target.value = '';
+                      }
+                    };
+                    reader.readAsText(file);
+                  }}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <button disabled={isUploading} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-all">
+                  {isUploading ? <Upload className="w-4 h-4 animate-bounce" /> : <Upload className="w-4 h-4" />} 
+                  {isUploading ? "업로드 중..." : "CSV/JSON 업로드"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground bg-white/5 border border-white/10 rounded-xl px-4 py-2 font-bold">
+              💡 일괄 업로드하려면 아래 탭에서 특정 카테고리를 먼저 선택해주세요.
+            </span>
+          )}
 
           <button onClick={fetchPosts} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all ml-2">
             새로고침
