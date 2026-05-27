@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
     } catch(e) {}
 
     // Gather all unique authors
-    const uniqueUsernames = new Set<string>();
+    const uniqueUsernamesSet = new Set<string>();
     for (const p of posts) {
       if (p.author) {
         if (typeof p.author === 'object') {
           const name = p.author.username || p.author.nickname;
-          if (name) uniqueUsernames.add(name);
+          if (name) uniqueUsernamesSet.add(name);
         } else if (typeof p.author === 'string') {
-          uniqueUsernames.add(p.author);
+          uniqueUsernamesSet.add(p.author);
         }
       }
       if (p.comments && Array.isArray(p.comments)) {
@@ -51,35 +51,83 @@ export async function POST(request: NextRequest) {
           if (name) {
             if (typeof name === 'object') {
               const innerName = name.username || name.nickname;
-              if (innerName) uniqueUsernames.add(innerName);
+              if (innerName) uniqueUsernamesSet.add(innerName);
             } else if (typeof name === 'string') {
-              uniqueUsernames.add(name);
+              uniqueUsernamesSet.add(name);
             }
           }
         }
       }
     }
 
-    // Get or create all users
-    const usernameToIdMap: Record<string, number> = {};
-    for (const name of uniqueUsernames) {
-      let avatarSeed = undefined;
-      const matchingPost = posts.find((p: any) => p.author && (p.author.username === name || p.author.nickname === name || p.author === name));
-      if (matchingPost && typeof matchingPost.author === 'object' && matchingPost.author.avatarSeed) {
-        avatarSeed = matchingPost.author.avatarSeed;
+    const uniqueUsernames = Array.from(uniqueUsernamesSet);
+    const usernameToIdMap: Record<string, number> = { 'admin': 0, '관리자': 0 };
+
+    if (uniqueUsernames.length > 0) {
+      // Find existing users using chunks of 50 to avoid SQLite variable limits (999 maximum)
+      const chunkSize = 50;
+      for (let i = 0; i < uniqueUsernames.length; i += chunkSize) {
+        const chunk = uniqueUsernames.slice(i, i + chunkSize);
+        const placeholders = chunk.map(() => '?').join(',');
+        const query = `SELECT id, nickname, userId FROM users WHERE nickname IN (${placeholders}) OR userId IN (${placeholders})`;
+        const { results } = await db.prepare(query).bind(...chunk, ...chunk).all();
+        
+        if (results) {
+          for (const u of results) {
+            if (u.nickname) usernameToIdMap[u.nickname] = u.id;
+            if (u.userId) usernameToIdMap[u.userId] = u.id;
+          }
+        }
       }
-      const id = await getOrCreateUser(db, name, avatarSeed);
-      usernameToIdMap[name] = id;
     }
 
-    let importedCount = 0;
+    // Prepare missing users to insert
+    const missingUsersToInsert: { nickname: string; userId: string; email: string; avatar: string | null }[] = [];
+    for (const name of uniqueUsernames) {
+      if (usernameToIdMap[name] === undefined) {
+        const cleanName = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'user';
+        const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
+        const userId = `${cleanName}${uniqueSuffix}`;
+        const email = `${userId}@pinnacle-community.com`;
+        
+        let avatarSeed = undefined;
+        const matchingPost = posts.find((p: any) => p.author && (p.author.username === name || p.author.nickname === name || p.author === name));
+        if (matchingPost && typeof matchingPost.author === 'object' && matchingPost.author.avatarSeed) {
+          avatarSeed = matchingPost.author.avatarSeed;
+        }
+        const avatar = avatarSeed 
+          ? `https://api.dicebear.com/7.x/adventurer/svg?seed=${avatarSeed}` 
+          : `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}`;
+
+        missingUsersToInsert.push({ nickname: name, userId, email, avatar });
+      }
+    }
+
+    // Batch insert missing users
+    if (missingUsersToInsert.length > 0) {
+      const userStatements = missingUsersToInsert.map(u => 
+        db.prepare(
+          'INSERT INTO users (userId, passwordHash, nickname, email, avatar) VALUES (?, ?, ?, ?, ?)'
+        ).bind(u.userId, 'pbkdf2_dummy_password_hash', u.nickname, u.email, u.avatar)
+      );
+      const insertResults = await db.batch(userStatements);
+      for (let i = 0; i < missingUsersToInsert.length; i++) {
+        const insertRes = insertResults[i];
+        const newId = insertRes.meta.last_row_id;
+        usernameToIdMap[missingUsersToInsert[i].nickname] = newId;
+      }
+    }
+
+    // Batch insert posts
+    const postStatements = [];
+    const validPostsToInsert: any[] = [];
+    
     for (const p of posts) {
       const title = p.title || p.Title;
       const content = p.content || p.Content;
       if (!title || !content) continue;
 
       let cat = p.category || p.Category || category;
-      // Category mapping
       if (cat === 'pinnacle_analysis') cat = 'analysis';
       else if (cat === 'pinnacle_guide') cat = 'guide';
       else if (cat === 'pinnacle_notices') cat = 'notices';
@@ -108,35 +156,52 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Insert Post
-      const postResult = await db.prepare(
-        'INSERT INTO posts (title, content, authorId, category, tags, image, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).bind(title, content, authorId, cat, subCat || null, img || null, createdAt).run();
+      postStatements.push(
+        db.prepare(
+          'INSERT INTO posts (title, content, authorId, category, tags, image, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(title, content, authorId, cat, subCat || null, img || null, createdAt)
+      );
+      validPostsToInsert.push(p);
+    }
 
-      const postId = postResult.meta.last_row_id;
-      importedCount++;
+    let importedCount = 0;
+    if (postStatements.length > 0) {
+      const postResults = await db.batch(postStatements);
+      importedCount = postResults.length;
 
-      // Insert Comments
-      if (p.comments && Array.isArray(p.comments) && postId) {
-        for (const c of p.comments) {
-          const commentContent = c.content || c.Content;
-          if (!commentContent) continue;
+      // Batch insert comments
+      const commentStatements = [];
+      for (let i = 0; i < validPostsToInsert.length; i++) {
+        const p = validPostsToInsert[i];
+        const postId = postResults[i].meta.last_row_id;
+        
+        if (p.comments && Array.isArray(p.comments) && postId) {
+          for (const c of p.comments) {
+            const commentContent = c.content || c.Content;
+            if (!commentContent) continue;
 
-          let commentAuthorId = 0;
-          const commentAuthorName = typeof (c.username || c.author) === 'object'
-            ? ((c.username || c.author).username || (c.username || c.author).nickname)
-            : (c.username || c.author);
+            let commentAuthorId = 0;
+            const commentAuthorName = typeof (c.username || c.author) === 'object'
+              ? ((c.username || c.author).username || (c.username || c.author).nickname)
+              : (c.username || c.author);
 
-          if (commentAuthorName && usernameToIdMap[commentAuthorName] !== undefined) {
-            commentAuthorId = usernameToIdMap[commentAuthorName];
+            if (commentAuthorName && usernameToIdMap[commentAuthorName] !== undefined) {
+              commentAuthorId = usernameToIdMap[commentAuthorName];
+            }
+
+            const commentCreatedAt = c.createdAt || c.Createdat || c.CreatedAt || new Date().toISOString();
+
+            commentStatements.push(
+              db.prepare(
+                'INSERT INTO comments (postId, authorId, content, createdAt) VALUES (?, ?, ?, ?)'
+              ).bind(postId, commentAuthorId, commentContent, commentCreatedAt)
+            );
           }
-
-          const commentCreatedAt = c.createdAt || c.Createdat || c.CreatedAt || new Date().toISOString();
-
-          await db.prepare(
-            'INSERT INTO comments (postId, authorId, content, createdAt) VALUES (?, ?, ?, ?)'
-          ).bind(postId, commentAuthorId, commentContent, commentCreatedAt).run();
         }
+      }
+
+      if (commentStatements.length > 0) {
+        await db.batch(commentStatements);
       }
     }
 
@@ -152,37 +217,5 @@ export async function POST(request: NextRequest) {
       { success: false, error: error.message || '서버 오류가 발생했습니다.' },
       { status: 500 }
     );
-  }
-}
-
-async function getOrCreateUser(db: any, username: string, avatarSeed?: string) {
-  if (!username) return 0;
-  try {
-    const user = await db.prepare('SELECT id FROM users WHERE nickname = ?').bind(username).first();
-    if (user) {
-      return user.id;
-    }
-    const userByUid = await db.prepare('SELECT id FROM users WHERE userId = ?').bind(username).first();
-    if (userByUid) {
-      return userByUid.id;
-    }
-
-    const cleanName = username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'user';
-    const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
-    const userId = `${cleanName}${uniqueSuffix}`;
-    const email = `${userId}@pinnacle-community.com`;
-    const passwordHash = 'pbkdf2_dummy_password_hash';
-    const avatar = avatarSeed 
-      ? `https://api.dicebear.com/7.x/adventurer/svg?seed=${avatarSeed}` 
-      : `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(username)}`;
-
-    const insertResult = await db.prepare(
-      'INSERT INTO users (userId, passwordHash, nickname, email, avatar) VALUES (?, ?, ?, ?, ?)'
-    ).bind(userId, passwordHash, username, email, avatar).run();
-
-    return insertResult.meta.last_row_id;
-  } catch (err) {
-    console.error('getOrCreateUser error:', username, err);
-    return 0;
   }
 }
