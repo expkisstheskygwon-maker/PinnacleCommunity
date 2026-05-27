@@ -20,6 +20,16 @@ const CATEGORIES = [
   { id: "events", label: "이벤트/랭킹", icon: Trophy },
 ];
 
+const getIcon = (id: string) => {
+  switch (id) {
+    case "free": return MessageSquare;
+    case "match": return Swords;
+    case "picks": return Target;
+    case "events": return Trophy;
+    default: return MessageSquare;
+  }
+};
+
 const TOP_USERS = [
   { rank: 1, name: "ProBettor", score: 2840, badge: "Expert", streak: 12 },
   { rank: 2, name: "분석왕", score: 2650, badge: "MVP", streak: 8 },
@@ -41,6 +51,7 @@ export default function CommunityPage() {
   const [totalPosts, setTotalPosts] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dynCategories, setDynCategories] = useState<any[]>(CATEGORIES);
   const searchParams = useSearchParams();
   const router = useRouter();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -55,12 +66,35 @@ export default function CommunityPage() {
   }, [currentSearch]);
 
   useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/admin/categories?type=community");
+        const data = await res.json();
+        if (data.success && data.categories && data.categories.length > 0) {
+          const mapped = data.categories.map((c: any) => ({
+            id: c.name,
+            label: c.name === 'free' ? '자유게시판' : c.name === 'match' ? '경기 토론' : c.name === 'picks' ? '픽 공유' : c.name === 'events' ? '이벤트/랭킹' : c.name,
+            icon: getIcon(c.name)
+          }));
+          setDynCategories([
+            { id: "all", label: "전체", icon: Users },
+            ...mapped
+          ]);
+        }
+      } catch (e) {
+        console.error("Failed to fetch community categories:", e);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     const fetchPosts = async () => {
       setIsLoading(true);
       try {
         const url = new URL("/api/posts", window.location.origin);
         if (activeCat === "all") {
-          const communityCats = CATEGORIES.filter(c => c.id !== "all").map(c => c.id).join(",");
+          const communityCats = dynCategories.filter(c => c.id !== "all").map(c => c.id).join(",");
           url.searchParams.set("category", communityCats);
         } else {
           url.searchParams.set("category", activeCat);
@@ -82,8 +116,10 @@ export default function CommunityPage() {
       }
     };
 
-    fetchPosts();
-  }, [activeCat, currentSearch, currentPage]);
+    if (dynCategories.length > 0) {
+      fetchPosts();
+    }
+  }, [activeCat, currentSearch, currentPage, dynCategories]);
 
   const totalPages = Math.ceil(totalPosts / pageSize) || 1;
   
@@ -174,7 +210,7 @@ export default function CommunityPage() {
 
         {/* Categories */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {CATEGORIES.map(cat => (
+          {dynCategories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCat(cat.id)}
@@ -229,14 +265,14 @@ export default function CommunityPage() {
                           <td className="px-4 py-3.5 text-center text-muted-foreground hidden sm:table-cell font-mono">{postNumber}</td>
                           <td className="px-4 py-3.5 text-center hidden md:table-cell">
                             <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded uppercase">
-                              {CATEGORIES.find(c => c.id === post.category)?.label || post.category}
+                              {dynCategories.find(c => c.id === post.category)?.label || post.category}
                             </span>
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-2">
                               {/* 모바일용 카테고리 뱃지 */}
                               <span className="md:hidden text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded uppercase shrink-0">
-                                {CATEGORIES.find(c => c.id === post.category)?.label || post.category}
+                                {dynCategories.find(c => c.id === post.category)?.label || post.category}
                               </span>
                               
                               <span className="font-medium group-hover:text-primary transition-colors line-clamp-1 break-all">

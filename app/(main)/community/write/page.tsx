@@ -10,12 +10,33 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { id: "free", label: "자유게시판", icon: MessageSquare, desc: "자유로운 일상과 소통" },
   { id: "match", label: "경기 토론", icon: Swords, desc: "경기 분석 및 토론" },
   { id: "picks", label: "픽 공유", icon: Target, desc: "승무패/핸디캡 픽 공유" },
   { id: "events", label: "이벤트/랭킹", icon: Trophy, desc: "혜택과 순위 경쟁" },
 ];
+
+const getIcon = (id: string) => {
+  switch (id) {
+    case "free": return MessageSquare;
+    case "match": return Swords;
+    case "picks": return Target;
+    case "events": return Trophy;
+    default: return MessageSquare;
+  }
+};
+
+const getDesc = (id: string) => {
+  switch (id) {
+    case "free": return "자유로운 일상과 소통";
+    case "match": return "경기 분석 및 토론";
+    case "picks": return "승무패/핸디캡 픽 공유";
+    case "events": return "혜택과 순위 경쟁";
+    default: return "커뮤니티 카테고리";
+  }
+};
+
 
 const TEMPLATES = [
   {
@@ -44,7 +65,29 @@ export default function WritePage() {
     image: '',
   });
 
+  const [categories, setCategories] = useState<any[]>(DEFAULT_CATEGORIES);
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/admin/categories?type=community");
+        const data = await res.json();
+        if (data.success && data.categories && data.categories.length > 0) {
+          const mapped = data.categories.map((c: any) => ({
+            id: c.name,
+            label: c.name === 'free' ? '자유게시판' : c.name === 'match' ? '경기 토론' : c.name === 'picks' ? '픽 공유' : c.name === 'events' ? '이벤트/랭킹' : c.name,
+            icon: getIcon(c.name),
+            desc: getDesc(c.name)
+          }));
+          setCategories(mapped);
+        }
+      } catch (e) {
+        console.error("Failed to fetch community categories:", e);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const qContent = searchParams.get('content');
@@ -151,7 +194,7 @@ export default function WritePage() {
 
           {/* Category Picker */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {CATEGORIES.map(cat => (
+            {categories.map(cat => (
               <button
                 key={cat.id}
                 type="button"

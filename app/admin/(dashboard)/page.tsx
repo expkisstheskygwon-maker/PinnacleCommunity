@@ -460,6 +460,7 @@ function CommunityView() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeTag, setActiveTag] = useState<string>("all");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
   const [deleteForm, setDeleteForm] = useState({
     deleteType: 'range', // 'all', 'range', 'date'
     startId: '',
@@ -487,8 +488,24 @@ function CommunityView() {
     }
   };
 
+  const fetchCommunityCategories = async () => {
+    try {
+      const res = await fetch('/api/admin/categories?type=community');
+      const data = await res.json();
+      if (data.success && data.categories && data.categories.length > 0) {
+        setCategories(data.categories.map((c: any) => c.name));
+      } else {
+        setCategories(["free", "match", "picks", "events"]);
+      }
+    } catch (e) {
+      console.error(e);
+      setCategories(["free", "match", "picks", "events"]);
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
+    fetchCommunityCategories();
   }, []);
 
   const handleToggleStatus = async (postId: number, currentStatus: string) => {
@@ -677,7 +694,7 @@ function CommunityView() {
       </div>
 
       {/* Category Tabs */}
-      {!isLoading && posts.length > 0 && (
+      {!isLoading && (posts.length > 0 || categories.length > 0) && (
         <div className="space-y-4">
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
             <button
@@ -689,7 +706,10 @@ function CommunityView() {
             >
               전체 보기
             </button>
-            {Array.from(new Set(posts.map(p => p.category))).map(cat => (
+            {Array.from(new Set([
+              ...categories,
+              ...posts.map(p => p.category)
+            ])).filter(Boolean).map(cat => (
               <button
                 key={cat}
                 onClick={() => { setActiveCategory(cat); setActiveTag("all"); }}
@@ -1357,6 +1377,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   const [editName, setEditName] = useState("");
 
   const TYPES = [
+    { id: "community", label: "커뮤니티" },
     { id: "notices", label: "공지/이슈" },
     { id: "guide", label: "가이드" },
     { id: "qna", label: "Q&A" },
