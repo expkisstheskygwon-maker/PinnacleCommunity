@@ -624,6 +624,7 @@ function CommunityView() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeTag, setActiveTag] = useState<string>("all");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
   const [isCatManageModalOpen, setIsCatManageModalOpen] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [deleteForm, setDeleteForm] = useState({
@@ -633,6 +634,26 @@ function CommunityView() {
     startDate: '',
     endDate: '',
     category: 'all'
+  });
+
+  const [bulkEditForm, setBulkEditForm] = useState({
+    editType: 'range', // 'all', 'range', 'date'
+    startId: '',
+    endId: '',
+    startDate: '',
+    endDate: '',
+    category: 'all',
+    modifyViews: true,
+    viewsMin: '1',
+    viewsMax: '100',
+    modifyLikes: false,
+    likesMin: '0',
+    likesMax: '10'
+  });
+
+  const [individualEditForm, setIndividualEditForm] = useState({
+    views: 0,
+    likes: 0
   });
 
   const fetchPosts = async () => {
@@ -672,6 +693,18 @@ function CommunityView() {
     fetchPosts();
     fetchCommunityCategories();
   }, []);
+
+  useEffect(() => {
+    if (expandedPostId !== null) {
+      const post = posts.find(p => p.id === expandedPostId);
+      if (post) {
+        setIndividualEditForm({
+          views: post.views || 0,
+          likes: post.likes || 0
+        });
+      }
+    }
+  }, [expandedPostId, posts]);
 
   const handleToggleStatus = async (postId: number, currentStatus: string) => {
     const newStatus = currentStatus === 'public' ? 'hidden' : 'public';
@@ -734,6 +767,59 @@ function CommunityView() {
         fetchPosts();
       } else {
         alert(data.error || "삭제에 실패했습니다.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("오류가 발생했습니다.");
+    }
+  };
+
+  const handleBulkEditSubmit = async () => {
+    if (!bulkEditForm.modifyViews && !bulkEditForm.modifyLikes) {
+      alert("조회수나 추천수 수정 옵션 중 최소 하나는 선택해야 합니다.");
+      return;
+    }
+
+    let confirmMsg = "조회수/추천수를 일괄 수정하시겠습니까?";
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch('/api/admin/posts/bulk-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bulkEditForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message + ` (${data.count}개의 게시글 수정됨)`);
+        setIsBulkEditModalOpen(false);
+        fetchPosts();
+      } else {
+        alert(data.error || "수정에 실패했습니다.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("오류가 발생했습니다.");
+    }
+  };
+
+  const handleIndividualEditSubmit = async (postId: number) => {
+    try {
+      const res = await fetch('/api/admin/posts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId,
+          views: individualEditForm.views,
+          likes: individualEditForm.likes
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("성공적으로 수정되었습니다.");
+        fetchPosts();
+      } else {
+        alert(data.error || "수정에 실패했습니다.");
       }
     } catch (e) {
       console.error(e);
@@ -855,6 +941,29 @@ function CommunityView() {
           >
             <Trash2 className="w-3.5 h-3.5" /> 대량 삭제
           </button>
+
+          <button 
+            onClick={() => {
+              setBulkEditForm({
+                editType: 'range',
+                startId: '',
+                endId: '',
+                startDate: '',
+                endDate: '',
+                category: activeCategory,
+                modifyViews: true,
+                viewsMin: '1',
+                viewsMax: '100',
+                modifyLikes: false,
+                likesMin: '0',
+                likesMax: '10'
+              });
+              setIsBulkEditModalOpen(true);
+            }} 
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-bold hover:bg-primary/20 transition-all ml-2"
+          >
+            <Edit className="w-3.5 h-3.5" /> 조회/추천 일괄 수정
+          </button>
         </div>
       </div>
 
@@ -935,7 +1044,7 @@ function CommunityView() {
                 <th className="text-left px-5 py-4 font-bold">제목</th>
                 <th className="text-left px-3 py-4 font-bold">작성자</th>
                 <th className="text-center px-3 py-4 font-bold">카테고리</th>
-                <th className="text-center px-3 py-4 font-bold">조회</th>
+                <th className="text-center px-3 py-4 font-bold">조회 / 추천</th>
                 <th className="text-center px-3 py-4 font-bold">상태</th>
                 <th className="text-right px-5 py-4 font-bold">관리</th>
               </tr>
@@ -980,7 +1089,7 @@ function CommunityView() {
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-4 text-center text-muted-foreground">{p.views || 0}</td>
+                      <td className="px-3 py-4 text-center text-muted-foreground">{p.views || 0} / {p.likes || 0}</td>
                       <td className="px-3 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <button 
                           onClick={() => handleToggleStatus(p.id, p.status || 'public')}
@@ -1018,6 +1127,36 @@ function CommunityView() {
                                 <img src={p.image} alt="첨부 이미지" className="max-h-[300px] rounded-lg object-contain border border-white/10 bg-black/40" />
                               </div>
                             )}
+
+                            <div className="mt-4 border-t border-white/5 pt-4" onClick={(e) => e.stopPropagation()}>
+                              <h5 className="font-bold text-xs text-primary mb-3">조회수 및 추천수 개별 수정</h5>
+                              <div className="flex items-end gap-4 flex-wrap">
+                                <div>
+                                  <label className="text-[10px] text-muted-foreground block mb-1 font-bold">조회수</label>
+                                  <input 
+                                    type="number" 
+                                    value={individualEditForm.views}
+                                    onChange={e => setIndividualEditForm({ ...individualEditForm, views: parseInt(e.target.value) || 0 })}
+                                    className="px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-xs w-28 text-white font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-muted-foreground block mb-1 font-bold">추천수</label>
+                                  <input 
+                                    type="number" 
+                                    value={individualEditForm.likes}
+                                    onChange={e => setIndividualEditForm({ ...individualEditForm, likes: parseInt(e.target.value) || 0 })}
+                                    className="px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-xs w-28 text-white font-bold"
+                                  />
+                                </div>
+                                <button 
+                                  onClick={() => handleIndividualEditSubmit(p.id)}
+                                  className="px-4 py-2 bg-primary hover:opacity-90 text-white rounded-lg text-xs font-bold transition-all"
+                                >
+                                  조회/추천 수정 완료
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -1146,6 +1285,195 @@ function CommunityView() {
                 className="px-6 py-2.5 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-colors shadow-[0_0_15px_rgba(239,68,68,0.2)]"
               >
                 삭제하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Bulk Edit views/likes Modal */}
+      {isBulkEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in animate-duration-200">
+            <div className="p-5 border-b border-white/10 flex items-center justify-between">
+              <h3 className="font-black text-lg text-primary flex items-center gap-2">
+                <Edit className="w-5 h-5" /> 조회수/추천수 일괄 수정
+              </h3>
+              <button onClick={() => setIsBulkEditModalOpen(false)} className="text-muted-foreground hover:text-white p-1">✕</button>
+            </div>
+            
+            <div className="p-6 space-y-5">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">수정 대상 카테고리</label>
+                <select
+                  value={bulkEditForm.category}
+                  onChange={e => setBulkEditForm({ ...bulkEditForm, category: e.target.value })}
+                  className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 text-white font-bold"
+                >
+                  <option value="all">전체 카테고리</option>
+                  <option value="free">자유게시판 (free)</option>
+                  <option value="analysis">분석/칼럼 (analysis)</option>
+                  <option value="guide">가입/입출금 가이드 (guide)</option>
+                  <option value="qna">Q&A (qna)</option>
+                  <option value="notices">공지사항 (notices)</option>
+                  <option value="spotlight">스포트라이트 (spotlight)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">수정 범위 설정</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { val: 'range', label: 'ID 구간' },
+                    { val: 'date', label: '날짜 기간' },
+                    { val: 'category', label: '카테고리' },
+                    { val: 'all', label: '전체 적용' }
+                  ].map(opt => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => setBulkEditForm({ ...bulkEditForm, editType: opt.val })}
+                      className={cn(
+                        "px-2 py-2.5 rounded-xl text-[11px] font-bold border transition-all text-center",
+                        bulkEditForm.editType === opt.val
+                          ? "border-primary/30 text-primary bg-primary/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10 text-muted-foreground"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {bulkEditForm.editType === 'range' && (
+                <div className="grid grid-cols-2 gap-4 animate-fade-in animate-duration-200">
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">시작 ID</label>
+                    <input
+                      type="number"
+                      placeholder="예: 101"
+                      value={bulkEditForm.startId}
+                      onChange={e => setBulkEditForm({ ...bulkEditForm, startId: e.target.value })}
+                      className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 text-white font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">종료 ID</label>
+                    <input
+                      type="number"
+                      placeholder="예: 200"
+                      value={bulkEditForm.endId}
+                      onChange={e => setBulkEditForm({ ...bulkEditForm, endId: e.target.value })}
+                      className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 text-white font-bold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {bulkEditForm.editType === 'date' && (
+                <div className="grid grid-cols-2 gap-4 animate-fade-in animate-duration-200">
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">시작일</label>
+                    <input
+                      type="date"
+                      value={bulkEditForm.startDate}
+                      onChange={e => setBulkEditForm({ ...bulkEditForm, startDate: e.target.value })}
+                      className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">종료일</label>
+                    <input
+                      type="date"
+                      value={bulkEditForm.endDate}
+                      onChange={e => setBulkEditForm({ ...bulkEditForm, endDate: e.target.value })}
+                      className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 text-white"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* View/Like settings */}
+              <div className="space-y-4 pt-2 border-t border-white/5">
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={bulkEditForm.modifyViews}
+                      onChange={e => setBulkEditForm({ ...bulkEditForm, modifyViews: e.target.checked })}
+                      className="rounded border-white/10 bg-black/20 text-primary focus:ring-primary/50"
+                    />
+                    <span className="text-xs font-bold text-white">조회수 일괄 변경</span>
+                  </label>
+                  
+                  {bulkEditForm.modifyViews && (
+                    <div className="grid grid-cols-2 gap-4 pl-6 animate-fade-in">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">최소값</label>
+                        <input 
+                          type="number"
+                          value={bulkEditForm.viewsMin}
+                          onChange={e => setBulkEditForm({ ...bulkEditForm, viewsMin: e.target.value })}
+                          className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-lg text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">최대값</label>
+                        <input 
+                          type="number"
+                          value={bulkEditForm.viewsMax}
+                          onChange={e => setBulkEditForm({ ...bulkEditForm, viewsMax: e.target.value })}
+                          className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-lg text-xs text-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={bulkEditForm.modifyLikes}
+                      onChange={e => setBulkEditForm({ ...bulkEditForm, modifyLikes: e.target.checked })}
+                      className="rounded border-white/10 bg-black/20 text-primary focus:ring-primary/50"
+                    />
+                    <span className="text-xs font-bold text-white">추천수 일괄 변경</span>
+                  </label>
+
+                  {bulkEditForm.modifyLikes && (
+                    <div className="grid grid-cols-2 gap-4 pl-6 animate-fade-in">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">최소값</label>
+                        <input 
+                          type="number"
+                          value={bulkEditForm.likesMin}
+                          onChange={e => setBulkEditForm({ ...bulkEditForm, likesMin: e.target.value })}
+                          className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-lg text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">최대값</label>
+                        <input 
+                          type="number"
+                          value={bulkEditForm.likesMax}
+                          onChange={e => setBulkEditForm({ ...bulkEditForm, likesMax: e.target.value })}
+                          className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-lg text-xs text-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-5 border-t border-white/10 flex justify-end gap-2 bg-black/20">
+              <button onClick={() => setIsBulkEditModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-muted-foreground hover:bg-white/5 transition-colors">취소</button>
+              <button 
+                onClick={handleBulkEditSubmit} 
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-white hover:opacity-90 transition-colors shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+              >
+                적용하기
               </button>
             </div>
           </div>

@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     const db = env.DB as any;
 
     const { results } = await db.prepare(`
-      SELECT p.id, p.title, p.content, p.image, p.category, p.views, p.createdAt as date, p.status, u.nickname as author
+      SELECT p.id, p.title, p.content, p.image, p.category, p.views, p.likes, p.createdAt as date, p.status, u.nickname as author
       FROM posts p
       JOIN users u ON p.authorId = u.id
       ORDER BY p.createdAt DESC
@@ -102,15 +102,37 @@ export async function PATCH(request: NextRequest) {
     const adminSession = cookieStore.get('admin_session');
     if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
 
-    const { postId, status } = await request.json();
-    if (!postId || !status) return NextResponse.json({ success: false, error: '잘못된 요청' }, { status: 400 });
+    const { postId, status, views, likes } = await request.json();
+    if (!postId) return NextResponse.json({ success: false, error: '잘못된 요청: postId 누락' }, { status: 400 });
 
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
-    const result = await db.prepare('UPDATE posts SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
-      .bind(status, postId)
-      .run();
+    let setClauses: string[] = [];
+    let bindParams: any[] = [];
+
+    if (status !== undefined) {
+      setClauses.push('status = ?');
+      bindParams.push(status);
+    }
+    if (views !== undefined) {
+      setClauses.push('views = ?');
+      bindParams.push(parseInt(views));
+    }
+    if (likes !== undefined) {
+      setClauses.push('likes = ?');
+      bindParams.push(parseInt(likes));
+    }
+
+    if (setClauses.length === 0) {
+      return NextResponse.json({ success: false, error: '수정할 데이터가 제공되지 않았습니다.' }, { status: 400 });
+    }
+
+    setClauses.push('updatedAt = CURRENT_TIMESTAMP');
+    bindParams.push(postId);
+
+    const query = `UPDATE posts SET ${setClauses.join(', ')} WHERE id = ?`;
+    const result = await db.prepare(query).bind(...bindParams).run();
 
     if (!result.success) throw new Error('업데이트 실패');
     return NextResponse.json({ success: true });
