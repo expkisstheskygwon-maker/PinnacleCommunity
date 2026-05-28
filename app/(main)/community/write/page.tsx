@@ -67,6 +67,7 @@ export default function WritePage() {
 
   const [categories, setCategories] = useState<any[]>(DEFAULT_CATEGORIES);
   const searchParams = useSearchParams();
+  const editId = searchParams.get('edit');
 
   const [prefixes, setPrefixes] = useState<string[]>([]);
   const [selectedPrefix, setSelectedPrefix] = useState<string>('');
@@ -89,6 +90,43 @@ export default function WritePage() {
     };
     fetchPrefixes();
   }, []);
+
+  useEffect(() => {
+    if (editId) {
+      const fetchPostToEdit = async () => {
+        try {
+          const res = await fetch(`/api/posts/${editId}`);
+          const data = await res.json();
+          if (data.success && data.post) {
+            if (!data.post.isAuthor) {
+              alert("수정 권한이 없습니다.");
+              router.push('/community');
+              return;
+            }
+            setFormData({
+              title: data.post.title || '',
+              category: data.post.category || 'free',
+              content: data.post.content || '',
+              tags: data.post.tags || '',
+              image: data.post.image || '',
+            });
+            // Try to extract prefix
+            const titleVal = data.post.title || '';
+            const match = titleVal.match(/^(\[.*?\])\s*(.*)/);
+            if (match) {
+              setSelectedPrefix(match[1]);
+              setFormData(prev => ({ ...prev, title: match[2] }));
+            }
+          } else {
+            alert("게시글을 찾을 수 없거나 불러오지 못했습니다.");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      fetchPostToEdit();
+    }
+  }, [editId]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -165,8 +203,10 @@ export default function WritePage() {
 
     try {
       const finalTitle = selectedPrefix ? `${selectedPrefix} ${formData.title}` : formData.title;
-      const response = await fetch('/api/posts', {
-        method: 'POST',
+      const url = editId ? `/api/posts/${editId}` : '/api/posts';
+      const method = editId ? 'PUT' : 'POST';
+      const response = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
@@ -203,9 +243,9 @@ export default function WritePage() {
             </button>
             <div>
               <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-                <PenLine className="w-6 h-6 text-primary" /> 새 글 작성
+                <PenLine className="w-6 h-6 text-primary" /> {editId ? '글 수정하기' : '새 글 작성'}
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">피나클 커뮤니티의 새로운 이야기를 시작하세요.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{editId ? '글 내용을 수정하고 업데이트하세요.' : '피나클 커뮤니티의 새로운 이야기를 시작하세요.'}</p>
             </div>
           </div>
         </div>
@@ -408,7 +448,7 @@ export default function WritePage() {
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  글 등록하기
+                  {editId ? '수정 완료하기' : '글 등록하기'}
                   <Send className="w-4 h-4" />
                 </>
               )}

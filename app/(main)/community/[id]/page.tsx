@@ -126,6 +126,28 @@ export default function PostDetailPage() {
     }
   };
 
+  const handleEdit = () => {
+    router.push(`/community/write?edit=${params.id}`);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("정말 이 게시글을 삭제하시겠습니까? 관련 댓글 및 공감 정보도 모두 영구 삭제되며 복구할 수 없습니다.")) return;
+    try {
+      const res = await fetch(`/api/posts/${params.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        alert("게시글이 성공적으로 삭제되었습니다.");
+        router.push('/community');
+        router.refresh();
+      } else {
+        alert(data.error || "삭제에 실패했습니다.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   const handleCommentSubmit = async () => {
     if (!commentContent.trim() || isSubmitting) return;
 
@@ -197,6 +219,16 @@ export default function PostDetailPage() {
             목록으로 돌아가기
           </button>
           <div className="flex items-center gap-2">
+            {post?.isAuthor && (
+              <>
+                <button onClick={handleEdit} className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold rounded-xl transition-all">
+                  수정
+                </button>
+                <button onClick={handleDelete} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold rounded-xl transition-all">
+                  삭제
+                </button>
+              </>
+            )}
             <button className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
               <Share2 className="w-4 h-4 text-muted-foreground" />
             </button>
