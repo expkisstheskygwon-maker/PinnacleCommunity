@@ -2128,6 +2128,16 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
     trust_stat_4_value: "234건",
     community_prefixes: ""
   });
+  const [leaderboardUsers, setLeaderboardUsers] = useState<any[]>([
+    { rank: 1, nickname: "ProBettor", badge: "Expert", points: 2840, streak: 12 },
+    { rank: 2, nickname: "분석왕", badge: "MVP", points: 2650, streak: 8 },
+    { rank: 3, nickname: "DataWiz", badge: "Expert", points: 2420, streak: 15 },
+    { rank: 4, nickname: "e스포츠매니아", badge: "Analyst", points: 1980, streak: 6 },
+    { rank: 5, nickname: "야구덕후", badge: "Streak", points: 1750, streak: 10 }
+  ]);
+  const [popularTags, setPopularTags] = useState<string>(
+    "EPL, K리그, LCK, KBO, MLB, 배당분석, 핸디캡, 라이브, 오버언더, 축구, 야구, e스포츠, 전략, 피나클"
+  );
   const [popups, setPopups] = useState<PopupSetting[]>(DEFAULT_POPUPS);
   const [activePopupIndex, setActivePopupIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -2158,6 +2168,21 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
               console.error("Failed to parse popups setting:", e);
             }
           }
+
+          if (data.settings.leaderboard_users) {
+            try {
+              const parsed = JSON.parse(data.settings.leaderboard_users);
+              if (Array.isArray(parsed)) {
+                setLeaderboardUsers(parsed);
+              }
+            } catch (e) {
+              console.error("Failed to parse leaderboard_users setting:", e);
+            }
+          }
+
+          if (data.settings.popular_tags) {
+            setPopularTags(data.settings.popular_tags);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -2176,7 +2201,9 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...settings,
-          popups: JSON.stringify(popups)
+          popups: JSON.stringify(popups),
+          leaderboard_users: JSON.stringify(leaderboardUsers),
+          popular_tags: popularTags
         })
       });
       const data = await res.json();
@@ -2514,6 +2541,167 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
                 placeholder="<div style='padding: 10px; text-align: center;'>공지사항 내용 등 자유롭게 작성 가능</div>"
                 className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all font-mono leading-relaxed resize-none"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* 활동 랭킹 및 인기 태그 설정 */}
+        <div className="space-y-6 pt-6 border-t border-white/5">
+          <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="bg-yellow-500/10 p-2 rounded-xl">
+              <TrendingUp className="w-5 h-5 text-yellow-500" />
+            </div>
+            <div>
+              <h3 className="font-bold">활동 랭킹 설정</h3>
+              <p className="text-xs text-muted-foreground">우측 사이드바 또는 리더보드에 표시될 활동 랭킹 유저 목록을 직접 관리합니다.</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="glass-card rounded-2xl overflow-hidden border border-white/5">
+              <table className="w-full text-sm text-left">
+                <thead>
+                  <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-white/[0.06] bg-white/[0.02]">
+                    <th className="px-4 py-3 font-bold text-center w-16">순위</th>
+                    <th className="px-4 py-3 font-bold">닉네임</th>
+                    <th className="px-4 py-3 font-bold w-36">뱃지</th>
+                    <th className="px-4 py-3 font-bold w-36">활동 점수</th>
+                    <th className="px-4 py-3 font-bold w-36">연승 횟수</th>
+                    <th className="px-4 py-3 font-bold text-center w-16">삭제</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {leaderboardUsers.map((user, idx) => (
+                    <tr key={idx} className="hover:bg-white/[0.01]">
+                      <td className="px-4 py-2 text-center">
+                        <input 
+                          type="number"
+                          value={user.rank}
+                          onChange={e => {
+                            const updated = [...leaderboardUsers];
+                            updated[idx].rank = parseInt(e.target.value) || (idx + 1);
+                            setLeaderboardUsers(updated);
+                          }}
+                          className="w-12 text-center bg-black/20 border border-white/10 rounded-lg p-1.5 text-xs text-white"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input 
+                          type="text"
+                          value={user.nickname}
+                          onChange={e => {
+                            const updated = [...leaderboardUsers];
+                            updated[idx].nickname = e.target.value;
+                            setLeaderboardUsers(updated);
+                          }}
+                          placeholder="닉네임"
+                          className="w-full bg-black/20 border border-white/10 rounded-lg p-1.5 text-xs text-white"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <select
+                          value={user.badge}
+                          onChange={e => {
+                            const updated = [...leaderboardUsers];
+                            updated[idx].badge = e.target.value;
+                            setLeaderboardUsers(updated);
+                          }}
+                          className="bg-black/20 border border-white/10 rounded-lg p-1.5 text-xs text-white w-full"
+                        >
+                          <option value="Expert">Expert</option>
+                          <option value="MVP">MVP</option>
+                          <option value="Analyst">Analyst</option>
+                          <option value="Streak">Streak</option>
+                          <option value="None">뱃지 없음</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-2">
+                        <input 
+                          type="number"
+                          value={user.points}
+                          onChange={e => {
+                            const updated = [...leaderboardUsers];
+                            updated[idx].points = parseInt(e.target.value) || 0;
+                            setLeaderboardUsers(updated);
+                          }}
+                          className="w-full bg-black/20 border border-white/10 rounded-lg p-1.5 text-xs text-white"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input 
+                          type="number"
+                          value={user.streak}
+                          onChange={e => {
+                            const updated = [...leaderboardUsers];
+                            updated[idx].streak = parseInt(e.target.value) || 0;
+                            setLeaderboardUsers(updated);
+                          }}
+                          className="w-full bg-black/20 border border-white/10 rounded-lg p-1.5 text-xs text-white"
+                        />
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const updated = leaderboardUsers.filter((_, i) => i !== idx);
+                            setLeaderboardUsers(updated);
+                          }}
+                          className="p-1 text-red-400 hover:bg-red-500/10 rounded text-xs"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLeaderboardUsers([
+                  ...leaderboardUsers,
+                  { rank: leaderboardUsers.length + 1, nickname: "", badge: "None", points: 0, streak: 0 }
+                ]);
+              }}
+              className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-bold text-white rounded-xl transition-all"
+            >
+              + 랭킹 유저 추가
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-6 pt-6 border-t border-white/5">
+          <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="bg-blue-500/10 p-2 rounded-xl">
+              <Search className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <h3 className="font-bold">인기 태그 설정</h3>
+              <p className="text-xs text-muted-foreground">우측 사이드바에 표시될 인기 태그 목록을 쉼표로 구분하여 관리합니다.</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">인기 태그 목록 (쉼표로 구분)</label>
+              <textarea 
+                value={popularTags}
+                onChange={e => setPopularTags(e.target.value)}
+                placeholder="EPL, K리그, LCK, KBO..."
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[80px]"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">태그 적용 시각적 피드백 미리보기:</p>
+              <div className="flex flex-wrap gap-2 p-4 rounded-2xl bg-black/20 border border-white/5 mt-2">
+                {popularTags.split(",").map(t => t.trim()).filter(Boolean).map((tag, idx) => (
+                  <span key={idx} className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold rounded-lg">
+                    #{tag}
+                  </span>
+                ))}
+                {popularTags.split(",").map(t => t.trim()).filter(Boolean).length === 0 && (
+                  <span className="text-xs text-muted-foreground italic">입력된 태그가 없습니다.</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
