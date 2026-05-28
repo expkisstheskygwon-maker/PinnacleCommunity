@@ -52,6 +52,10 @@ export default function CommunityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [dynCategories, setDynCategories] = useState<any[]>(CATEGORIES);
+  const [topUsers, setTopUsers] = useState<any[]>(TOP_USERS);
+  const [popTags, setPopTags] = useState<string[]>([
+    "EPL", "K리그", "LCK", "KBO", "MLB", "배당분석", "핸디캡", "라이브", "오버언더", "축구", "야구", "e스포츠", "전략", "피나클"
+  ]);
   const searchParams = useSearchParams();
   const router = useRouter();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -60,6 +64,46 @@ export default function CommunityPage() {
   const currentSearch = searchParams.get("search") || "";
   const currentPage = parseInt(searchParams.get("page") || "1");
   const pageSize = 15;
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/admin/settings");
+        const data = await res.json();
+        if (data.success && data.settings) {
+          if (data.settings.leaderboard_users) {
+            try {
+              const parsed = JSON.parse(data.settings.leaderboard_users);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                const mappedUsers = parsed.map((u: any) => ({
+                  rank: u.rank || 1,
+                  name: u.nickname || "",
+                  score: u.points || 0,
+                  badge: u.badge === "None" ? "" : u.badge,
+                  streak: u.streak || 0
+                }));
+                setTopUsers(mappedUsers);
+              }
+            } catch (e) {
+              console.error("Failed to parse leaderboard_users in community:", e);
+            }
+          }
+          if (data.settings.popular_tags) {
+            const tags = data.settings.popular_tags
+              .split(",")
+              .map((t: string) => t.trim())
+              .filter(Boolean);
+            if (tags.length > 0) {
+              setPopTags(tags);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch settings in community page:", err);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     setSearchQuery(currentSearch);
@@ -397,7 +441,7 @@ export default function CommunityPage() {
                 <h3 className="font-bold">활동 랭킹</h3>
               </div>
               <div className="space-y-2">
-                {TOP_USERS.map(user => (
+                {topUsers.map(user => (
                   <div key={user.rank} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group">
                     <span className={cn(
                       "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0",
@@ -435,7 +479,7 @@ export default function CommunityPage() {
                 <h3 className="font-bold">인기 태그</h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                {["EPL", "K리그", "LCK", "KBO", "MLB", "배당분석", "핸디캡", "라이브", "오버언더", "축구", "야구", "e스포츠", "전략", "피나클"].map(tag => (
+                {popTags.map(tag => (
                   <button 
                     key={tag} 
                     onClick={() => handleTagClick(tag)}
