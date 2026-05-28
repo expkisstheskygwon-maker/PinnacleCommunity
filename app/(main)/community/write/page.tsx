@@ -68,6 +68,28 @@ export default function WritePage() {
   const [categories, setCategories] = useState<any[]>(DEFAULT_CATEGORIES);
   const searchParams = useSearchParams();
 
+  const [prefixes, setPrefixes] = useState<string[]>([]);
+  const [selectedPrefix, setSelectedPrefix] = useState<string>('');
+
+  useEffect(() => {
+    const fetchPrefixes = async () => {
+      try {
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        if (data.success && data.settings && data.settings.community_prefixes) {
+          const parsed = data.settings.community_prefixes
+            .split(',')
+            .map((p: string) => p.trim())
+            .filter((p: string) => p.length > 0);
+          setPrefixes(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to fetch community prefixes:", e);
+      }
+    };
+    fetchPrefixes();
+  }, []);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -142,10 +164,14 @@ export default function WritePage() {
     setError('');
 
     try {
+      const finalTitle = selectedPrefix ? `${selectedPrefix} ${formData.title}` : formData.title;
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          title: finalTitle
+        }),
       });
 
       const data = await response.json();
@@ -224,6 +250,30 @@ export default function WritePage() {
           </div>
 
           <div className="glass-card rounded-3xl p-6 md:p-8 space-y-6 border-white/10">
+            {/* Prefix Selection */}
+            {prefixes.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">말머리 선택</label>
+                <div className="flex flex-wrap gap-2 ml-1">
+                  {prefixes.map((prefix) => (
+                    <button
+                      key={prefix}
+                      type="button"
+                      onClick={() => setSelectedPrefix(selectedPrefix === prefix ? '' : prefix)}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs font-bold border transition-all",
+                        selectedPrefix === prefix
+                          ? "bg-primary/20 border-primary text-primary shadow-[0_0_12px_rgba(59,130,246,0.15)]"
+                          : "bg-white/5 border-white/5 text-muted-foreground hover:border-white/10 hover:text-foreground"
+                      )}
+                    >
+                      {prefix}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Title */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Title</label>

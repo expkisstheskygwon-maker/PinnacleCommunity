@@ -1797,7 +1797,8 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
     trust_stat_3_label: "평균 평점",
     trust_stat_3_value: "4.3 / 5",
     trust_stat_4_label: "오늘 게시글",
-    trust_stat_4_value: "234건"
+    trust_stat_4_value: "234건",
+    community_prefixes: ""
   });
   const [popups, setPopups] = useState<PopupSetting[]>(DEFAULT_POPUPS);
   const [activePopupIndex, setActivePopupIndex] = useState<number>(0);
@@ -1935,6 +1936,30 @@ function SettingsView({ setActiveTab }: { setActiveTab: (tab: string) => void })
                 placeholder="© 2026 피나클 커뮤니티..."
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-all"
               />
+            </div>
+          </div>
+        </div>
+        <div className="space-y-6 pt-6 border-t border-white/5">
+          <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="bg-primary/10 p-2 rounded-xl">
+              <MessageSquare className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-bold">커뮤니티 말머리 설정</h3>
+              <p className="text-xs text-muted-foreground">유저들이 커뮤니티 게시글을 작성할 때 선택할 수 있는 말머리를 등록합니다</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">커뮤니티 말머리 목록 (쉼표로 구분)</label>
+              <input 
+                value={settings.community_prefixes || ""}
+                onChange={e => setSettings({...settings, community_prefixes: e.target.value})}
+                placeholder="예: [잡담], [수다], [정보], [질문]"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-all"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">입력된 말머리는 유저 글쓰기 화면에서 버튼 형식으로 제공됩니다.</p>
             </div>
           </div>
         </div>
