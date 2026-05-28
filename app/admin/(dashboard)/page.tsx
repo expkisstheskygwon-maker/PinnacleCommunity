@@ -239,6 +239,14 @@ function MembersView({ search, setSearch }: { search: string; setSearch: (v: str
   const [isLoading, setIsLoading] = useState(true);
   const [editUser, setEditUser] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({ status: 'active', points: 0, attendanceCount: 0 });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteForm, setDeleteForm] = useState({
+    deleteType: 'range', // 'all', 'range', 'date'
+    startId: '',
+    endId: '',
+    startDate: '',
+    endDate: ''
+  });
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -296,6 +304,38 @@ function MembersView({ search, setSearch }: { search: string; setSearch: (v: str
     }
   };
 
+  const handleBulkDeleteSubmit = async () => {
+    let confirmMsg = "정말 회원들을 삭제하시겠습니까?";
+    if (deleteForm.deleteType === 'all') {
+      confirmMsg = "[⚠️경고] 정말 모든 회원을 삭제하시겠습니까? 전체 삭제는 복구 불가능하며, 회원들이 작성한 게시글/댓글/기타 활동 정보도 모두 함께 삭제됩니다.";
+    } else if (deleteForm.deleteType === 'range') {
+      confirmMsg = `ID ${deleteForm.startId} ~ ${deleteForm.endId} 구간의 회원을 삭제하시겠습니까? 관련 게시글/댓글도 함께 삭제됩니다.`;
+    } else if (deleteForm.deleteType === 'date') {
+      confirmMsg = `${deleteForm.startDate} ~ ${deleteForm.endDate} 기간 내에 가입한 회원을 삭제하시겠습니까? 관련 게시글/댓글도 함께 삭제됩니다.`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch('/api/admin/users/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(deleteForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message + ` (${data.count}명의 회원 삭제됨)`);
+        setIsDeleteModalOpen(false);
+        fetchUsers();
+      } else {
+        alert(data.error || "삭제에 실패했습니다.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("오류가 발생했습니다.");
+    }
+  };
+
   const getStatusDisplay = (status: string) => {
     switch(status) {
       case 'active': return { label: '정상', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
@@ -313,9 +353,26 @@ function MembersView({ search, setSearch }: { search: string; setSearch: (v: str
           <h1 className="text-2xl font-black tracking-tight">회원 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">등록된 회원을 조회하고 관리합니다</p>
         </div>
-        <button onClick={fetchUsers} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold transition-all">
-          새로고침
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={fetchUsers} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold transition-all">
+            새로고침
+          </button>
+          <button 
+            onClick={() => {
+              setDeleteForm({
+                deleteType: 'range',
+                startId: '',
+                endId: '',
+                startDate: '',
+                endDate: ''
+              });
+              setIsDeleteModalOpen(true);
+            }} 
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-all"
+          >
+            <Trash2 className="w-4 h-4" /> 대량 삭제
+          </button>
+        </div>
       </div>
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -444,6 +501,113 @@ function MembersView({ search, setSearch }: { search: string; setSearch: (v: str
             <div className="p-5 border-t border-white/10 flex justify-end gap-2 bg-black/20">
               <button onClick={() => setEditUser(null)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-muted-foreground hover:bg-white/5 transition-colors">취소</button>
               <button onClick={handleSaveEdit} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(239,68,68,0.2)]">저장하기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in animate-duration-200">
+            <div className="p-5 border-b border-white/10 flex items-center justify-between">
+              <h3 className="font-black text-lg text-red-400 flex items-center gap-2">
+                <Trash2 className="w-5 h-5" /> 회원 대량 삭제
+              </h3>
+              <button onClick={() => setIsDeleteModalOpen(false)} className="text-muted-foreground hover:text-white p-1">✕</button>
+            </div>
+            
+            <div className="p-6 space-y-5">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">삭제 범위 설정</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { val: 'range', label: 'ID 구간' },
+                    { val: 'date', label: '가입 기간' },
+                    { val: 'all', label: '전체 삭제' }
+                  ].map(opt => (
+                    <button
+                      key={opt.val}
+                      onClick={() => setDeleteForm({ ...deleteForm, deleteType: opt.val })}
+                      className={cn(
+                        "px-3 py-2.5 rounded-xl text-xs font-bold border transition-all text-center",
+                        deleteForm.deleteType === opt.val
+                          ? "border-red-500/30 text-red-400 bg-red-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10 text-muted-foreground"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {deleteForm.deleteType === 'range' && (
+                <div className="grid grid-cols-2 gap-4 animate-fade-in animate-duration-200">
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">시작 ID</label>
+                    <input
+                      type="number"
+                      placeholder="예: 101"
+                      value={deleteForm.startId}
+                      onChange={e => setDeleteForm({ ...deleteForm, startId: e.target.value })}
+                      className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">종료 ID</label>
+                    <input
+                      type="number"
+                      placeholder="예: 200"
+                      value={deleteForm.endId}
+                      onChange={e => setDeleteForm({ ...deleteForm, endId: e.target.value })}
+                      className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white font-bold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {deleteForm.deleteType === 'date' && (
+                <div className="grid grid-cols-2 gap-4 animate-fade-in animate-duration-200">
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">가입 시작일</label>
+                    <input
+                      type="date"
+                      value={deleteForm.startDate}
+                      onChange={e => setDeleteForm({ ...deleteForm, startDate: e.target.value })}
+                      className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">가입 종료일</label>
+                    <input
+                      type="date"
+                      value={deleteForm.endDate}
+                      onChange={e => setDeleteForm({ ...deleteForm, endDate: e.target.value })}
+                      className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-xs text-red-400 font-bold leading-relaxed space-y-1">
+                <p>⚠️ 주의사항</p>
+                <ul className="list-disc list-inside pl-1 text-[11px] font-normal text-red-400/80">
+                  <li>선택한 범위 내의 모든 회원 정보가 영구적으로 삭제됩니다.</li>
+                  <li>해당 회원이 작성한 게시글, 댓글, 포인트 및 활동 이력 또한 전부 삭제됩니다.</li>
+                  <li>삭제된 데이터는 복구할 수 없습니다. 신중히 실행해 주세요.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-white/10 flex justify-end gap-2 bg-black/20">
+              <button onClick={() => setIsDeleteModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-muted-foreground hover:bg-white/5 transition-colors">취소</button>
+              <button 
+                onClick={handleBulkDeleteSubmit} 
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-red-500 text-white hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+              >
+                삭제하기
+              </button>
             </div>
           </div>
         </div>
