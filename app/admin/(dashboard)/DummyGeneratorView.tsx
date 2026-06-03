@@ -43,11 +43,17 @@ export default function DummyGeneratorView() {
 
   // Step 4: Upload Settings
   const [targetCategory, setTargetCategory] = useState("free");
+  const [allowHtml, setAllowHtml] = useState(false);
   const [apiConfig, setApiConfig] = useState({
     useExternalApi: false,
     endpointUrl: "",
     apiKey: ""
   });
+
+  const handleCategoryChange = (cat: string) => {
+    setTargetCategory(cat);
+    setAllowHtml(["notices", "guide", "analysis", "spotlight"].includes(cat));
+  };
 
   // Keep track of API key in LocalStorage
   const handleApiKeyChange = (val: string) => {
@@ -143,7 +149,8 @@ export default function DummyGeneratorView() {
         body: JSON.stringify({
           posts: generatedPosts,
           category: targetCategory,
-          apiConfig
+          apiConfig,
+          allowHtml
         })
       });
       const data = await res.json();
@@ -480,7 +487,7 @@ export default function DummyGeneratorView() {
                     <label className="text-xs font-bold text-muted-foreground block mb-1">대상 게시판 카테고리</label>
                     <select 
                       value={targetCategory}
-                      onChange={(e) => setTargetCategory(e.target.value)}
+                      onChange={(e) => handleCategoryChange(e.target.value)}
                       className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white"
                     >
                       <option value="free">자유게시판 (free)</option>
@@ -489,6 +496,21 @@ export default function DummyGeneratorView() {
                       <option value="qna">Q&A (qna)</option>
                       <option value="notices">공지사항 (notices)</option>
                     </select>
+                  </div>
+
+                  <div className="flex flex-col justify-center">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox"
+                        checked={allowHtml}
+                        onChange={(e) => setAllowHtml(e.target.checked)}
+                        className="w-4 h-4 rounded text-red-500 bg-black border-white/20"
+                      />
+                      <span className="text-xs font-bold text-white">HTML 태그 유지 (공지/분석글용)</span>
+                    </label>
+                    <p className="text-[9px] text-muted-foreground mt-0.5 leading-relaxed">
+                      체크 해제 시 줄바꿈/띄어쓰기가 사람처럼 불규칙하게(1~3줄 개행) 텍스트로 가독성 있게 자동 변환됩니다.
+                    </p>
                   </div>
 
                   <div>

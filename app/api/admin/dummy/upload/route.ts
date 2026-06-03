@@ -2,6 +2,46 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { cookies } from 'next/headers';
 
+function convertHtmlToHumanText(html: string): string {
+  if (!html) return '';
+  
+  let text = html;
+  
+  // Replace <br> tags with a single or double newline randomly
+  text = text.replace(/<br\s*\/?>/gi, () => {
+    return Math.random() < 0.6 ? '\n' : '\n\n';
+  });
+  
+  // Replace </p> followed by <p> with a random number of newlines (1, 2, or 3) to mimic human posting
+  text = text.replace(/<\/p>\s*<p[^>]*>/gi, () => {
+    const r = Math.random();
+    if (r < 0.4) return '\n\n'; 
+    if (r < 0.8) return '\n';   
+    return '\n\n\n';            
+  });
+  
+  text = text.replace(/<p[^>]*>/gi, '');
+  text = text.replace(/<\/p>/gi, '\n');
+
+  // Strip all other HTML tags
+  text = text.replace(/<[^>]*>/g, '');
+  
+  // Decode HTML entities
+  text = text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+
+  // Format line endings and clean redundant blank lines (allow max 3 consecutive newlines)
+  text = text.split('\n').map(line => line.trimEnd()).join('\n');
+  text = text.replace(/\n{4,}/g, '\n\n\n');
+  
+  return text.trim();
+}
+
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -10,7 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '관리자 로그인이 필요합니다.' }, { status: 401 });
     }
 
-    const { posts, category, apiConfig = {} } = await request.json();
+    const { posts, category, apiConfig = {}, allowHtml } = await request.json();
 
     if (!posts || !Array.isArray(posts) || posts.length === 0 || !category) {
       return NextResponse.json({ success: false, error: '데이터가 올바르지 않습니다.' }, { status: 400 });
@@ -105,16 +145,20 @@ export async function POST(request: NextRequest) {
 
     // 4. Batch insert posts with views, likes, and createdAt
     const postStatements = [];
+    const isHtmlAllowed = allowHtml !== undefined ? allowHtml : ['notices', 'guide', 'analysis', 'spotlight'].includes(category);
+
     for (const p of posts) {
       let authorId = 0;
       if (p.author && usernameToIdMap[p.author] !== undefined) {
         authorId = usernameToIdMap[p.author];
       }
 
+      const finalContent = isHtmlAllowed ? p.content : convertHtmlToHumanText(p.content);
+
       postStatements.push(
         db.prepare(
           'INSERT INTO posts (title, content, authorId, category, views, likes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        ).bind(p.title, p.content, authorId, category, p.views || 0, p.likes || 0, p.createdAt || new Date().toISOString())
+        ).bind(p.title, finalContent, authorId, category, p.views || 0, p.likes || 0, p.createdAt || new Date().toISOString())
       );
     }
 
