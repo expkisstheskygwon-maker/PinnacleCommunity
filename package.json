@@ -6,7 +6,7 @@
     "postinstall": "node scripts/setup-cloudflare-wrapper.js",
     "dev": "next dev",
     "build": "next build",
-    "pages:build": "opennextjs-cloudflare build && node scripts/cloudflare-pages-format.js",
+    "pages:build": "opennextjs-cloudflare build --node-externals node:sqlite && node scripts/cloudflare-pages-format.js",
     "start": "next start",
     "lint": "next lint",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
