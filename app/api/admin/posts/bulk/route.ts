@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
     for (const name of uniqueUsernames) {
       if (usernameToIdMap[name] === undefined) {
         const cleanName = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'user';
-        const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
-        const userId = `${cleanName}${uniqueSuffix}`;
+        const uniqueSuffix = Math.random().toString(36).substring(2, 10);
+        const userId = `dummy_${cleanName}_${uniqueSuffix}`;
         const email = `${userId}@pinnacle-community.com`;
         
         let avatarSeed = undefined;
