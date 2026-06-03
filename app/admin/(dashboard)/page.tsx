@@ -6,15 +6,17 @@ import {
   Shield, Users, FileText, BarChart3, Bell, BookOpen, HelpCircle,
   TrendingUp, LogOut, Home, ChevronRight, Search, Plus, Edit, Trash2,
   Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, 
-  Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet, Gavel, Award, Layers
+  Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet, Gavel, Award, Layers, Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import DummyGeneratorView from "./DummyGeneratorView";
 
 const SIDEBAR_ITEMS = [
   { id: "dashboard", label: "대시보드", icon: BarChart3 },
   { id: "members", label: "회원 관리", icon: Users },
   { id: "community", label: "커뮤니티 관리", icon: FileText },
+  { id: "dummy-generator", label: "더미글 생성기", icon: Sparkles },
   { id: "inquiries", label: "1:1 문의 관리", icon: MessageSquare },
   { id: "content", label: "콘텐츠 작성", icon: BookOpen },
   { id: "qna", label: "Q&A 관리", icon: HelpCircle },
@@ -106,6 +108,7 @@ export default function AdminDashboard() {
           {activeTab === "dashboard" && <DashboardView />}
           {activeTab === "members" && <MembersView search={searchQuery} setSearch={setSearchQuery} />}
           {activeTab === "community" && <CommunityView />}
+          {activeTab === "dummy-generator" && <DummyGeneratorView />}
           {activeTab === "inquiries" && <InquiriesView />}
           {activeTab === "content" && <ContentEditorTabsView />}
           {activeTab === "qna" && <QnaAdminTabsView />}
