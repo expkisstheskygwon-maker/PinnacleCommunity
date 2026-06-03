@@ -1045,6 +1045,7 @@ function CommunityView() {
                 <th className="text-left px-3 py-4 font-bold">작성자</th>
                 <th className="text-center px-3 py-4 font-bold">카테고리</th>
                 <th className="text-center px-3 py-4 font-bold">조회 / 추천</th>
+                <th className="text-center px-3 py-4 font-bold">작성일</th>
                 <th className="text-center px-3 py-4 font-bold">상태</th>
                 <th className="text-right px-5 py-4 font-bold">관리</th>
               </tr>
@@ -1060,7 +1061,7 @@ function CommunityView() {
                 if (filteredPosts.length === 0) {
                   return (
                     <tr>
-                      <td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">
+                      <td colSpan={7} className="text-center py-10 text-muted-foreground text-sm">
                         해당 분류에 등록된 게시글이 없습니다.
                       </td>
                     </tr>
@@ -1090,6 +1091,9 @@ function CommunityView() {
                         </div>
                       </td>
                       <td className="px-3 py-4 text-center text-muted-foreground">{p.views || 0} / {p.likes || 0}</td>
+                      <td className="px-3 py-4 text-center text-muted-foreground text-xs">
+                        {p.date ? new Date(p.date).toISOString().split('T')[0] : '-'}
+                      </td>
                       <td className="px-3 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <button 
                           onClick={() => handleToggleStatus(p.id, p.status || 'public')}
@@ -1112,7 +1116,7 @@ function CommunityView() {
                     </tr>
                     {expandedPostId === p.id && (
                       <tr className="bg-white/[0.01]">
-                        <td colSpan={6} className="px-5 py-4 border-t border-white/[0.02]">
+                        <td colSpan={7} className="px-5 py-4 border-t border-white/[0.02]">
                           <div className="p-5 bg-black/20 rounded-xl border border-white/5 space-y-4 max-h-[500px] overflow-y-auto">
                             <h4 className="font-bold text-sm text-primary flex items-center gap-2">
                               <FileText className="w-4 h-4" /> 게시글 본문 확인
