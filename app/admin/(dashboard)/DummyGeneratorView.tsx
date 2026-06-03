@@ -20,12 +20,19 @@ export default function DummyGeneratorView() {
 
   // Step 2: AI Settings
   const [aiProvider, setAiProvider] = useState("gemini"); // gemini, openai
-  const [apiKey, setApiKey] = useState(() => {
+  const [geminiKey, setGeminiKey] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("dummy_generator_ai_key") || "";
+      return localStorage.getItem("dummy_generator_gemini_key") || "";
     }
     return "";
   });
+  const [openaiKey, setOpenaiKey] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("dummy_generator_openai_key") || "";
+    }
+    return "";
+  });
+  const apiKey = aiProvider === "gemini" ? geminiKey : openaiKey;
   const [aiParams, setAiParams] = useState({
     gender: "무작위",
     age: "20대~30대",
@@ -57,8 +64,13 @@ export default function DummyGeneratorView() {
 
   // Keep track of API key in LocalStorage
   const handleApiKeyChange = (val: string) => {
-    setApiKey(val);
-    localStorage.setItem("dummy_generator_ai_key", val);
+    if (aiProvider === "gemini") {
+      setGeminiKey(val);
+      localStorage.setItem("dummy_generator_gemini_key", val);
+    } else {
+      setOpenaiKey(val);
+      localStorage.setItem("dummy_generator_openai_key", val);
+    }
   };
 
   // Step 1 Trigger: Run Scraper
