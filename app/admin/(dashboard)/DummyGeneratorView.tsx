@@ -21,18 +21,18 @@ export default function DummyGeneratorView() {
 
   // Step 2: AI Settings
   const [aiProvider, setAiProvider] = useState("gemini"); // gemini, openai
-  const [geminiKey, setGeminiKey] = useState(() => {
+  const [geminiKey, setGeminiKey] = useState("");
+  const [openaiKey, setOpenaiKey] = useState("");
+
+  React.useEffect(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("dummy_generator_gemini_key") || "";
+      const savedGemini = localStorage.getItem("dummy_generator_gemini_key") || "";
+      const savedOpenai = localStorage.getItem("dummy_generator_openai_key") || "";
+      if (savedGemini) setGeminiKey(savedGemini);
+      if (savedOpenai) setOpenaiKey(savedOpenai);
     }
-    return "";
-  });
-  const [openaiKey, setOpenaiKey] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("dummy_generator_openai_key") || "";
-    }
-    return "";
-  });
+  }, []);
+
   const apiKey = aiProvider === "gemini" ? geminiKey : openaiKey;
   const [aiParams, setAiParams] = useState({
     gender: "무작위",
