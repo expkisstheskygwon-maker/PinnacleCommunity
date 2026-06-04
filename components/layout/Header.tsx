@@ -73,7 +73,6 @@ const NAV_ITEMS: NavItem[] = [
       { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
       { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
       { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
-      { href: "/community/leaderboard", label: "수익률 랭킹", labelEn: "ROI Leaderboard" },
       { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
     ]
   },
@@ -204,16 +203,8 @@ export default function Header({ user }: HeaderProps) {
     
     if (dynamic.length > 0) {
       if (item.id === "community") {
-        // For community, we replace category links but keep special links like leaderboard
-        const nonCategoryStatic = staticChildren.filter(s => !s.href.includes('?cat='));
-        const picksIdx = dynamic.findIndex(d => d.href.includes('cat=picks') || d.label === '픽 공유');
-        const insertIdx = picksIdx !== -1 ? picksIdx + 1 : Math.min(3, dynamic.length);
-        
-        const merged = [...dynamic];
-        nonCategoryStatic.forEach(s => {
-          merged.splice(insertIdx, 0, s);
-        });
-        return { ...item, children: merged };
+        // For community, we replace categories completely with DB dynamic categories
+        return { ...item, children: dynamic };
       } else {
         const merged = [...staticChildren];
         dynamic.forEach(d => {
@@ -223,6 +214,10 @@ export default function Header({ user }: HeaderProps) {
         });
         return { ...item, children: merged };
       }
+    }
+    // If dynamic is empty, we filter out non-category items for community just in case
+    if (item.id === "community") {
+      return { ...item, children: staticChildren.filter(s => s.href.includes('?cat=')) };
     }
     return item;
   });
