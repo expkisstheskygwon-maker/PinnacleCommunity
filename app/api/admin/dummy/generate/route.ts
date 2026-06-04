@@ -162,9 +162,10 @@ ${JSON.stringify(crawledData, null, 2)}`;
     for (let i = 0; i < totalCount; i++) {
       const template = baseTemplates[i % baseTemplates.length];
       
-      // Add subtle random variations to titles & content locally so each is unique
-      const randomSuffix = ['!', ' ㅋㅋ', '...', ' ㅇㅇ', ' 대박', ' 추천', ' 진짜네요', ' 공유합니다'][Math.floor(Math.random() * 8)];
-      const variationTitle = `${template.title}${randomSuffix} (${i+1})`;
+      // Add subtle random variations to titles & content locally so each is unique and looks natural
+      const randomSuffixes = ['', '!', ' ㅋㅋ', '...', ' ㅇㅇ', ' 대박', ' 추천', ' 진짜네요', ' 공유합니다', ' ㅎ', ' 대박이네요', ' 강추', '👍', '🔥', ' 후기', ' 대박인듯'];
+      const randomSuffix = randomSuffixes[Math.floor(Math.random() * randomSuffixes.length)];
+      const variationTitle = `${template.title}${randomSuffix}`;
       
       // Dynamic content variation
       let variationContent = template.content;
