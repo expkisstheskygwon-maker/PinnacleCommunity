@@ -132,18 +132,28 @@ export default function Header({ user }: HeaderProps) {
     // Fetch dynamic categories for all types
     const fetchAllCats = async () => {
       try {
-        const types = ["spotlight", "analysis", "qna", "notices", "guide"];
+        const types = ["spotlight", "analysis", "qna", "notices", "guide", "community"];
         const catsMap: Record<string, SubItem[]> = {};
         
         await Promise.all(types.map(async (type) => {
           const res = await fetch(`/api/admin/categories?type=${type}`);
           const data = await res.json();
           if (data.success && data.categories.length > 0) {
-            catsMap[type] = data.categories.map((c: any) => ({
-              href: `/${type}?cat=${encodeURIComponent(c.name)}`,
-              label: c.name,
-              labelEn: c.name
-            }));
+            catsMap[type] = data.categories.map((c: any) => {
+              let label = c.name;
+              if (type === "community") {
+                if (c.name === "free") label = "자유게시판";
+                else if (c.name === "match") label = "경기 토론";
+                else if (c.name === "picks") label = "픽 공유";
+                else if (c.name === "events") label = "이벤트/랭킹";
+              }
+              const hrefPrefix = type === "community" ? "community" : type;
+              return {
+                href: `/${hrefPrefix}?cat=${encodeURIComponent(c.name)}`,
+                label: label,
+                labelEn: label
+              };
+            });
           }
         }));
         
@@ -193,14 +203,26 @@ export default function Header({ user }: HeaderProps) {
     const staticChildren = item.children || [];
     
     if (dynamic.length > 0) {
-      // Merge: static first, then dynamic (excluding duplicates by label)
-      const merged = [...staticChildren];
-      dynamic.forEach(d => {
-        if (!merged.find(s => s.label === d.label)) {
-          merged.push(d);
-        }
-      });
-      return { ...item, children: merged };
+      if (item.id === "community") {
+        // For community, we replace category links but keep special links like leaderboard
+        const nonCategoryStatic = staticChildren.filter(s => !s.href.includes('?cat='));
+        const picksIdx = dynamic.findIndex(d => d.href.includes('cat=picks') || d.label === '픽 공유');
+        const insertIdx = picksIdx !== -1 ? picksIdx + 1 : Math.min(3, dynamic.length);
+        
+        const merged = [...dynamic];
+        nonCategoryStatic.forEach(s => {
+          merged.splice(insertIdx, 0, s);
+        });
+        return { ...item, children: merged };
+      } else {
+        const merged = [...staticChildren];
+        dynamic.forEach(d => {
+          if (!merged.find(s => s.label === d.label)) {
+            merged.push(d);
+          }
+        });
+        return { ...item, children: merged };
+      }
     }
     return item;
   });
