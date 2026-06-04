@@ -25,6 +25,119 @@ function generateNickname() {
   }
 }
 
+function spinTitle(title: string): string {
+  if (!title) return '';
+  let spun = title;
+
+  // Punctuation variations at the end
+  spun = spun.replace(/\?$/g, () => {
+    const rand = Math.random();
+    if (rand < 0.3) return '??';
+    if (rand < 0.6) return '? ㅋ';
+    return '?';
+  });
+
+  spun = spun.replace(/\.$/g, () => {
+    const rand = Math.random();
+    if (rand < 0.3) return '!';
+    if (rand < 0.6) return '...';
+    return '.';
+  });
+
+  // Synonym replacements for title
+  const synonyms = [
+    { from: /축구/g, to: ['축구', '축구 경기'] },
+    { from: /경기/g, to: ['경기', '게임', '매치'] },
+    { from: /정말/g, to: ['정말', '진짜', '엄청'] },
+    { from: /어제/g, to: ['어제', '지난'] },
+    { from: /오늘/g, to: ['오늘', '금일'] }
+  ];
+
+  for (const item of synonyms) {
+    spun = spun.replace(item.from, () => {
+      return item.to[Math.floor(Math.random() * item.to.length)];
+    });
+  }
+
+  // Add random prefix sometimes
+  const randPrefix = Math.random();
+  if (randPrefix < 0.1) spun = '와.. ' + spun;
+  else if (randPrefix < 0.2) spun = '혹시 ' + spun;
+  else if (randPrefix < 0.3) spun = '진짜 ' + spun;
+
+  return spun;
+}
+
+function spinContent(htmlContent: string): string {
+  if (!htmlContent) return '';
+  
+  let spun = htmlContent;
+
+  // 1. Punctuation variations
+  spun = spun.replace(/\.<\/p>/gi, () => {
+    const rand = Math.random();
+    if (rand < 0.25) return '!</p>';
+    if (rand < 0.5) return ' ㅋ</p>';
+    if (rand < 0.7) return '... </p>';
+    return '.</p>';
+  });
+
+  spun = spun.replace(/습니다\./gi, () => {
+    const rand = Math.random();
+    if (rand < 0.3) return '습니다!';
+    if (rand < 0.5) return '습니당';
+    if (rand < 0.7) return '습니다...';
+    return '습니다.';
+  });
+
+  spun = spun.replace(/합니다\./gi, () => {
+    const rand = Math.random();
+    if (rand < 0.3) return '합니다!';
+    if (rand < 0.55) return '해요~';
+    if (rand < 0.7) return '함.';
+    if (rand < 0.8) return '하네요 ㅋ';
+    return '합니다.';
+  });
+
+  spun = spun.replace(/요\./gi, () => {
+    const rand = Math.random();
+    if (rand < 0.25) return '요!';
+    if (rand < 0.5) return '요 ㅋ';
+    if (rand < 0.7) return '요...';
+    return '요.';
+  });
+
+  // 2. Insert natural Korean filler words at the beginning of paragraphs
+  spun = spun.replace(/<p>/gi, () => {
+    const rand = Math.random();
+    if (rand < 0.08) return '<p>진짜 ';
+    if (rand < 0.16) return '<p>솔직히 ';
+    if (rand < 0.24) return '<p>근데 ';
+    if (rand < 0.30) return '<p>와 ';
+    if (rand < 0.36) return '<p>혹시 ';
+    return '<p>';
+  });
+
+  // 3. Synonym replacements (subtle and context-safe)
+  const synonyms = [
+    { from: /축구/g, to: ['축구', '축구 경기', '볼차기'] },
+    { from: /경기/g, to: ['경기', '게임', '매치'] },
+    { from: /선수/g, to: ['선수', '멤버', '플레이어'] },
+    { from: /정말/g, to: ['정말', '진짜', '참', '엄청'] },
+    { from: /생각/g, to: ['생각', '의견', '느낌'] },
+    { from: /정보/g, to: ['정보', '소식', '글'] },
+    { from: /추천/g, to: ['추천', '추천글', '강추'] }
+  ];
+
+  for (const item of synonyms) {
+    spun = spun.replace(item.from, () => {
+      return item.to[Math.floor(Math.random() * item.to.length)];
+    });
+  }
+
+  return spun;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -57,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Build prompt for AI to rewrite the raw scraped content
     const systemPrompt = `당신은 커뮤니티 데이터 분석 및 게시글 생성 전문가입니다.
-제공된 크롤링 데이터를 기반으로, 지정된 가공 조건에 맞춰 원본과 맥락을 같이 하되, 완전히 새로 쓰여진 고유한 게시글 및 댓글 템플릿(최소 5개 세트)을 한국어 JSON 배열 형식으로 만들어 주세요.
+제공된 크롤링 데이터를 기반으로, 지정된 가공 조건에 맞춰 원본과 맥락을 같이 하되, 완전히 새로 쓰여진 고유한 게시글 및 댓글 템플릿(최소 10개 세트)을 한국어 JSON 배열 형식으로 만들어 주세요.
 
 [가공 조건]
 - 페르소나/성향: 성별(${aiParams.gender || '무작위'}), 연령대(${aiParams.age || '20~30대'}), 직업군(${aiParams.occupation || '직장인'})
@@ -78,7 +191,7 @@ export async function POST(request: NextRequest) {
   }
 ]`;
 
-    const userPrompt = `다음 크롤링한 원본 데이터를 가공 조건에 맞추어 5개의 독립된 게시글 세트로 만들어 주세요.
+    const userPrompt = `다음 크롤링한 원본 데이터를 가공 조건에 맞추어 10개의 독립된 게시글 세트로 만들어 주세요.
 원본 데이터:
 ${JSON.stringify(crawledData, null, 2)}`;
 
@@ -165,10 +278,10 @@ ${JSON.stringify(crawledData, null, 2)}`;
       // Add subtle random variations to titles & content locally so each is unique and looks natural
       const randomSuffixes = ['', '!', ' ㅋㅋ', '...', ' ㅇㅇ', ' 대박', ' 추천', ' 진짜네요', ' 공유합니다', ' ㅎ', ' 대박이네요', ' 강추', '👍', '🔥', ' 후기', ' 대박인듯'];
       const randomSuffix = randomSuffixes[Math.floor(Math.random() * randomSuffixes.length)];
-      const variationTitle = `${template.title}${randomSuffix}`;
+      const variationTitle = spinTitle(`${template.title}${randomSuffix}`);
       
-      // Dynamic content variation
-      let variationContent = template.content;
+      // Dynamic content variation with local synonym and ending spinners
+      let variationContent = spinContent(template.content);
 
       // Author & engagement relationship logic
       // Likes/views scale with comments count
