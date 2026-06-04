@@ -16,6 +16,7 @@ export default function DummyGeneratorView() {
   const [crawlUrl, setCrawlUrl] = useState("");
   const [crawlScope, setCrawlScope] = useState("weekly"); // daily, weekly, monthly
   const [crawlLimit, setCrawlLimit] = useState(5);
+  const [crawlKeyword, setCrawlKeyword] = useState("");
   const [crawledData, setCrawledData] = useState<any[]>([]);
 
   // Step 2: AI Settings
@@ -43,8 +44,23 @@ export default function DummyGeneratorView() {
   });
 
   // Step 3: Local Engine Settings
-  const [localParams, setLocalParams] = useState({
-    totalCount: 100,
+  const [localParams, setLocalParams] = useState(() => {
+    if (typeof window !== "undefined") {
+      const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+      const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 16);
+      return {
+        totalCount: 100,
+        dateMode: "random",
+        eventDate: localISOTime,
+        eventDuration: 6,
+      };
+    }
+    return {
+      totalCount: 100,
+      dateMode: "random",
+      eventDate: "",
+      eventDuration: 6,
+    };
   });
   const [generatedPosts, setGeneratedPosts] = useState<any[]>([]);
 
@@ -85,7 +101,7 @@ export default function DummyGeneratorView() {
       const res = await fetch("/api/admin/dummy/crawl", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: crawlUrl, scope: crawlScope, limit: crawlLimit })
+        body: JSON.stringify({ url: crawlUrl, scope: crawlScope, limit: crawlLimit, keyword: crawlKeyword })
       });
       const data = await res.json();
       if (data.success) {
@@ -276,7 +292,7 @@ export default function DummyGeneratorView() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">수집 주기 설정</label>
                       <select 
@@ -298,6 +314,17 @@ export default function DummyGeneratorView() {
                         max="10"
                         value={crawlLimit}
                         onChange={(e) => setCrawlLimit(parseInt(e.target.value) || 5)}
+                        className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">키워드 필터 (선택 사항)</label>
+                      <input 
+                        type="text" 
+                        placeholder="예: 다저스 (비워두면 전체 수집)"
+                        value={crawlKeyword}
+                        onChange={(e) => setCrawlKeyword(e.target.value)}
                         className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
                       />
                     </div>
@@ -383,6 +410,7 @@ export default function DummyGeneratorView() {
                       onChange={(e) => setAiParams({ ...aiParams, tone: e.target.value })}
                       className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none"
                     >
+                      <option value="random">다채로운 톤 섞기 (위 톤앤매너 랜덤 분포)</option>
                       <option value="정성스러운 내용의 정중한 어투">정성스러운 글 (장문)</option>
                       <option value="TMI 형태의 매우 긴 장문글">TMI 형태의 긴 수다</option>
                       <option value="성의 없는 1줄짜리 짧고 가벼운 글">성의 없는 1줄 코멘트</option>
@@ -432,26 +460,71 @@ export default function DummyGeneratorView() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">최종 생성할 게시글 수량</label>
-                    <input 
-                      type="number" 
-                      value={localParams.totalCount}
-                      onChange={(e) => setLocalParams({ ...localParams, totalCount: parseInt(e.target.value) || 100 })}
-                      className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
-                    />
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      AI가 생성한 고품질 시나리오 5개를 기반으로, 로컬 텍스트 변형 모듈이 고유한 닉네임과 일정 간격의 작성일자(조회수 비례)를 자동으로 매핑해 100개 세트를 제작합니다.
-                    </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">최종 생성할 게시글 수량</label>
+                      <input 
+                        type="number" 
+                        value={localParams.totalCount}
+                        onChange={(e) => setLocalParams({ ...localParams, totalCount: parseInt(e.target.value) || 100 })}
+                        className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        AI가 생성한 고품질 시나리오 5개를 기반으로, 로컬 텍스트 변형 모듈이 고유한 닉네임과 일정 간격의 작성일자(조회수 비례)를 자동으로 매핑해 100개 세트를 제작합니다.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">작성일 분포 설정</label>
+                      <select 
+                        value={localParams.dateMode}
+                        onChange={(e) => setLocalParams({ ...localParams, dateMode: e.target.value })}
+                        className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
+                      >
+                        <option value="random">최근 30일 간 균일 분포 (기본값)</option>
+                        <option value="event">특정 사건(이슈) 시점에 집중 분포</option>
+                      </select>
+                    </div>
+
+                    {localParams.dateMode === "event" && (
+                      <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                        <div>
+                          <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">기준 사건 일시</label>
+                          <input 
+                            type="datetime-local" 
+                            value={localParams.eventDate}
+                            onChange={(e) => setLocalParams({ ...localParams, eventDate: e.target.value })}
+                            className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">집중 지속 시간 (시간)</label>
+                          <input 
+                            type="number" 
+                            min="1"
+                            max="72"
+                            value={localParams.eventDuration}
+                            onChange={(e) => setLocalParams({ ...localParams, eventDuration: parseInt(e.target.value) || 6 })}
+                            className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-2 text-xs">
+                  <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-4 text-xs">
                     <p className="font-bold text-red-400">⚙️ 로컬 적용 자동화 규칙</p>
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <ul className="list-disc list-inside space-y-2 text-muted-foreground">
                       <li><strong>한국식 정밀 닉네임 규칙</strong>: 오독 방지, 자연스러운 단어 접미사 결합</li>
                       <li><strong>조회수 및 피드백 상관관계</strong>: 댓글 수 ∝ 조회수 ∝ 추천 수 비례 룰 적용</li>
-                      <li><strong>타임라인 분포</strong>: 지난 30일 간 가상의 트렌디한 사건 날짜 전후로 분산 매핑</li>
+                      <li>
+                        <strong>타임라인 분포</strong>:
+                        {localParams.dateMode === 'event' 
+                          ? '지정한 기준 사건 발생 직후 지정한 시간(지속 시간) 동안 게시물의 85%가 집중 생성되며, 댓글 반응 속도가 훨씬 빠르게 밀집됩니다.'
+                          : '지난 30일 간 가상의 트렌디한 사건 날짜 전후로 고르게 분산 매핑됩니다.'
+                        }
+                      </li>
                     </ul>
                   </div>
                 </div>

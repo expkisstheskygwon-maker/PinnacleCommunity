@@ -51,13 +51,17 @@ export async function POST(request: NextRequest) {
 
     const totalCount = localParams.totalCount || 100;
 
+    const toneDescription = aiParams.tone === 'random' 
+      ? '각 세트별로 서로 다른 톤앤매너(예: 1번 세트는 매우 신난 어조, 2번 세트는 화가 난 어조, 3번 세트는 TMI 수다, 4번 세트는 짧고 무성의한 코멘트, 5번 세트는 진지한 정보글 등)를 다채롭게 골고루 지정하여 작성'
+      : (aiParams.tone || '일반적인 커뮤니티 글');
+
     // 1. Build prompt for AI to rewrite the raw scraped content
     const systemPrompt = `당신은 커뮤니티 데이터 분석 및 게시글 생성 전문가입니다.
 제공된 크롤링 데이터를 기반으로, 지정된 가공 조건에 맞춰 원본과 맥락을 같이 하되, 완전히 새로 쓰여진 고유한 게시글 및 댓글 템플릿(최소 5개 세트)을 한국어 JSON 배열 형식으로 만들어 주세요.
 
 [가공 조건]
 - 페르소나/성향: 성별(${aiParams.gender || '무작위'}), 연령대(${aiParams.age || '20~30대'}), 직업군(${aiParams.occupation || '직장인'})
-- 본문 및 댓글 스타일: ${aiParams.tone || '일반적인 커뮤니티 글'}
+- 본문 및 댓글 스타일: ${toneDescription}
 - 오탈자 포함 여부: ${aiParams.typos ? '자연스러운 한글 오탈자 및 띄어쓰기 오류 가끔 포함' : '오탈자 없이 깔끔하게 작성'}
 
 [필수 요구사항]
@@ -172,11 +176,28 @@ ${JSON.stringify(crawledData, null, 2)}`;
       const likes = Math.floor(numComments * (Math.random() * 3 + 1.5)) + Math.floor(Math.random() * 5);
       const views = Math.floor(likes * (Math.random() * 15 + 10)) + Math.floor(Math.random() * 40) + 10;
       
-      // Date spread logic (spread posts back over the last N days)
-      const daysOffset = Math.floor(Math.random() * 30); // 0 to 30 days ago
-      const hoursOffset = Math.floor(Math.random() * 24);
-      const minutesOffset = Math.floor(Math.random() * 60);
-      const postDate = new Date(now.getTime() - (daysOffset * 24 * 60 * 60 * 1000 + hoursOffset * 60 * 60 * 1000 + minutesOffset * 60 * 1000));
+      // Date spread logic (spread posts back over the last N days or cluster around an event)
+      let postDate: Date;
+      if (localParams.dateMode === 'event' && localParams.eventDate) {
+        const baseDate = new Date(localParams.eventDate);
+        const durationHours = localParams.eventDuration || 6;
+        
+        // 85% of posts clustered in the event window, 15% spread around it
+        const isCluster = Math.random() < 0.85;
+        if (isCluster) {
+          const offsetMs = Math.random() * durationHours * 60 * 60 * 1000;
+          postDate = new Date(baseDate.getTime() + offsetMs);
+        } else {
+          // Spread from -24 hours to +48 hours
+          const offsetMs = (Math.random() * 72 - 24) * 60 * 60 * 1000;
+          postDate = new Date(baseDate.getTime() + offsetMs);
+        }
+      } else {
+        const daysOffset = Math.floor(Math.random() * 30); // 0 to 30 days ago
+        const hoursOffset = Math.floor(Math.random() * 24);
+        const minutesOffset = Math.floor(Math.random() * 60);
+        postDate = new Date(now.getTime() - (daysOffset * 24 * 60 * 60 * 1000 + hoursOffset * 60 * 60 * 1000 + minutesOffset * 60 * 1000));
+      }
 
       // Generate Comments
       const postComments: any[] = [];
@@ -192,7 +213,10 @@ ${JSON.stringify(crawledData, null, 2)}`;
         }
 
         const commentLikes = Math.floor(Math.random() * (likes / 2));
-        const commentTimeOffset = Math.floor(Math.random() * 120) + 5; // 5 to 125 minutes after post
+        
+        // Faster reaction time during event clustering (e.g. 1 to 30 mins)
+        const maxOffset = localParams.dateMode === 'event' ? 30 : 120;
+        const commentTimeOffset = Math.floor(Math.random() * maxOffset) + 1; // 1 to maxOffset minutes after post
         const commentDate = new Date(postDate.getTime() + commentTimeOffset * 60 * 1000);
 
         postComments.push({

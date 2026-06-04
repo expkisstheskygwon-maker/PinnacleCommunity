@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '관리자 로그인이 필요합니다.' }, { status: 401 });
     }
 
-    const { url, scope = 'weekly', limit = 5 } = await request.json();
+    const { url, scope = 'weekly', limit = 5, keyword = '' } = await request.json();
     if (!url) {
       return NextResponse.json({ success: false, error: 'URL을 입력해주세요.' }, { status: 400 });
     }
@@ -65,6 +65,10 @@ export async function POST(request: NextRequest) {
           let href = linkMatch[1].replace(/&amp;/g, '&');
           const title = stripHtml(linkMatch[2]);
           
+          if (keyword && !title.toLowerCase().includes(keyword.toLowerCase())) {
+            continue;
+          }
+
           if (href.startsWith('/')) {
             href = `https://gall.dcinside.com${href}`;
           } else if (!href.startsWith('http')) {
@@ -91,6 +95,10 @@ export async function POST(request: NextRequest) {
           let href = linkMatch[1].replace(/&amp;/g, '&');
           const title = stripHtml(linkMatch[2]);
 
+          if (keyword && !title.toLowerCase().includes(keyword.toLowerCase())) {
+            continue;
+          }
+
           if (href.startsWith('/')) {
             href = `https://www.fmkorea.com${href}`;
           }
@@ -107,6 +115,10 @@ export async function POST(request: NextRequest) {
       while ((match = linkRegex.exec(html)) !== null) {
         const href = match[1].replace(/&amp;/g, '&');
         const text = stripHtml(match[2]);
+
+        if (keyword && !text.toLowerCase().includes(keyword.toLowerCase())) {
+          continue;
+        }
 
         if (href && text.length > 5) {
           const isArticleLink = /\/(board|view|read|post|p|article|g5)\/|\b(id|wr_id|no|article_no)=\d+/.test(href);
