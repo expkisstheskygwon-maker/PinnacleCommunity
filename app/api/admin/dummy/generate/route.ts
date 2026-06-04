@@ -60,6 +60,10 @@ export async function POST(request: NextRequest) {
 - 본문 및 댓글 스타일: ${aiParams.tone || '일반적인 커뮤니티 글'}
 - 오탈자 포함 여부: ${aiParams.typos ? '자연스러운 한글 오탈자 및 띄어쓰기 오류 가끔 포함' : '오탈자 없이 깔끔하게 작성'}
 
+[필수 요구사항]
+1. 본문이나 댓글에 'OOO', 'XXX', '김OO', '이모씨' 등 이름/선수명/단체명/날짜 등을 지칭하는 임의의 플레이스홀더를 절대 사용하지 마세요. 필요한 경우 맥락에 어울리는 구체적이고 실제 스포츠 스타(예: 손흥민, 김민재, 메시 등)나 팀명 등 적절한 명칭을 자연스럽게 사용하거나 명칭을 생략하고 대명사로 표현하여 실존 유저가 쓴 것처럼 매끄럽고 자연스러운 문장으로 작성해 주세요.
+2. '※ 본 게시글은 회원 정보 보호...' 와 같은 안내문, 다짐, 공지성 멘트나 정보성 글임을 나타내는 사족을 게시글 본문 및 댓글에 절대 포함하지 마세요. 오직 일반 유저가 작성한 것 같은 게시글 내용만 출력해야 합니다.
+
 [반드시 준수할 JSON 출력 규격]
 출력은 코드 블록이나 마크다운 없이 오직 순수한 JSON Array여야 하며, 다음 키를 가지고 있어야 합니다:
 [
@@ -160,9 +164,6 @@ ${JSON.stringify(crawledData, null, 2)}`;
       
       // Dynamic content variation
       let variationContent = template.content;
-      if (Math.random() > 0.5) {
-        variationContent += `<p class="mt-4 text-xs text-muted-foreground">※ 본 게시글은 회원 정보 보호 및 커뮤니티 활성화를 위해 작성된 정보성 글입니다.</p>`;
-      }
 
       // Author & engagement relationship logic
       // Likes/views scale with comments count
