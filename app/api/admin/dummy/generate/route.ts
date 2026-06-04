@@ -25,6 +25,72 @@ function generateNickname() {
   }
 }
 
+const KOREAN_SYNONYMS = [
+  // Sports stars
+  { from: /손흥민 선수/g, to: ['손흥민 선수', '쏘니', '우리 흥', '흥민이'] },
+  { from: /손흥민/g, to: ['손흥민', '쏘니', '우리 흥'] },
+  { from: /김민재 선수/g, to: ['김민재 선수', '민재', '벽민재'] },
+  { from: /김민재/g, to: ['김민재', '민재'] },
+  { from: /이강인/g, to: ['이강인', '강인이', '킹강인'] },
+  { from: /리오넬 메시/g, to: ['리오넬 메시', '메시', '메갓'] },
+  { from: /메시/g, to: ['메시', '리오넬 메시', '메갓'] },
+  
+  // Leagues
+  { from: /프리미어리그/g, to: ['프리미어리그', 'EPL', '피엘'] },
+  { from: /챔피언스리그/g, to: ['챔피언스리그', '챔스', 'UCL'] },
+  
+  // Terms with particles (조사)
+  { from: /경기가/g, to: ['경기가', '게임이', '매치가'] },
+  { from: /경기는/g, to: ['경기는', '게임은', '매치는'] },
+  { from: /경기를/g, to: ['경기를', '게임을', '매치를'] },
+  { from: /경기에서/g, to: ['경기에서', '게임에서', '매치에서'] },
+  { from: /경기/g, to: ['경기', '게임', '매치'] },
+  
+  { from: /선수가/g, to: ['선수가', '플레이어가', '멤버가'] },
+  { from: /선수는/g, to: ['선수는', '플레이어는', '멤버는'] },
+  { from: /선수를/g, to: ['선수를', '플레이어를', '멤버를'] },
+  
+  { from: /이적이/g, to: ['이적이', '트레이드가', '이동이'] },
+  { from: /이적은/g, to: ['이적은', '트레이드는', '이동은'] },
+  
+  { from: /영입이/g, to: ['영입이', '계약이'] },
+  { from: /영입은/g, to: ['영입은', '계약은'] },
+  
+  { from: /활약이/g, to: ['활약이', '플레이가', '폼이'] },
+  { from: /활약은/g, to: ['활약은', '플레이는', '폼은'] },
+  { from: /활약을/g, to: ['활약을', '플레이를', '경기력을'] },
+  
+  { from: /우승을/g, to: ['우승을', '챔피언을', '트로피를'] },
+  { from: /우승은/g, to: ['우승은', '챔피언은', '트로피는'] },
+  
+  { from: /분석글/g, to: ['분석글', '분석', '예상글', '픽'] },
+  { from: /분석/g, to: ['분석', '예상', '예측'] },
+  
+  { from: /추천을/g, to: ['추천을', '강추를'] },
+  { from: /추천은/g, to: ['추천은', '강추는'] },
+  
+  // Verbs and Adjectives endings
+  { from: /기대되네요/g, to: ['기대되네요', '기대됩니다', '기대되는듯', '설레네요', '두근거리네요'] },
+  { from: /기대되는데/g, to: ['기대되는데', '기대하고 있는데', '설레는데'] },
+  { from: /재밌네요/g, to: ['재밌네요', '재밌습니다', '꿀잼이네요', '볼만하네요'] },
+  { from: /재밌지 않나요/g, to: ['재밌지 않나요', '재밌는 거 같아요', '꿀잼인 듯요'] },
+  { from: /어렵네요/g, to: ['어렵네요', '어렵습니다', '쉬운 게 아니네요', '빡세네요'] },
+  { from: /추천합니다/g, to: ['추천합니다', '추천해요', '강추함', '추천해드림'] },
+  { from: /계신가요/g, to: ['계신가요', '있나요', '있으신가요', '있음?'] },
+  
+  // Common phrases
+  { from: /퇴근 후/g, to: ['퇴근 후', '퇴근하고', '퇴근 후의'] },
+  { from: /밤샘 예약/g, to: ['밤샘 예약', '새벽 대기', '밤샐 각'] },
+  { from: /스트레스가/g, to: ['스트레스가', '피로가', '답답함이'] },
+  
+  // Time/Adverbs
+  { from: /정말/g, to: ['정말', '진짜', '참', '진심', '엄청'] },
+  { from: /생각보다/g, to: ['생각보다', '의외로', '의외로 많이'] },
+  { from: /요즘/g, to: ['요즘', '최근', '요새'] },
+  { from: /오늘도/g, to: ['오늘도', '금일도', '오늘 역시'] },
+  { from: /어제도/g, to: ['어제도', '지난번에도'] }
+];
+
 function spinTitle(title: string): string {
   if (!title) return '';
   let spun = title;
@@ -45,15 +111,7 @@ function spinTitle(title: string): string {
   });
 
   // Synonym replacements for title
-  const synonyms = [
-    { from: /축구/g, to: ['축구', '축구 경기'] },
-    { from: /경기/g, to: ['경기', '게임', '매치'] },
-    { from: /정말/g, to: ['정말', '진짜', '엄청'] },
-    { from: /어제/g, to: ['어제', '지난'] },
-    { from: /오늘/g, to: ['오늘', '금일'] }
-  ];
-
-  for (const item of synonyms) {
+  for (const item of KOREAN_SYNONYMS) {
     spun = spun.replace(item.from, () => {
       return item.to[Math.floor(Math.random() * item.to.length)];
     });
@@ -119,17 +177,7 @@ function spinContent(htmlContent: string): string {
   });
 
   // 3. Synonym replacements (subtle and context-safe)
-  const synonyms = [
-    { from: /축구/g, to: ['축구', '축구 경기', '볼차기'] },
-    { from: /경기/g, to: ['경기', '게임', '매치'] },
-    { from: /선수/g, to: ['선수', '멤버', '플레이어'] },
-    { from: /정말/g, to: ['정말', '진짜', '참', '엄청'] },
-    { from: /생각/g, to: ['생각', '의견', '느낌'] },
-    { from: /정보/g, to: ['정보', '소식', '글'] },
-    { from: /추천/g, to: ['추천', '추천글', '강추'] }
-  ];
-
-  for (const item of synonyms) {
+  for (const item of KOREAN_SYNONYMS) {
     spun = spun.replace(item.from, () => {
       return item.to[Math.floor(Math.random() * item.to.length)];
     });
@@ -191,70 +239,86 @@ export async function POST(request: NextRequest) {
   }
 ]`;
 
-    const userPrompt = `다음 크롤링한 원본 데이터를 가공 조건에 맞추어 10개의 독립된 게시글 세트로 만들어 주세요.
+    const callAI = async (userPrompt: string) => {
+      if (aiProvider === 'gemini') {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: 'user',
+                  parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
+                }
+              ],
+              generationConfig: {
+                responseMimeType: 'application/json'
+              }
+            })
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Gemini API 호출 실패: ${errorText}`);
+        }
+
+        const resJson = await response.json();
+        const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        return JSON.parse(text.trim());
+      } else if (aiProvider === 'openai') {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            response_format: { type: 'json_object' }
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`OpenAI API 호출 실패: ${errorText}`);
+        }
+
+        const resJson = await response.json();
+        const text = resJson.choices?.[0]?.message?.content || '';
+        const parsed = JSON.parse(text.trim());
+        return Array.isArray(parsed) ? parsed : (parsed.posts || Object.values(parsed)[0] || []);
+      } else {
+        throw new Error('지원하지 않는 AI 제공자입니다.');
+      }
+    };
+
+    let baseTemplates: any[] = [];
+    try {
+      const userPrompt1 = `다음 크롤링한 원본 데이터를 가공 조건에 맞추어 15개의 독립된 게시글 세트(감성적이고 주관적인 리액션, 가벼운 일상 수다 위주)로 만들어 주세요.
 원본 데이터:
 ${JSON.stringify(crawledData, null, 2)}`;
 
-    let baseTemplates: any[] = [];
+      const userPrompt2 = `다음 크롤링한 원본 데이터를 가공 조건에 맞추어 15개의 독립된 게시글 세트(이성적이고 분석적인 정보 공유, 진지한 토론/분석 위주)로 만들어 주세요.
+원본 데이터:
+${JSON.stringify(crawledData, null, 2)}`;
 
-    // 2. Call AI Provider
-    if (aiProvider === 'gemini') {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: 'user',
-                parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
-              }
-            ],
-            generationConfig: {
-              responseMimeType: 'application/json'
-            }
-          })
-        }
-      );
+      const [batch1, batch2] = await Promise.all([
+        callAI(userPrompt1),
+        callAI(userPrompt2)
+      ]);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Gemini API 호출 실패: ${errorText}`);
-      }
-
-      const resJson = await response.json();
-      const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      baseTemplates = JSON.parse(text.trim());
-    } else if (aiProvider === 'openai') {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          response_format: { type: 'json_object' }
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenAI API 호출 실패: ${errorText}`);
-      }
-
-      const resJson = await response.json();
-      const text = resJson.choices?.[0]?.message?.content || '';
-      // OpenAI might return it wrapped in a root object, let's extract the array
-      const parsed = JSON.parse(text.trim());
-      baseTemplates = Array.isArray(parsed) ? parsed : (parsed.posts || Object.values(parsed)[0] || []);
-    } else {
-      throw new Error('지원하지 않는 AI 제공자입니다.');
+      if (Array.isArray(batch1)) baseTemplates.push(...batch1);
+      if (Array.isArray(batch2)) baseTemplates.push(...batch2);
+    } catch (e: any) {
+      console.error("AI Batch template generation failed:", e);
+      throw new Error(`AI 템플릿 생성 중 실패하였습니다. (${e.message})`);
     }
 
     if (!Array.isArray(baseTemplates) || baseTemplates.length === 0) {
