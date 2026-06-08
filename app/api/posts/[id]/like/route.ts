@@ -22,7 +22,7 @@ export async function POST(
     const db = env.DB as any;
 
     // 1. Check if post exists and who is the author
-    const post: any = await db.prepare('SELECT authorId FROM posts WHERE id = ?').bind(id).first();
+    const post: any = await db.prepare('SELECT authorId, category, likes FROM posts WHERE id = ?').bind(id).first();
     if (!post) {
       return NextResponse.json({ success: false, error: '게시글을 찾을 수 없습니다.' }, { status: 404 });
     }
@@ -57,12 +57,30 @@ export async function POST(
         .run();
       await db.prepare('UPDATE posts SET likes = likes + 1 WHERE id = ?').bind(id).run();
 
-      // Bonus: Increase author's score (+10 score, +20 VP)
+      const newLikesCount = (post.likes || 0) + 1;
       const statements = [
         db.prepare('UPDATE users SET score = score + 10, points = points + 20 WHERE id = ?').bind(post.authorId),
         db.prepare("INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, 20, 'post_like', ?)")
           .bind(post.authorId, id)
       ];
+
+      // Comfort Reward for fails category when hitting 5+ likes
+      if (post.category === 'fails' && newLikesCount >= 5) {
+        const alreadyRewarded = await db.prepare("SELECT id FROM reward_logs WHERE postId = ? AND rewardType = 'fails_comfort'")
+          .bind(id)
+          .first();
+
+        if (!alreadyRewarded) {
+          statements.push(
+            db.prepare('UPDATE users SET points = points + 100 WHERE id = ?').bind(post.authorId),
+            db.prepare("INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, 100, 'fails_comfort', ?)")
+              .bind(post.authorId, id),
+            db.prepare("INSERT INTO reward_logs (userId, postId, rewardType, amount) VALUES (?, ?, 'fails_comfort', 100)")
+              .bind(post.authorId, id, 'fails_comfort')
+          );
+        }
+      }
+
       await db.batch(statements);
 
       return NextResponse.json({ success: true, liked: true, message: '게시글을 추천했습니다.' });

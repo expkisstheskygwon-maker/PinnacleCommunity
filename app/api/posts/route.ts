@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionData = JSON.parse(authSession.value);
-    const { title, content, category, tags, image: rawImage, isLocked, pointPrice } = (await request.json()) as any;
+    const { title, content, category, tags, image: rawImage, isLocked, pointPrice, sentiment, experiment_meta } = (await request.json()) as any;
 
     if (!title || !content || !category) {
       return NextResponse.json(
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // 1. Insert post
     const result = await db
       .prepare(
-        'INSERT INTO posts (title, content, authorId, category, tags, image, isLocked, pointPrice) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO posts (title, content, authorId, category, tags, image, isLocked, pointPrice, sentiment, experiment_meta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
       )
       .bind(
         title, 
@@ -44,7 +44,9 @@ export async function POST(request: NextRequest) {
         tags || null, 
         image || null, 
         (isLocked === 1 || isLocked === true) ? 1 : 0, 
-        (isLocked === 1 || isLocked === true) ? (pointPrice || 0) : 0
+        (isLocked === 1 || isLocked === true) ? (pointPrice || 0) : 0,
+        sentiment || null,
+        experiment_meta || null
       )
       .run();
 

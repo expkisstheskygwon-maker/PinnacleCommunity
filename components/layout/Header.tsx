@@ -68,9 +68,11 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "concepts", href: "/concepts", label: "개념 탑재", labelEn: "Concepts", icon: Lightbulb,
     children: [
-      { href: "/concepts?cat=review", label: "베팅 복기", labelEn: "Betting Review" },
-      { href: "/concepts?cat=bankroll", label: "심리/자금관리", labelEn: "Mindset & Bankroll" },
-      { href: "/concepts?cat=strategy", label: "전략 실험실", labelEn: "Strategy Lab" },
+      { href: "/concepts?cat=experiments", label: "기상천외 베팅 실험실", labelEn: "Betting Experiments" },
+      { href: "/concepts?cat=fails", label: "멘붕 & 유쾌한 실패담", labelEn: "Epic Fails" },
+      { href: "/concepts?cat=gamification", label: "룰렛 & 리더보드", labelEn: "Roulette & Leaderboard" },
+      { href: "/concepts?cat=flex", label: "슬롯/미니게임 자랑", labelEn: "Slot Flex" },
+      { href: "/concepts?cat=sentiment", label: "실시간 찐팬 응원방", labelEn: "Fan Sentiment" },
     ]
   },
   {
@@ -137,7 +139,7 @@ export default function Header({ user }: HeaderProps) {
     // Fetch dynamic categories for all types
     const fetchAllCats = async () => {
       try {
-        const types = ["spotlight", "analysis", "qna", "notices", "guide", "community"];
+        const types = ["spotlight", "analysis", "qna", "notices", "guide", "community", "concepts"];
         const catsMap: Record<string, SubItem[]> = {};
         
         await Promise.all(types.map(async (type) => {
@@ -151,6 +153,13 @@ export default function Header({ user }: HeaderProps) {
                 else if (c.name === "match") label = "경기 토론";
                 else if (c.name === "picks") label = "픽 공유";
                 else if (c.name === "events") label = "이벤트/랭킹";
+              }
+              if (type === "concepts") {
+                if (c.name === "experiments") label = "기상천외 베팅 실험실";
+                else if (c.name === "fails") label = "멘붕 & 유쾌한 실패담";
+                else if (c.name === "gamification") label = "룰렛 & 리더보드";
+                else if (c.name === "flex") label = "슬롯/미니게임 자랑";
+                else if (c.name === "sentiment") label = "실시간 찐팬 응원방";
               }
               const hrefPrefix = type === "community" ? "community" : type;
               return {
@@ -213,8 +222,8 @@ export default function Header({ user }: HeaderProps) {
     const staticChildren = item.children || [];
     
     if (dynamic.length > 0) {
-      if (item.id === "community") {
-        // For community, we replace categories completely with DB dynamic categories
+      if (item.id === "community" || item.id === "concepts") {
+        // For community and concepts, we replace categories completely with DB dynamic categories
         return { ...item, children: dynamic };
       } else {
         const merged = [...staticChildren];
@@ -226,8 +235,8 @@ export default function Header({ user }: HeaderProps) {
         return { ...item, children: merged };
       }
     }
-    // If dynamic is empty, we filter out non-category items for community just in case
-    if (item.id === "community") {
+    // If dynamic is empty, we filter out non-category items just in case
+    if (item.id === "community" || item.id === "concepts") {
       return { ...item, children: staticChildren.filter(s => s.href.includes('?cat=')) };
     }
     return item;
