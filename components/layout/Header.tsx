@@ -45,6 +45,12 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
+    id: "virtual-betting", href: "/virtual-betting", label: "가상 배팅", labelEn: "Virtual Bet", icon: Trophy
+  },
+  {
+    id: "point-shop", href: "/point-shop", label: "포인트 상점", labelEn: "Point Shop", icon: Zap
+  },
+  {
     id: "analysis", href: "/analysis", label: "분석/칼럼", labelEn: "Analysis", icon: BarChart3,
     children: [
       { href: "/analysis?cat=beginner", label: "초보 가이드", labelEn: "Beginner Guide" },
@@ -117,7 +123,7 @@ export default function Header({ user }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
   const [dynamicCategories, setDynamicCategories] = useState<Record<string, SubItem[]>>({});
-  const [userStats, setUserStats] = useState<{ level: number, title: string } | null>(null);
+  const [userStats, setUserStats] = useState<{ level: number, title: string, points: number, nicknameColor?: string | null } | null>(null);
   const [topBarMsg, setTopBarMsg] = useState({ ko: "", en: "" });
 
   useEffect(() => {
@@ -169,7 +175,12 @@ export default function Header({ user }: HeaderProps) {
         const data = await res.json();
         if (data.success && data.profile) {
           const lvInfo = getLevelInfo(data.profile.score || 0);
-          setUserStats({ level: lvInfo.level, title: lvInfo.title });
+          setUserStats({ 
+            level: lvInfo.level, 
+            title: lvInfo.title, 
+            points: data.profile.points || 0,
+            nicknameColor: data.profile.nicknameColor || null
+          });
         }
       } catch (err) {
         console.error("Failed to fetch user stats", err);
@@ -352,6 +363,12 @@ export default function Header({ user }: HeaderProps) {
 
               {user ? (
                 <div className="flex items-center gap-3">
+                  {/* Points Display */}
+                  <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/[0.08] text-xs font-bold text-[hsl(var(--gold))] shadow-inner">
+                    <Zap className="w-3.5 h-3.5 text-[hsl(var(--gold))] fill-current animate-pulse" />
+                    <span>{userStats?.points?.toLocaleString() || 0} VP</span>
+                  </div>
+
                   <Link 
                     href="/mypage" 
                     className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition-all group"
@@ -360,7 +377,7 @@ export default function Header({ user }: HeaderProps) {
                       <User className="w-4 h-4 text-primary" />
                     </div>
                     <div className="hidden md:flex flex-col items-start leading-tight">
-                      <span className="text-[11px] font-black group-hover:text-primary transition-colors">{user.nickname}</span>
+                      <span className={cn("text-[11px] font-black group-hover:text-primary transition-colors", userStats?.nicknameColor || "text-foreground")}>{user.nickname}</span>
                       <span className="text-[9px] font-bold text-muted-foreground">Lv.{userStats?.level || 1} {userStats?.title || '루키'}</span>
                     </div>
                   </Link>

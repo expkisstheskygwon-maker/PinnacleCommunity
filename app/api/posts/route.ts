@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionData = JSON.parse(authSession.value);
-    const { title, content, category, tags, image: rawImage } = (await request.json()) as any;
+    const { title, content, category, tags, image: rawImage, isLocked, pointPrice } = (await request.json()) as any;
 
     if (!title || !content || !category) {
       return NextResponse.json(
@@ -34,33 +34,48 @@ export async function POST(request: NextRequest) {
     // 1. Insert post
     const result = await db
       .prepare(
-        'INSERT INTO posts (title, content, authorId, category, tags, image) VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO posts (title, content, authorId, category, tags, image, isLocked, pointPrice) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
       )
-      .bind(title, content, sessionData.id, category, tags || null, image || null)
+      .bind(
+        title, 
+        content, 
+        sessionData.id, 
+        category, 
+        tags || null, 
+        image || null, 
+        (isLocked === 1 || isLocked === true) ? 1 : 0, 
+        (isLocked === 1 || isLocked === true) ? (pointPrice || 0) : 0
+      )
       .run();
-
 
     if (!result.success) {
       throw new Error('데이터베이스 저장 중 오류가 발생했습니다.');
     }
 
-    // 2. Bonus: Increase user's activity score (+20 points for a post)
-    const userData: any = await db.prepare('SELECT score FROM users WHERE id = ?').bind(sessionData.id).first();
+    const postId = result.meta.last_row_id;
+
+    // 2. Bonus: Increase user's activity score (+20 score, +50 VP)
+    const userData: any = await db.prepare('SELECT score, points FROM users WHERE id = ?').bind(sessionData.id).first();
     const newScore = (userData?.score || 0) + 20;
+    const newPoints = (userData?.points || 0) + 50;
     
     const { calculateLevel } = await import('@/lib/gamification');
     const newLevel = calculateLevel(newScore);
 
-    await db
-      .prepare('UPDATE users SET score = ?, level = ? WHERE id = ?')
-      .bind(newScore, newLevel, sessionData.id)
-      .run();
+    const statements = [
+      db.prepare('UPDATE users SET score = ?, level = ?, points = ? WHERE id = ?')
+        .bind(newScore, newLevel, newPoints, sessionData.id),
+      db.prepare("INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, 50, 'post_write', ?)")
+        .bind(sessionData.id, postId)
+    ];
+
+    await db.batch(statements);
 
     return NextResponse.json(
       { 
         success: true, 
-        message: '글이 성공적으로 등록되었습니다.',
-        postId: result.meta.last_row_id 
+        message: '글이 성공적으로 등록되었습니다. (+20 활동점수, +50 VP)',
+        postId: postId 
       },
       { status: 201 }
     );

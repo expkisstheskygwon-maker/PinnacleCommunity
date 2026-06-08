@@ -36,9 +36,11 @@ export default function MyPageTabs({
   initialInquiries = [],
   initialBettingRecords = []
 }: MyPageTabsProps) {
-  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview"); // overview, posts, matches, notifications, interests, inquiries
+  const [profileData, setProfileData] = useState<any>(profile);
+  const [pointsLogs, setPointsLogs] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isClient, setIsClient] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [interests, setInterests] = useState<any[]>(initialInterests);
   const [bettingRecords, setBettingRecords] = useState<any[]>(initialBettingRecords);
@@ -48,6 +50,40 @@ export default function MyPageTabs({
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const fetchClientProfile = async () => {
+    try {
+      const res = await fetch('/api/user/profile');
+      const data = await res.json();
+      if (data.success) {
+        setProfileData({
+          ...profile,
+          points: data.profile.points,
+          inventory: data.profile.inventory,
+          nicknameColor: data.profile.nicknameColor
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchClientProfile();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "points_logs") {
+      fetch('/api/user/points-logs')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setPointsLogs(data.logs);
+          }
+        })
+        .catch(err => console.error(err));
+    }
+  }, [activeTab]);
   
   const safeInterests = Array.isArray(interests) ? interests : [];
   const safeMatches = Array.isArray(initialMatches) ? initialMatches : [];
@@ -56,6 +92,9 @@ export default function MyPageTabs({
   const safeFavoritePosts = Array.isArray(initialFavoritePosts) ? initialFavoritePosts : [];
   const safeInquiries = Array.isArray(initialInquiries) ? initialInquiries : [];
   const safeBettingRecords = Array.isArray(bettingRecords) ? bettingRecords : [];
+
+  const virtualRecords = safeBettingRecords.filter(r => r.isVirtual === 1);
+  const manualRecords = safeBettingRecords.filter(r => r.isVirtual === 0);
 
   const favTeams = safeInterests.filter(i => i.category === 'team').map(i => i.value);
   const favLeagues = safeInterests.filter(i => i.category === 'league').map(i => i.value);
@@ -87,15 +126,16 @@ export default function MyPageTabs({
 
   const MENU_ITEMS = [
     { id: "overview", label: "마이페이지 홈", icon: Shield, count: 0 },
-    { id: "stats", label: "베팅 분석", icon: BarChart3, count: 0 },
-    { id: "betting", label: "베팅 저널", icon: History, count: safeBettingRecords.length },
+    { id: "stats", label: "가상 배팅 분석", icon: BarChart3, count: 0 },
+    { id: "betting_virtual", label: "가상 배팅 내역", icon: Trophy, count: virtualRecords.length },
+    { id: "betting", label: "수동 배팅 일지", icon: History, count: manualRecords.length },
+    { id: "inventory", label: "아이템 보관함", icon: Zap, count: 0 },
+    { id: "points_logs", label: "포인트 내역", icon: Award, count: 0 },
     { id: "interests", label: "관심 설정", icon: Heart, count: safeInterests.length },
     { id: "favorites", label: "관심 게시글", icon: Star, count: safeFavoritePosts.length },
     { id: "notifications", label: "알림 서랍", icon: Bell, count: safeNotifications.filter(n => n && !n.readAt).length },
-    { id: "posts", label: "내 글/댓글", icon: FileText, count: (profile?.postCount || 0) + (profile?.commentCount || 0) },
-    { id: "betting", label: "베팅 저널", icon: History, count: safeBettingRecords.length },
+    { id: "posts", label: "내 글/댓글", icon: FileText, count: (profileData?.postCount || 0) + (profileData?.commentCount || 0) },
     { id: "inquiries", label: "1:1 문의", icon: MessageSquare, count: safeInquiries.length },
-    { id: "activity", label: "활동 점수", icon: Award, count: profile?.score || 0 },
   ];
 
   if (!isClient) return null; // Prevent hydration mismatch
@@ -104,7 +144,7 @@ export default function MyPageTabs({
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
       {/* Left - Profile & Menu */}
       <div className="xl:col-span-4 space-y-6">
-        <ProfileSection user={user} profile={profile} />
+        <ProfileSection user={user} profile={profileData} />
 
         {/* Menu */}
         <div className="glass-card rounded-2xl overflow-hidden">
@@ -494,17 +534,17 @@ export default function MyPageTabs({
                 <div className="bg-primary/15 p-1.5 rounded-lg">
                   <BarChart3 className="w-4 h-4 text-primary" />
                 </div>
-                <h3 className="font-bold text-lg">베팅 분석 대시보드</h3>
+                <h3 className="font-bold text-lg">가상 배팅 분석 대시보드</h3>
               </div>
               <button 
                 onClick={() => {
-                  const finished = safeBettingRecords.filter(r => r.status !== 'pending');
+                  const finished = virtualRecords.filter(r => r.status !== 'pending');
                   const totalStake = finished.reduce((acc, r) => acc + r.stake, 0);
                   const totalReturn = finished.reduce((acc, r) => acc + r.resultAmount, 0);
                   const roi = totalStake > 0 ? ((totalReturn - totalStake) / totalStake * 100).toFixed(1) : "0.0";
                   const winRate = finished.length > 0 ? (finished.filter(r => r.status === 'won').length / finished.length * 100).toFixed(1) : "0.0";
                   
-                  const content = `[나의 베팅 성과 인증]\n\n📊 ROI: ${roi}%\n🎯 승률: ${winRate}%\n💰 총 수익: ${(totalReturn - totalStake).toLocaleString()}원\n\n#베팅인증 #수익률 #스포츠분석`;
+                  const content = `[나의 가상 배팅 성과 인증]\n\n📊 ROI: ${roi}%\n🎯 승률: ${winRate}%\n💰 총 수익: ${(totalReturn - totalStake).toLocaleString()} VP\n\n#가상배팅 #피나클프리딕터 #스포츠분석`;
                   router.push(`/community/write?content=${encodeURIComponent(content)}&category=review`);
                 }}
                 className="btn-primary text-[10px] py-1.5 px-3 rounded-xl flex items-center gap-1.5"
@@ -512,11 +552,107 @@ export default function MyPageTabs({
                 <ArrowUpRight className="w-3 h-3" /> 성과 공유하기
               </button>
             </div>
-            <BettingStatsDashboard records={safeBettingRecords} />
+            <BettingStatsDashboard records={virtualRecords} />
           </section>
         )}
 
-        {/* ─── Tab: Betting Journal ─── */}
+        {/* ─── Tab: 가상 배팅 내역 ─── */}
+        {activeTab === "betting_virtual" && (
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-primary/15 p-1.5 rounded-lg">
+                  <Trophy className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg">가상 배팅 내역</h3>
+                <span className="badge-primary">{virtualRecords.length}</span>
+              </div>
+            </div>
+            
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="px-5 py-3.5 bg-white/[0.02] border-b border-white/[0.06] text-xs text-muted-foreground">
+                ℹ️ 가상 배팅은 경기 결과가 공식 등록(종료)되면 시스템에 의해 자동으로 정산 처리됩니다.
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-white/5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-white/10">
+                      <th className="px-4 py-3 text-left">날짜/종목</th>
+                      <th className="px-4 py-3 text-left">경기/마켓</th>
+                      <th className="px-4 py-3 text-left">선택/배당</th>
+                      <th className="px-4 py-3 text-center">배팅액</th>
+                      <th className="px-4 py-3 text-center">적용 아이템</th>
+                      <th className="px-4 py-3 text-center">정산 상태</th>
+                      <th className="px-4 py-3 text-right">반환금</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {virtualRecords.map(record => {
+                      let statusText = '대기 중';
+                      let statusClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+                      if (record.status === 'won') {
+                        statusText = '적중';
+                        statusClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                      } else if (record.status === 'lost') {
+                        statusText = '미적중';
+                        statusClass = 'bg-red-500/10 text-red-400 border-red-500/20';
+                      } else if (record.status === 'void') {
+                        statusText = '적특/취소';
+                        statusClass = 'bg-white/10 text-muted-foreground border-white/20';
+                      }
+
+                      return (
+                        <tr key={record.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="px-4 py-4">
+                            <p className="text-[10px] text-muted-foreground">{new Date(record.betDate).toLocaleDateString()}</p>
+                            <p className="font-bold text-xs capitalize text-primary">{record.sport}</p>
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="font-bold text-xs truncate max-w-[150px]">{record.match || '-'}</p>
+                            <p className="text-[10px] text-muted-foreground">{record.league} · {record.market}</p>
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="font-bold text-xs text-primary">{record.selection}</p>
+                            <p className="text-[10px] text-muted-foreground">@{record.odds}</p>
+                          </td>
+                          <td className="px-4 py-4 text-center font-mono font-bold">
+                            {record.stake.toLocaleString()} VP
+                          </td>
+                          <td className="px-4 py-4 text-center text-[10px] font-bold">
+                            {record.appliedItem === 'odds_booster' ? (
+                              <span className="text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">부스터 (+10%)</span>
+                            ) : record.appliedItem === 'bet_insurance' ? (
+                              <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">배팅 보험</span>
+                            ) : (
+                              <span className="text-muted-foreground/30">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded border whitespace-nowrap", statusClass)}>
+                              {statusText}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-right font-mono font-bold text-emerald-400">
+                            {record.status === 'pending' ? '-' : `${record.resultAmount.toLocaleString()} VP`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {virtualRecords.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="text-center py-20 text-muted-foreground text-sm italic">
+                          가상 배팅 내역이 없습니다. 가상 배팅 센터에서 배팅을 즐겨보세요!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ─── Tab: 수동 배팅 일지 (Journal) ─── */}
         {(activeTab === "overview" || activeTab === "betting") && (
           <section className="space-y-6">
             <div className="flex items-center justify-between">
@@ -524,12 +660,151 @@ export default function MyPageTabs({
                 <div className="bg-orange-500/15 p-1.5 rounded-lg">
                   <History className="w-4 h-4 text-orange-400" />
                 </div>
-                <h3 className="font-bold text-lg">베팅 저널</h3>
-                <span className="badge-primary">{safeBettingRecords.length}</span>
+                <h3 className="font-bold text-lg">수동 배팅 일지</h3>
+                <span className="badge-primary">{manualRecords.length}</span>
               </div>
             </div>
 
-            <BettingJournalView initialRecords={safeBettingRecords} />
+            <BettingJournalView initialRecords={manualRecords} />
+          </section>
+        )}
+
+        {/* ─── Tab: 아이템 보관함 ─── */}
+        {activeTab === "inventory" && (
+          <section className="space-y-6">
+            <div className="flex items-center gap-2">
+              <div className="bg-primary/15 p-1.5 rounded-lg">
+                <Zap className="w-4 h-4 text-primary" />
+              </div>
+              <h3 className="font-bold text-lg">나의 아이템 보관함</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="glass-card rounded-2xl p-5 border-white/5 flex items-center justify-between group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                    <ArrowUpRight className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm">배당 부스터 (+10%)</h4>
+                    <p className="text-[10px] text-muted-foreground mt-1">적중 당첨 포인트를 10% 추가로 획득합니다.</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-muted-foreground">보유량</span>
+                  <p className="text-xl font-black font-mono text-primary">{(profileData?.inventory?.find((i: any) => i.itemType === 'odds_booster')?.quantity || 0)}장</p>
+                </div>
+              </div>
+
+              <div className="glass-card rounded-2xl p-5 border-white/5 flex items-center justify-between group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <Shield className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm">배팅 보험 카드 (50%)</h4>
+                    <p className="text-[10px] text-muted-foreground mt-1">미적중 시 베팅 포인트의 50%를 환급받습니다.</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-muted-foreground">보유량</span>
+                  <p className="text-xl font-black font-mono text-emerald-400">{(profileData?.inventory?.find((i: any) => i.itemType === 'bet_insurance')?.quantity || 0)}장</p>
+                </div>
+              </div>
+
+              <div className="glass-card rounded-2xl p-5 border-white/5 flex items-center justify-between group col-span-full">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                    <Award className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm">활성화된 닉네임 컬러</h4>
+                    <p className="text-[10px] text-muted-foreground mt-1">커뮤니티 및 프로필 닉네임에 네온 스타일을 적용합니다.</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-muted-foreground">적용 상태</span>
+                  <p className="text-sm font-black text-amber-400">
+                    {profileData?.nicknameColor ? (
+                      <span className={profileData.nicknameColor}>네온 컬러 적용 중</span>
+                    ) : (
+                      "기본 색상 (적용 없음)"
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ─── Tab: 포인트 내역 ─── */}
+        {activeTab === "points_logs" && (
+          <section className="space-y-6">
+            <div className="flex items-center gap-2">
+              <div className="bg-amber-500/15 p-1.5 rounded-lg">
+                <Award className="w-4 h-4 text-amber-400" />
+              </div>
+              <h3 className="font-bold text-lg">포인트 거래 내역</h3>
+            </div>
+            
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-white/5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-white/10">
+                      <th className="px-5 py-3 text-left">일시</th>
+                      <th className="px-5 py-3 text-left">유형</th>
+                      <th className="px-5 py-3 text-center">포인트 변동</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {pointsLogs.map(log => {
+                      const isPositive = log.amount > 0;
+                      let reasonKo = log.reason;
+                      if (log.reason === 'bet_stake') reasonKo = '가상 배팅 참가';
+                      else if (log.reason === 'bet_win') reasonKo = '가상 배팅 적중 당첨금';
+                      else if (log.reason === 'bet_refund') reasonKo = '가상 배팅 취소 환급';
+                      else if (log.reason === 'bet_refund_insurance') reasonKo = '가상 배팅 미적중 보험금';
+                      else if (log.reason === 'bet_refund_void') reasonKo = '가상 배팅 적특 환급';
+                      else if (log.reason === 'attendance') reasonKo = '일일 출석 체크 보너스';
+                      else if (log.reason === 'post_write') reasonKo = '게시글 등록 보너스';
+                      else if (log.reason === 'comment_write') reasonKo = '댓글 등록 보너스';
+                      else if (log.reason === 'post_like') reasonKo = '게시글 추천 보너스 수령';
+                      else if (log.reason === 'post_unlike') reasonKo = '게시글 추천 취소 포인트 회수';
+                      else if (log.reason === 'shop_buy_item') reasonKo = '상점 아이템 카드 구매';
+                      else if (log.reason === 'shop_buy_color') reasonKo = '상점 닉네임 컬러 구매';
+                      else if (log.reason === 'recharge') reasonKo = '일일 무료 포인트 충전';
+                      else if (log.reason === 'pick_unlock') reasonKo = '유료 분석글 잠금 해제';
+                      else if (log.reason === 'pick_sold') reasonKo = '유료 분석글 판매 수익';
+
+                      return (
+                        <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="px-5 py-3.5 text-muted-foreground text-xs font-mono">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+                          <td className="px-5 py-3.5 font-bold text-xs text-foreground">
+                            {reasonKo}
+                          </td>
+                          <td className={cn(
+                            "px-5 py-3.5 text-center font-mono font-black text-sm",
+                            isPositive ? "text-emerald-400" : "text-red-400"
+                          )}>
+                            {isPositive ? '+' : ''}{log.amount.toLocaleString()} VP
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {pointsLogs.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="text-center py-20 text-muted-foreground text-sm italic">
+                          기록된 포인트 내역이 없습니다.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </section>
         )}
       </div>

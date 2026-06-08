@@ -41,8 +41,13 @@ export async function POST(
       await db.prepare('DELETE FROM post_likes WHERE id = ?').bind(existingLike.id).run();
       await db.prepare('UPDATE posts SET likes = likes - 1 WHERE id = ?').bind(id).run();
       
-      // Bonus: Decrease author's score (-5 points)
-      await db.prepare('UPDATE users SET score = score - 5 WHERE id = ?').bind(post.authorId).run();
+      // Bonus: Decrease author's score (-5 score, -20 VP)
+      const statements = [
+        db.prepare('UPDATE users SET score = score - 5, points = points - 20 WHERE id = ?').bind(post.authorId),
+        db.prepare("INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, -20, 'post_unlike', ?)")
+          .bind(post.authorId, id)
+      ];
+      await db.batch(statements);
 
       return NextResponse.json({ success: true, liked: false, message: '추천을 취소했습니다.' });
     } else {
@@ -52,8 +57,13 @@ export async function POST(
         .run();
       await db.prepare('UPDATE posts SET likes = likes + 1 WHERE id = ?').bind(id).run();
 
-      // Bonus: Increase author's score (+10 points for receiving a like)
-      await db.prepare('UPDATE users SET score = score + 10 WHERE id = ?').bind(post.authorId).run();
+      // Bonus: Increase author's score (+10 score, +20 VP)
+      const statements = [
+        db.prepare('UPDATE users SET score = score + 10, points = points + 20 WHERE id = ?').bind(post.authorId),
+        db.prepare("INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, 20, 'post_like', ?)")
+          .bind(post.authorId, id)
+      ];
+      await db.batch(statements);
 
       return NextResponse.json({ success: true, liked: true, message: '게시글을 추천했습니다.' });
     }

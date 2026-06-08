@@ -31,21 +31,26 @@ export async function POST(
       .bind(postId, sessionData.id, content)
       .run();
 
-    // 2. 활동 포인트 적립 (+5 포인트)
-    const userData: any = await db.prepare('SELECT score FROM users WHERE id = ?').bind(sessionData.id).first();
+    // 2. 활동 포인트 적립 (+5 스코어, +10 VP)
+    const userData: any = await db.prepare('SELECT score, points FROM users WHERE id = ?').bind(sessionData.id).first();
     const newScore = (userData?.score || 0) + 5;
+    const newPoints = (userData?.points || 0) + 10;
     
     const { calculateLevel } = await import('@/lib/gamification');
     const newLevel = calculateLevel(newScore);
 
-    await db
-      .prepare('UPDATE users SET score = ?, level = ? WHERE id = ?')
-      .bind(newScore, newLevel, sessionData.id)
-      .run();
+    const statements = [
+      db.prepare('UPDATE users SET score = ?, level = ?, points = ? WHERE id = ?')
+        .bind(newScore, newLevel, newPoints, sessionData.id),
+      db.prepare("INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, 10, 'comment_write', ?)")
+        .bind(sessionData.id, postId)
+    ];
+
+    await db.batch(statements);
 
     return NextResponse.json({ 
       success: true, 
-      message: '댓글이 등록되었습니다. (+5 포인트)',
+      message: '댓글이 등록되었습니다. (+5 활동점수, +10 VP)',
       commentId: result.meta.last_row_id 
     }, { status: 201 });
 
