@@ -137,7 +137,7 @@ export default function DummyGeneratorView() {
 
   // Step 2 & 3 Trigger: Process AI and Scale Locally
   const handleGenerateAndScale = async () => {
-    if (!apiKey) {
+    if (!apiKey && aiProvider !== "local") {
       alert("AI 가공을 위해 API Key를 입력해주세요.");
       return;
     }
@@ -378,7 +378,7 @@ export default function DummyGeneratorView() {
                         aiProvider === "gemini" ? "border-red-500 bg-red-500/10 text-red-400" : "border-white/10 hover:bg-white/5"
                       )}
                     >
-                      Gemini API (추천)
+                      Gemini API
                     </button>
                     <button 
                       onClick={() => setAiProvider("openai")}
@@ -389,51 +389,71 @@ export default function DummyGeneratorView() {
                     >
                       OpenAI API
                     </button>
+                    <button 
+                      onClick={() => setAiProvider("local")}
+                      className={cn(
+                        "flex-1 py-3 rounded-xl border font-bold text-sm transition-all",
+                        aiProvider === "local" ? "border-red-500 bg-red-500/10 text-red-400" : "border-white/10 hover:bg-white/5"
+                      )}
+                    >
+                      로컬 변형 (무료/API 불필요)
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block flex items-center gap-1">
-                      <Key className="w-3.5 h-3.5 text-yellow-400" /> {aiProvider.toUpperCase()} API Key 입력
-                    </label>
-                    <input 
-                      type="password" 
-                      placeholder="sk-..."
-                      value={apiKey}
-                      onChange={(e) => handleApiKeyChange(e.target.value)}
-                      className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
-                    />
-                  </div>
+                  {aiProvider !== "local" ? (
+                    <>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block flex items-center gap-1">
+                          <Key className="w-3.5 h-3.5 text-yellow-400" /> {aiProvider.toUpperCase()} API Key 입력
+                        </label>
+                        <input 
+                          type="password" 
+                          placeholder="sk-..."
+                          value={apiKey}
+                          onChange={(e) => handleApiKeyChange(e.target.value)}
+                          className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
+                        />
+                      </div>
 
-                  {aiProvider === "gemini" ? (
-                    <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block text-left">
-                        Gemini 모델 선택
-                      </label>
-                      <select 
-                        value={geminiModel}
-                        onChange={(e) => handleGeminiModelChange(e.target.value)}
-                        className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
-                      >
-                        <option value="gemini-2.5-flash">gemini-2.5-flash (최신/고속)</option>
-                        <option value="gemini-2.0-flash">gemini-2.0-flash (고속/안정)</option>
-                        <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (경량화/고속)</option>
-                        <option value="gemini-1.5-flash">gemini-1.5-flash (호환성 높은 기본 모델)</option>
-                        <option value="gemini-1.5-pro">gemini-1.5-pro (고성능 복잡태스크)</option>
-                      </select>
-                    </div>
+                      {aiProvider === "gemini" ? (
+                        <div>
+                          <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block text-left">
+                            Gemini 모델 선택
+                          </label>
+                          <select 
+                            value={geminiModel}
+                            onChange={(e) => handleGeminiModelChange(e.target.value)}
+                            className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                          >
+                            <option value="gemini-2.5-flash">gemini-2.5-flash (최신/고속)</option>
+                            <option value="gemini-2.0-flash">gemini-2.0-flash (고속/안정)</option>
+                            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (경량화/고속)</option>
+                            <option value="gemini-1.5-flash">gemini-1.5-flash (호환성 높은 기본 모델)</option>
+                            <option value="gemini-1.5-pro">gemini-1.5-pro (고성능 복잡태스크)</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block text-left">
+                            OpenAI 모델 선택
+                          </label>
+                          <select 
+                            value={openaiModel}
+                            onChange={(e) => handleOpenaiModelChange(e.target.value)}
+                            className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                          >
+                            <option value="gpt-4o-mini">gpt-4o-mini (경량/고성능)</option>
+                            <option value="gpt-4o">gpt-4o (고성능 플래그십)</option>
+                          </select>
+                        </div>
+                      )}
+                    </>
                   ) : (
-                    <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block text-left">
-                        OpenAI 모델 선택
-                      </label>
-                      <select 
-                        value={openaiModel}
-                        onChange={(e) => handleOpenaiModelChange(e.target.value)}
-                        className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
-                      >
-                        <option value="gpt-4o-mini">gpt-4o-mini (경량/고성능)</option>
-                        <option value="gpt-4o">gpt-4o (고성능 플래그십)</option>
-                      </select>
+                    <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-xs text-left leading-relaxed">
+                      <p className="font-bold mb-1 flex items-center gap-1.5">
+                        <Check className="w-4 h-4 text-emerald-500" /> 로컬 변환 엔진 활성화됨 (비용 0원, API 키 불필요)
+                      </p>
+                      크롤링된 본문 데이터의 어순, 단어 동의어 교체(Synonyms) 및 종결어미 변형 규칙을 자체 로컬엔진에서 빠르게 가공합니다. 외부 서버와의 API 호출이 없어 오류가 발생하지 않으며, 크레딧 비용 없이 고속으로 대량의 글을 실시간 팽창시킵니다.
                     </div>
                   )}
                 </div>
