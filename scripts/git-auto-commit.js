@@ -15,13 +15,8 @@ if (!fs.existsSync(scratchDir)) {
 
 function log(message) {
   const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] ${message}\n`;
-  console.log(logMessage.trim());
-  try {
-    fs.appendFileSync(LOG_FILE, logMessage);
-  } catch (err) {
-    console.error('Failed to write to log file:', err);
-  }
+  const logMessage = `[${timestamp}] ${message}`;
+  console.log(logMessage);
 }
 
 log(`Starting Git Auto-Commit Watcher in: ${WATCH_DIR}`);
