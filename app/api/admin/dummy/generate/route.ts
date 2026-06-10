@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '크롤링된 데이터가 필요합니다.' }, { status: 400 });
     }
 
-    if (!apiKey) {
+    if (!apiKey && aiProvider !== 'local') {
       return NextResponse.json({ success: false, error: 'AI API Key를 입력해주세요.' }, { status: 400 });
     }
 
@@ -324,21 +324,42 @@ export async function POST(request: NextRequest) {
 
     let baseTemplates: any[] = [];
     try {
-      const userPrompt1 = `다음 크롤링한 원본 데이터를 가공 조건에 맞추어 15개의 독립된 게시글 세트(감성적이고 주관적인 리액션, 가벼운 일상 수다 위주)로 만들어 주세요.
+      if (aiProvider === 'local') {
+        baseTemplates = crawledData.map((item: any) => {
+          let spunTitle = spinTitle(item.title || '');
+          let spunContent = spinContent(item.content || item.body || '');
+          
+          const baseComments = (item.comments || []).map((c: any) => {
+            return typeof c === 'string' ? c : (c.content || c.body || '좋은 정보 감사합니다!');
+          });
+          
+          if (baseComments.length === 0) {
+            baseComments.push('ㄹㅇ 공감합니다 ㅋㅋㅋ', '좋은 정보 감사합니다!', '이거 진짜인듯', '대박이네요');
+          }
+          
+          return {
+            title: spunTitle,
+            content: spunContent,
+            baseComments: baseComments
+          };
+        });
+      } else {
+        const userPrompt1 = `다음 크롤링한 원본 데이터를 가공 조건에 맞추어 15개의 독립된 게시글 세트(감성적이고 주관적인 리액션, 가벼운 일상 수다 위주)로 만들어 주세요.
 원본 데이터:
 ${JSON.stringify(crawledData, null, 2)}`;
 
-      const userPrompt2 = `다음 크롤링한 원본 데이터를 가공 조건에 맞추어 15개의 독립된 게시글 세트(이성적이고 분석적인 정보 공유, 진지한 토론/분석 위주)로 만들어 주세요.
+        const userPrompt2 = `다음 크롤링한 원본 데이터를 가공 조건에 맞추어 15개의 독립된 게시글 세트(이성적이고 분석적인 정보 공유, 진지한 토론/분석 위주)로 만들어 주세요.
 원본 데이터:
 ${JSON.stringify(crawledData, null, 2)}`;
 
-      const [batch1, batch2] = await Promise.all([
-        callAI(userPrompt1),
-        callAI(userPrompt2)
-      ]);
+        const [batch1, batch2] = await Promise.all([
+          callAI(userPrompt1),
+          callAI(userPrompt2)
+        ]);
 
-      if (Array.isArray(batch1)) baseTemplates.push(...batch1);
-      if (Array.isArray(batch2)) baseTemplates.push(...batch2);
+        if (Array.isArray(batch1)) baseTemplates.push(...batch1);
+        if (Array.isArray(batch2)) baseTemplates.push(...batch2);
+      }
     } catch (e: any) {
       console.error("AI Batch template generation failed:", e);
       throw new Error(`AI 템플릿 생성 중 실패하였습니다. (${e.message})`);
