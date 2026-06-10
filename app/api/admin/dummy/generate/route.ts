@@ -398,7 +398,7 @@ ${JSON.stringify(crawledData, null, 2)}`;
       const likes = Math.floor(numComments * (Math.random() * 3 + 1.5)) + Math.floor(Math.random() * 5);
       const views = Math.floor(likes * (Math.random() * 15 + 10)) + Math.floor(Math.random() * 40) + 10;
       
-      // Date spread logic (spread posts back over the last N days or cluster around an event)
+      // Date spread logic (spread posts back over the last N days, cluster around an event, or custom range)
       let postDate: Date;
       if (localParams.dateMode === 'event' && localParams.eventDate) {
         const baseDate = new Date(localParams.eventDate);
@@ -414,6 +414,52 @@ ${JSON.stringify(crawledData, null, 2)}`;
           const offsetMs = (Math.random() * 72 - 24) * 60 * 60 * 1000;
           postDate = new Date(baseDate.getTime() + offsetMs);
         }
+      } else if (localParams.dateMode === 'range') {
+        const startTimestamp = new Date(localParams.startDate || '2026-05-01').getTime();
+        const endTimestamp = new Date(localParams.endDate || '2026-07-08').getTime();
+        const randomTimestamp = startTimestamp + Math.random() * (endTimestamp - startTimestamp);
+        const dateObj = new Date(randomTimestamp);
+
+        // Time distribution slots
+        const dist = localParams.timeDistribution || { commute: 30, daytime: 20, evening: 40, night: 10 };
+        const totalWeight = (Number(dist.commute) || 0) + (Number(dist.daytime) || 0) + (Number(dist.evening) || 0) + (Number(dist.night) || 0);
+        
+        const r = Math.random() * (totalWeight || 100);
+        let selectedSlot = 'evening';
+        let acc = 0;
+        
+        if (r < (acc += (Number(dist.commute) || 0))) {
+          selectedSlot = 'commute';
+        } else if (r < (acc += (Number(dist.daytime) || 0))) {
+          selectedSlot = 'daytime';
+        } else if (r < (acc += (Number(dist.evening) || 0))) {
+          selectedSlot = 'evening';
+        } else {
+          selectedSlot = 'night';
+        }
+
+        let hour = 19;
+        if (selectedSlot === 'commute') {
+          // 07:00 ~ 09:00
+          hour = Math.random() < 0.5 ? 7 : 8;
+        } else if (selectedSlot === 'daytime') {
+          // 09:00 ~ 18:00
+          const hours = [9, 10, 11, 12, 13, 14, 15, 16, 17];
+          hour = hours[Math.floor(Math.random() * hours.length)];
+        } else if (selectedSlot === 'evening') {
+          // 18:00 ~ 22:00
+          const hours = [18, 19, 20, 21];
+          hour = hours[Math.floor(Math.random() * hours.length)];
+        } else {
+          // 22:00 ~ 07:00
+          const hours = [22, 23, 0, 1, 2, 3, 4, 5, 6];
+          hour = hours[Math.floor(Math.random() * hours.length)];
+        }
+
+        dateObj.setHours(hour);
+        dateObj.setMinutes(Math.floor(Math.random() * 60));
+        dateObj.setSeconds(Math.floor(Math.random() * 60));
+        postDate = dateObj;
       } else {
         const daysOffset = Math.floor(Math.random() * 30); // 0 to 30 days ago
         const hoursOffset = Math.floor(Math.random() * 24);
