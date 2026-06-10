@@ -8,39 +8,38 @@ export async function GET(request: NextRequest) {
     const authSession = cookieStore.get('auth_session');
 
     if (!authSession?.value) {
-      return NextResponse.json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: '인증 세션이 만료되었습니다. 다시 로그인해주세요.' },
+        { status: 401 }
+      );
     }
 
     const sessionData = JSON.parse(authSession.value);
-    const userId = sessionData.id;
 
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
     const user: any = await db
-      .prepare('SELECT id, userId, nickname, email, referralCode, avatar, score, level, status, points, attendanceCount, nicknameColor, lastRechargeDate, createdAt FROM users WHERE id = ?')
-      .bind(userId)
+      .prepare('SELECT id, userId, nickname, email, avatar, score, level, points, status, attendanceCount, createdAt FROM users WHERE id = ?')
+      .bind(sessionData.id)
       .first();
 
     if (!user) {
-      return NextResponse.json({ success: false, error: '사용자를 찾을 수 없습니다.' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: '사용자를 찾을 수 없습니다.' },
+        { status: 404 }
+      );
     }
-
-    // Fetch user inventory
-    const { results: inventory } = await db
-      .prepare('SELECT itemType, quantity FROM user_inventory WHERE userId = ?')
-      .bind(userId)
-      .all();
 
     return NextResponse.json({
       success: true,
-      profile: {
-        ...user,
-        inventory: inventory || []
-      }
+      profile: user
     });
   } catch (error: any) {
-    console.error('Fetch profile error:', error);
-    return NextResponse.json({ success: false, error: '프로필을 불러오는 중 오류가 발생했습니다.' }, { status: 500 });
+    console.error('Fetch user profile error:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }

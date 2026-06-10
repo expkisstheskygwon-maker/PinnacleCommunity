@@ -45,12 +45,6 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
-    id: "virtual-betting", href: "/virtual-betting", label: "가상 배팅", labelEn: "Virtual Bet", icon: Trophy
-  },
-  {
-    id: "point-shop", href: "/point-shop", label: "포인트 상점", labelEn: "Point Shop", icon: Zap
-  },
-  {
     id: "analysis", href: "/analysis", label: "분석/칼럼", labelEn: "Analysis", icon: BarChart3,
     children: [
       { href: "/analysis?cat=beginner", label: "초보 가이드", labelEn: "Beginner Guide" },
@@ -68,11 +62,9 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "concepts", href: "/concepts", label: "개념 탑재", labelEn: "Concepts", icon: Lightbulb,
     children: [
-      { href: "/concepts?cat=experiments", label: "기상천외 베팅 실험실", labelEn: "Betting Experiments" },
-      { href: "/concepts?cat=fails", label: "멘붕 & 유쾌한 실패담", labelEn: "Epic Fails" },
-      { href: "/concepts?cat=gamification", label: "룰렛 & 리더보드", labelEn: "Roulette & Leaderboard" },
-      { href: "/concepts?cat=flex", label: "슬롯/미니게임 자랑", labelEn: "Slot Flex" },
-      { href: "/concepts?cat=sentiment", label: "실시간 찐팬 응원방", labelEn: "Fan Sentiment" },
+      { href: "/concepts?cat=review", label: "베팅 복기", labelEn: "Betting Review" },
+      { href: "/concepts?cat=bankroll", label: "심리/자금관리", labelEn: "Mindset & Bankroll" },
+      { href: "/concepts?cat=strategy", label: "기상천외 배팅 실험실", labelEn: "Betting Lab" },
     ]
   },
   {
@@ -81,6 +73,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
       { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
       { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
+      { href: "/community/leaderboard", label: "수익률 랭킹", labelEn: "ROI Leaderboard" },
       { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
     ]
   },
@@ -125,7 +118,7 @@ export default function Header({ user }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
   const [dynamicCategories, setDynamicCategories] = useState<Record<string, SubItem[]>>({});
-  const [userStats, setUserStats] = useState<{ level: number, title: string, points: number, nicknameColor?: string | null } | null>(null);
+  const [userStats, setUserStats] = useState<{ level: number, title: string } | null>(null);
   const [topBarMsg, setTopBarMsg] = useState({ ko: "", en: "" });
 
   useEffect(() => {
@@ -139,35 +132,18 @@ export default function Header({ user }: HeaderProps) {
     // Fetch dynamic categories for all types
     const fetchAllCats = async () => {
       try {
-        const types = ["spotlight", "analysis", "qna", "notices", "guide", "community", "concepts"];
+        const types = ["spotlight", "analysis", "qna", "notices", "guide"];
         const catsMap: Record<string, SubItem[]> = {};
         
         await Promise.all(types.map(async (type) => {
           const res = await fetch(`/api/admin/categories?type=${type}`);
           const data = await res.json();
           if (data.success && data.categories.length > 0) {
-            catsMap[type] = data.categories.map((c: any) => {
-              let label = c.name;
-              if (type === "community") {
-                if (c.name === "free") label = "자유게시판";
-                else if (c.name === "match") label = "경기 토론";
-                else if (c.name === "picks") label = "픽 공유";
-                else if (c.name === "events") label = "이벤트/랭킹";
-              }
-              if (type === "concepts") {
-                if (c.name === "experiments") label = "기상천외 베팅 실험실";
-                else if (c.name === "fails") label = "멘붕 & 유쾌한 실패담";
-                else if (c.name === "gamification") label = "룰렛 & 리더보드";
-                else if (c.name === "flex") label = "슬롯/미니게임 자랑";
-                else if (c.name === "sentiment") label = "실시간 찐팬 응원방";
-              }
-              const hrefPrefix = type === "community" ? "community" : type;
-              return {
-                href: `/${hrefPrefix}?cat=${encodeURIComponent(c.name)}`,
-                label: label,
-                labelEn: label
-              };
-            });
+            catsMap[type] = data.categories.map((c: any) => ({
+              href: `/${type}?cat=${encodeURIComponent(c.name)}`,
+              label: c.name,
+              labelEn: c.name
+            }));
           }
         }));
         
@@ -184,12 +160,7 @@ export default function Header({ user }: HeaderProps) {
         const data = await res.json();
         if (data.success && data.profile) {
           const lvInfo = getLevelInfo(data.profile.score || 0);
-          setUserStats({ 
-            level: lvInfo.level, 
-            title: lvInfo.title, 
-            points: data.profile.points || 0,
-            nicknameColor: data.profile.nicknameColor || null
-          });
+          setUserStats({ level: lvInfo.level, title: lvInfo.title });
         }
       } catch (err) {
         console.error("Failed to fetch user stats", err);
@@ -222,22 +193,14 @@ export default function Header({ user }: HeaderProps) {
     const staticChildren = item.children || [];
     
     if (dynamic.length > 0) {
-      if (item.id === "community" || item.id === "concepts") {
-        // For community and concepts, we replace categories completely with DB dynamic categories
-        return { ...item, children: dynamic };
-      } else {
-        const merged = [...staticChildren];
-        dynamic.forEach(d => {
-          if (!merged.find(s => s.label === d.label)) {
-            merged.push(d);
-          }
-        });
-        return { ...item, children: merged };
-      }
-    }
-    // If dynamic is empty, we filter out non-category items just in case
-    if (item.id === "community" || item.id === "concepts") {
-      return { ...item, children: staticChildren.filter(s => s.href.includes('?cat=')) };
+      // Merge: static first, then dynamic (excluding duplicates by label)
+      const merged = [...staticChildren];
+      dynamic.forEach(d => {
+        if (!merged.find(s => s.label === d.label)) {
+          merged.push(d);
+        }
+      });
+      return { ...item, children: merged };
     }
     return item;
   });
@@ -372,12 +335,6 @@ export default function Header({ user }: HeaderProps) {
 
               {user ? (
                 <div className="flex items-center gap-3">
-                  {/* Points Display */}
-                  <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/[0.08] text-xs font-bold text-[hsl(var(--gold))] shadow-inner">
-                    <Zap className="w-3.5 h-3.5 text-[hsl(var(--gold))] fill-current animate-pulse" />
-                    <span>{userStats?.points?.toLocaleString() || 0} VP</span>
-                  </div>
-
                   <Link 
                     href="/mypage" 
                     className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition-all group"
@@ -386,7 +343,7 @@ export default function Header({ user }: HeaderProps) {
                       <User className="w-4 h-4 text-primary" />
                     </div>
                     <div className="hidden md:flex flex-col items-start leading-tight">
-                      <span className={cn("text-[11px] font-black group-hover:text-primary transition-colors", userStats?.nicknameColor || "text-foreground")}>{user.nickname}</span>
+                      <span className="text-[11px] font-black group-hover:text-primary transition-colors">{user.nickname}</span>
                       <span className="text-[9px] font-bold text-muted-foreground">Lv.{userStats?.level || 1} {userStats?.title || '루키'}</span>
                     </div>
                   </Link>

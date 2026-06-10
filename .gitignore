@@ -3,3 +3,5 @@ node_modules
 .open-next
 .vercel
 .dev.vars
+scratch/
+.DS_Store
