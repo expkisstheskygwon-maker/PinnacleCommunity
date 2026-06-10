@@ -23,13 +23,19 @@ export default function DummyGeneratorView() {
   const [aiProvider, setAiProvider] = useState("gemini"); // gemini, openai
   const [geminiKey, setGeminiKey] = useState("");
   const [openaiKey, setOpenaiKey] = useState("");
+  const [geminiModel, setGeminiModel] = useState("gemini-2.5-flash");
+  const [openaiModel, setOpenaiModel] = useState("gpt-4o-mini");
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const savedGemini = localStorage.getItem("dummy_generator_gemini_key") || "";
       const savedOpenai = localStorage.getItem("dummy_generator_openai_key") || "";
+      const savedGeminiModel = localStorage.getItem("dummy_generator_gemini_model") || "gemini-2.5-flash";
+      const savedOpenaiModel = localStorage.getItem("dummy_generator_openai_model") || "gpt-4o-mini";
       if (savedGemini) setGeminiKey(savedGemini);
       if (savedOpenai) setOpenaiKey(savedOpenai);
+      if (savedGeminiModel) setGeminiModel(savedGeminiModel);
+      if (savedOpenaiModel) setOpenaiModel(savedOpenaiModel);
     }
   }, []);
 
@@ -89,6 +95,16 @@ export default function DummyGeneratorView() {
     }
   };
 
+  const handleGeminiModelChange = (val: string) => {
+    setGeminiModel(val);
+    localStorage.setItem("dummy_generator_gemini_model", val);
+  };
+
+  const handleOpenaiModelChange = (val: string) => {
+    setOpenaiModel(val);
+    localStorage.setItem("dummy_generator_openai_model", val);
+  };
+
   // Step 1 Trigger: Run Scraper
   const handleStartCrawl = async () => {
     if (!crawlUrl) {
@@ -135,6 +151,7 @@ export default function DummyGeneratorView() {
           crawledData,
           aiProvider,
           apiKey,
+          model: aiProvider === "gemini" ? geminiModel : openaiModel,
           aiParams,
           localParams
         })
@@ -386,6 +403,39 @@ export default function DummyGeneratorView() {
                       className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50"
                     />
                   </div>
+
+                  {aiProvider === "gemini" ? (
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block text-left">
+                        Gemini 모델 선택
+                      </label>
+                      <select 
+                        value={geminiModel}
+                        onChange={(e) => handleGeminiModelChange(e.target.value)}
+                        className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                      >
+                        <option value="gemini-2.5-flash">gemini-2.5-flash (최신/고속)</option>
+                        <option value="gemini-2.0-flash">gemini-2.0-flash (고속/안정)</option>
+                        <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (경량화/고속)</option>
+                        <option value="gemini-1.5-flash">gemini-1.5-flash (호환성 높은 기본 모델)</option>
+                        <option value="gemini-1.5-pro">gemini-1.5-pro (고성능 복잡태스크)</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block text-left">
+                        OpenAI 모델 선택
+                      </label>
+                      <select 
+                        value={openaiModel}
+                        onChange={(e) => handleOpenaiModelChange(e.target.value)}
+                        className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                      >
+                        <option value="gpt-4o-mini">gpt-4o-mini (경량/고성능)</option>
+                        <option value="gpt-4o">gpt-4o (고성능 플래그십)</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

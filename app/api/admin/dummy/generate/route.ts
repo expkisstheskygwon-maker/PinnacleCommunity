@@ -199,7 +199,8 @@ export async function POST(request: NextRequest) {
       aiProvider = 'gemini',
       apiKey,
       aiParams = {},
-      localParams = {}
+      localParams = {},
+      model: bodyModel
     } = await request.json();
 
     if (!crawledData || !Array.isArray(crawledData) || crawledData.length === 0) {
@@ -211,6 +212,7 @@ export async function POST(request: NextRequest) {
     }
 
     const totalCount = localParams.totalCount || 100;
+    const selectedModel = bodyModel || aiParams.model;
 
     const toneDescription = aiParams.tone === 'random' 
       ? '각 세트별로 서로 다른 톤앤매너(예: 1번 세트는 매우 신난 어조, 2번 세트는 화가 난 어조, 3번 세트는 TMI 수다, 4번 세트는 짧고 무성의한 코멘트, 5번 세트는 진지한 정보글 등)를 다채롭게 골고루 지정하여 작성'
@@ -241,34 +243,55 @@ export async function POST(request: NextRequest) {
 
     const callAI = async (userPrompt: string) => {
       if (aiProvider === 'gemini') {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  role: 'user',
-                  parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
-                }
-              ],
-              generationConfig: {
-                responseMimeType: 'application/json'
+        const requestedModel = selectedModel || 'gemini-2.0-flash';
+        const allGeminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+        const modelsToTry = [requestedModel, ...allGeminiModels.filter(m => m !== requestedModel)];
+
+        let lastError: any = null;
+
+        for (const model of modelsToTry) {
+          try {
+            console.log(`Attempting Gemini generation with model: ${model}`);
+            const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      role: 'user',
+                      parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
+                    }
+                  ],
+                  generationConfig: {
+                    responseMimeType: 'application/json'
+                  }
+                })
               }
-            })
+            );
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const resJson = await response.json();
+            const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            if (!text) {
+              throw new Error('Empty response from model');
+            }
+            return JSON.parse(text.trim());
+          } catch (err: any) {
+            console.error(`Gemini generation failed with model ${model}:`, err.message);
+            lastError = err;
+            // Continue to the next fallback model
           }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Gemini API 호출 실패: ${errorText}`);
         }
-
-        const resJson = await response.json();
-        const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        return JSON.parse(text.trim());
+        
+        throw new Error(`모든 제미나이 모델 호출에 실패했습니다. (마지막 에러: ${lastError?.message || '알 수 없는 오류'})`);
       } else if (aiProvider === 'openai') {
+        const requestedModel = selectedModel || 'gpt-4o-mini';
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -276,7 +299,7 @@ export async function POST(request: NextRequest) {
             'Authorization': `Bearer ${apiKey}`
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: requestedModel,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
