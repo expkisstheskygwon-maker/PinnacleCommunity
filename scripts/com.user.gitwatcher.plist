@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.gitwatcher</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/user/Library/Application Support/Antigravity/bin/agy-node</string>
+        <string>/Users/user/Library/CloudStorage/GoogleDrive-ypgwon@gmail.com/다른 컴퓨터/AORUS/NoSR_G/Sec Works/AsianConnect/Website/PinnacleCommunity/scripts/git-auto-commit.js</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>WorkingDirectory</key>
+    <string>/Users/user/Library/CloudStorage/GoogleDrive-ypgwon@gmail.com/다른 컴퓨터/AORUS/NoSR_G/Sec Works/AsianConnect/Website/PinnacleCommunity</string>
+    <key>StandardOutPath</key>
+    <string>/Users/user/Library/CloudStorage/GoogleDrive-ypgwon@gmail.com/다른 컴퓨터/AORUS/NoSR_G/Sec Works/AsianConnect/Website/PinnacleCommunity/scratch/git-watcher.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/user/Library/CloudStorage/GoogleDrive-ypgwon@gmail.com/다른 컴퓨터/AORUS/NoSR_G/Sec Works/AsianConnect/Website/PinnacleCommunity/scratch/git-watcher-error.log</string>
+</dict>
+</plist>
