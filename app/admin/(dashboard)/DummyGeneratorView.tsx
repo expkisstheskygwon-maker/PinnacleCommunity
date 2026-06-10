@@ -50,7 +50,22 @@ export default function DummyGeneratorView() {
   });
 
   // Step 3: Local Engine Settings
-  const [localParams, setLocalParams] = useState(() => {
+  const [localParams, setLocalParams] = useState<{
+    totalCount: number;
+    dateMode: string;
+    eventDate: string;
+    eventDuration: number;
+    startDate?: string;
+    endDate?: string;
+    timeDistribution?: {
+      commute: number;
+      daytime: number;
+      evening: number;
+      night: number;
+    };
+  }>(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     if (typeof window !== "undefined") {
       const tzoffset = (new Date()).getTimezoneOffset() * 60000;
       const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 16);
@@ -59,6 +74,9 @@ export default function DummyGeneratorView() {
         dateMode: "random",
         eventDate: localISOTime,
         eventDuration: 6,
+        startDate: defaultStart,
+        endDate: todayStr,
+        timeDistribution: { commute: 30, daytime: 20, evening: 40, night: 10 }
       };
     }
     return {
@@ -66,6 +84,9 @@ export default function DummyGeneratorView() {
       dateMode: "random",
       eventDate: "",
       eventDuration: 6,
+      startDate: defaultStart,
+      endDate: todayStr,
+      timeDistribution: { commute: 30, daytime: 20, evening: 40, night: 10 }
     };
   });
   const [generatedPosts, setGeneratedPosts] = useState<any[]>([]);
@@ -554,6 +575,7 @@ export default function DummyGeneratorView() {
                       >
                         <option value="random">최근 30일 간 균일 분포 (기본값)</option>
                         <option value="event">특정 사건(이슈) 시점에 집중 분포</option>
+                        <option value="range">특정 기간 지정 및 시간대 분포</option>
                       </select>
                     </div>
 
@@ -581,6 +603,108 @@ export default function DummyGeneratorView() {
                         </div>
                       </div>
                     )}
+
+                    {localParams.dateMode === "range" && (
+                      <div className="space-y-4 animate-fade-in">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">시작일 (Start Date)</label>
+                            <input 
+                              type="date" 
+                              value={localParams.startDate || ""}
+                              onChange={(e) => setLocalParams({ ...localParams, startDate: e.target.value })}
+                              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">종료일 (End Date)</label>
+                            <input 
+                              type="date" 
+                              value={localParams.endDate || ""}
+                              onChange={(e) => setLocalParams({ ...localParams, endDate: e.target.value })}
+                              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3 text-left">
+                          <label className="text-xs font-bold text-red-400 block">시간대별 글 생성 분포 가중치 (%)</label>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <label className="text-[10px] font-bold text-muted-foreground block mb-1">출근 시간 (07~09시)</label>
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={localParams.timeDistribution?.commute ?? 30}
+                                onChange={(e) => setLocalParams({ 
+                                  ...localParams, 
+                                  timeDistribution: { 
+                                    ...(localParams.timeDistribution || { commute: 30, daytime: 20, evening: 40, night: 10 }), 
+                                    commute: parseInt(e.target.value) || 0 
+                                  } 
+                                })}
+                                className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-xs focus:outline-none text-center"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-muted-foreground block mb-1">일과 시간 (09~18시)</label>
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={localParams.timeDistribution?.daytime ?? 20}
+                                onChange={(e) => setLocalParams({ 
+                                  ...localParams, 
+                                  timeDistribution: { 
+                                    ...(localParams.timeDistribution || { commute: 30, daytime: 20, evening: 40, night: 10 }), 
+                                    daytime: parseInt(e.target.value) || 0 
+                                  } 
+                                })}
+                                className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-xs focus:outline-none text-center"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-muted-foreground block mb-1">퇴근/저녁 (18~22시)</label>
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={localParams.timeDistribution?.evening ?? 40}
+                                onChange={(e) => setLocalParams({ 
+                                  ...localParams, 
+                                  timeDistribution: { 
+                                    ...(localParams.timeDistribution || { commute: 30, daytime: 20, evening: 40, night: 10 }), 
+                                    evening: parseInt(e.target.value) || 0 
+                                  } 
+                                })}
+                                className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-xs focus:outline-none text-center"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-muted-foreground block mb-1">심야/새벽 (22~07시)</label>
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={localParams.timeDistribution?.night ?? 10}
+                                onChange={(e) => setLocalParams({ 
+                                  ...localParams, 
+                                  timeDistribution: { 
+                                    ...(localParams.timeDistribution || { commute: 30, daytime: 20, evening: 40, night: 10 }), 
+                                    night: parseInt(e.target.value) || 0 
+                                  } 
+                                })}
+                                className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-xs focus:outline-none text-center"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-[9px] text-muted-foreground leading-normal mt-1">
+                            * 시간대별 입력 값의 합이 100%가 되도록 맞춰주세요. 합산 값이 100이 아닐 경우 백엔드에서 비율에 맞게 자동 정규화되어 처리됩니다.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-4 text-xs">
@@ -592,6 +716,8 @@ export default function DummyGeneratorView() {
                         <strong>타임라인 분포</strong>:
                         {localParams.dateMode === 'event' 
                           ? '지정한 기준 사건 발생 직후 지정한 시간(지속 시간) 동안 게시물의 85%가 집중 생성되며, 댓글 반응 속도가 훨씬 빠르게 밀집됩니다.'
+                          : localParams.dateMode === 'range'
+                          ? '지정한 시작일과 종료일 기간 사이에 임의의 날짜로 생성되며, 지정한 하루 중 시간대 가중치(출근, 일과, 저녁, 심야)에 따라 생성 시간대가 분포됩니다.'
                           : '지난 30일 간 가상의 트렌디한 사건 날짜 전후로 고르게 분산 매핑됩니다.'
                         }
                       </li>
