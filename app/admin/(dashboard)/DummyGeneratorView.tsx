@@ -174,7 +174,8 @@ export default function DummyGeneratorView() {
           apiKey,
           model: aiProvider === "gemini" ? geminiModel : openaiModel,
           aiParams,
-          localParams
+          localParams,
+          category: targetCategory
         })
       });
       const data = await res.json();
@@ -387,6 +388,31 @@ export default function DummyGeneratorView() {
                   <h3 className="text-base font-bold text-red-400">2. AI를 이용한 게시글 맥락 가공</h3>
                   <p className="text-xs text-muted-foreground">
                     수집된 원본을 가공 조건에 맞춰 AI가 새롭게 작성할 페르소나와 톤앤매너 규칙을 정의합니다.
+                  </p>
+                </div>
+
+                {/* Target Category Selector */}
+                <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-2 text-left">
+                  <label className="text-xs font-bold text-muted-foreground uppercase block">
+                    대상 게시판 카테고리 (Target Board Category)
+                  </label>
+                  <select 
+                    value={targetCategory}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
+                  >
+                    <option value="free">자유게시판 (free)</option>
+                    <option value="analysis">분석/칼럼 (analysis)</option>
+                    <option value="guide">가입/입출금 가이드 (guide)</option>
+                    <option value="qna">Q&A (qna)</option>
+                    <option value="notices">공지사항 (notices)</option>
+                    <option value="spotlight">스포트라이트 (spotlight)</option>
+                    <option value="review">베팅 복기 (review)</option>
+                    <option value="bankroll">심리/자금관리 (bankroll)</option>
+                    <option value="strategy">기상천외 배팅 실험실 (strategy)</option>
+                  </select>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    선택한 게시판에 최적화된 프롬프트 지침이 AI에 적용되며, 로컬 엔진의 정교한 텍스트 변환 모듈이 활성화됩니다.
                   </p>
                 </div>
 
@@ -764,19 +790,21 @@ export default function DummyGeneratorView() {
 
                 {/* API Config for target upload */}
                 <div className="p-4 bg-white/5 border border-white/10 rounded-2xl grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <label className="text-xs font-bold text-muted-foreground block mb-1">대상 게시판 카테고리</label>
-                    <select 
-                      value={targetCategory}
-                      onChange={(e) => handleCategoryChange(e.target.value)}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white"
-                    >
-                      <option value="free">자유게시판 (free)</option>
-                      <option value="analysis">분석/칼럼 (analysis)</option>
-                      <option value="guide">가입/입출금 가이드 (guide)</option>
-                      <option value="qna">Q&A (qna)</option>
-                      <option value="notices">공지사항 (notices)</option>
-                    </select>
+                  <div className="flex flex-col justify-center text-left">
+                    <label className="text-xs font-bold text-muted-foreground block mb-1.5">대상 게시판 카테고리</label>
+                    <span className="text-xs font-bold text-red-400 bg-red-500/10 px-3 py-2 rounded-xl border border-red-500/20 text-center w-full">
+                      {
+                        targetCategory === "free" ? "자유게시판 (free)" :
+                        targetCategory === "analysis" ? "분석/칼럼 (analysis)" :
+                        targetCategory === "guide" ? "가입/입출금 가이드 (guide)" :
+                        targetCategory === "qna" ? "Q&A (qna)" :
+                        targetCategory === "notices" ? "공지사항 (notices)" :
+                        targetCategory === "spotlight" ? "스포트라이트 (spotlight)" :
+                        targetCategory === "review" ? "베팅 복기 (review)" :
+                        targetCategory === "bankroll" ? "심리/자금관리 (bankroll)" :
+                        targetCategory === "strategy" ? "기상천외 배팅 실험실 (strategy)" : targetCategory
+                      }
+                    </span>
                   </div>
 
                   <div className="flex flex-col justify-center">
