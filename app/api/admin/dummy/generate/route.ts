@@ -91,8 +91,22 @@ const KOREAN_SYNONYMS = [
   { from: /어제도/g, to: ['어제도', '지난번에도'] }
 ];
 
-function spinTitle(title: string): string {
+function spinTitle(title: string, category: string = 'free'): string {
   if (!title) return '';
+
+  // notices, guide, spotlight -> skip colloquial spinners, keep professional tone
+  if (['notices', 'guide', 'spotlight'].includes(category)) {
+    let spun = title;
+    // Apply safe synonym substitutions only (indices 0 to 8: leagues and sports stars)
+    const safeSynonyms = KOREAN_SYNONYMS.slice(0, 9);
+    for (const item of safeSynonyms) {
+      spun = spun.replace(item.from, () => {
+        return item.to[Math.floor(Math.random() * item.to.length)];
+      });
+    }
+    return spun;
+  }
+
   let spun = title;
 
   // Punctuation variations at the end
@@ -126,8 +140,21 @@ function spinTitle(title: string): string {
   return spun;
 }
 
-function spinContent(htmlContent: string): string {
+function spinContent(htmlContent: string, category: string = 'free'): string {
   if (!htmlContent) return '';
+
+  // notices, guide, spotlight -> skip colloquial spinners, keep professional tone
+  if (['notices', 'guide', 'spotlight'].includes(category)) {
+    let spun = htmlContent;
+    // Apply safe synonym substitutions only
+    const safeSynonyms = KOREAN_SYNONYMS.slice(0, 9);
+    for (const item of safeSynonyms) {
+      spun = spun.replace(item.from, () => {
+        return item.to[Math.floor(Math.random() * item.to.length)];
+      });
+    }
+    return spun;
+  }
   
   let spun = htmlContent;
 
@@ -200,7 +227,8 @@ export async function POST(request: NextRequest) {
       apiKey,
       aiParams = {},
       localParams = {},
-      model: bodyModel
+      model: bodyModel,
+      category = 'free'
     } = await request.json();
 
     if (!crawledData || !Array.isArray(crawledData) || crawledData.length === 0) {
@@ -218,9 +246,44 @@ export async function POST(request: NextRequest) {
       ? '각 세트별로 서로 다른 톤앤매너(예: 1번 세트는 매우 신난 어조, 2번 세트는 화가 난 어조, 3번 세트는 TMI 수다, 4번 세트는 짧고 무성의한 코멘트, 5번 세트는 진지한 정보글 등)를 다채롭게 골고루 지정하여 작성'
       : (aiParams.tone || '일반적인 커뮤니티 글');
 
+    // Category specific instructions & JSON structure changes
+    let categoryPrompt = '';
+    let jsonSchemaPrompt = '';
+    
+    if (category === 'free') {
+      categoryPrompt = '자유게시판용 글로서, 일상적인 대화, 가벼운 스포츠 잡담, 커뮤니티 유저들이 쓰는 친근하고 자연스러운 문투(ㅋㅋㅋ, ㅎㅎ, 짤막한 감탄사 등 적절히 혼용)로 가공하십시오.';
+    } else if (category === 'analysis') {
+      categoryPrompt = '스포츠 경기 분석/칼럼용 글로서, 양 팀의 최근 경기력 분석, 라인업 정보, 주요 배당 변화, 최종 추천 픽 등을 정성스럽고 전문적인 분석 어조로 가공하십시오. 필요시 HTML 표나 리스트를 활용해 가독성 있게 구조화하십시오.';
+    } else if (category === 'guide') {
+      categoryPrompt = '가입 및 입출금 가이드용 글로서, 초보자를 위한 단계별 안내(Step 1, Step 2...), 주의 사항, 규정 등을 매끄럽고 친절한 공식 가이드 어조로 가공하십시오. HTML 태그를 적절히 활용하여 구조를 명확히 하십시오.';
+    } else if (category === 'qna') {
+      categoryPrompt = 'Q&A 게시판용 질문 글로서, 이용 시의 애로사항이나 궁금증(예: 충환전 지연 문의, 배팅 규정 질문, 계정 문제 등)을 일반 유저 관점에서 묻는 형태로 가공하십시오. 특히 "baseComments"에는 질문에 대한 성실하고 유용한 답변이나 해결책을 주는 다른 유저들의 댓글을 포함시켜 주세요.';
+    } else if (category === 'notices') {
+      categoryPrompt = '공지사항용 글로서, 시스템 점검 공지, 정책 변경, 보안 주의보 등 관리자 관점의 공식적이고 격식 있는 어조(하십시오체, 해요체)로 가공하십시오. 사족이나 불필요한 감탄사를 배제하고 명확한 일정이나 규정을 명시하도록 하십시오.';
+    } else if (category === 'spotlight') {
+      categoryPrompt = '스포트라이트용 글로서, 국내외 주요 스포츠 뉴스, 특집 인터뷰, 특별 기획 기사 등의 성격을 띱니다. 기자나 에디터의 시각에서 정중하고 정보력이 뛰어나며 격조 높은 저널리즘 스타일 어조로 작성해 주세요.';
+    } else if (category === 'review' || category === 'strategy') {
+      categoryPrompt = `배팅 복기 및 실험실 게시판용 글로서, 특정 경기 배팅 결과에 대한 소회, 승리 또는 패배 원인 분석, 자금 관리 성찰 등을 가공하십시오.
+반드시 각 세트에 "betLog" 객체를 추가로 포함해야 합니다. "betLog"는 가공할 대상 경기에 매칭되는 실제 배팅 결과 기록이어야 합니다.`;
+      
+      jsonSchemaPrompt = `,
+    "betLog": {
+      "match": "경기명 및 배팅팀 (예: 아스널 vs 첼시 아스널 승)",
+      "odds": 배당률 실수값 (예: 1.85),
+      "stake": 베팅금액 정수값 (예: 50000),
+      "result": "결과 ('win', 'lose', 'void', 'half-win', 'half-lose' 중 하나)"
+    }`;
+    } else if (category === 'bankroll') {
+      categoryPrompt = '심리 및 자금관리용 글로서, 배팅 자금 관리 규칙(마틴 배팅 주의, 켈리 기준법 활용법, 분노 배팅 통제 등)에 대한 팁, 충고, 혹은 본인의 경험담을 이성적이고 차분한 어조로 가공하십시오.';
+    }
+
     // 1. Build prompt for AI to rewrite the raw scraped content
     const systemPrompt = `당신은 커뮤니티 데이터 분석 및 게시글 생성 전문가입니다.
 제공된 크롤링 데이터를 기반으로, 지정된 가공 조건에 맞춰 원본과 맥락을 같이 하되, 완전히 새로 쓰여진 고유한 게시글 및 댓글 템플릿(최소 10개 세트)을 한국어 JSON 배열 형식으로 만들어 주세요.
+
+[게시판 분야 및 가공 지침]
+- 카테고리: ${category}
+- 지침: ${categoryPrompt}
 
 [가공 조건]
 - 페르소나/성향: 성별(${aiParams.gender || '무작위'}), 연령대(${aiParams.age || '20~30대'}), 직업군(${aiParams.occupation || '직장인'})
@@ -229,7 +292,7 @@ export async function POST(request: NextRequest) {
 
 [필수 요구사항]
 1. 본문이나 댓글에 'OOO', 'XXX', '김OO', '이모씨' 등 이름/선수명/단체명/날짜 등을 지칭하는 임의의 플레이스홀더를 절대 사용하지 마세요. 필요한 경우 맥락에 어울리는 구체적이고 실제 스포츠 스타(예: 손흥민, 김민재, 메시 등)나 팀명 등 적절한 명칭을 자연스럽게 사용하거나 명칭을 생략하고 대명사로 표현하여 실존 유저가 쓴 것처럼 매끄럽고 자연스러운 문장으로 작성해 주세요.
-2. '※ 본 게시글은 회원 정보 보호...' 와 같은 안내문, 다짐, 공지성 멘트나 정보성 글임을 나타내는 사족을 게시글 본문 및 댓글에 절대 포함하지 마세요. 오직 일반 유저가 작성한 것 같은 게시글 내용만 출력해야 합니다.
+2. '※ 본 게시글은 회원 정보 보호...' 와 같은 안내문, 다짐, 공지성 멘트나 정보성 글임을 나타내는 사족을 게시글 본문 및 댓글에 절대 포함하지 마세요. 오직 일반 유저(또는 공지사항의 경우 공식 관리자)가 작성한 것 같은 게시글 내용만 출력해야 합니다.
 
 [반드시 준수할 JSON 출력 규격]
 출력은 코드 블록이나 마크다운 없이 오직 순수한 JSON Array여야 하며, 다음 키를 가지고 있어야 합니다:
@@ -237,7 +300,7 @@ export async function POST(request: NextRequest) {
   {
     "title": "맥락을 반영하여 가공한 새로운 제목",
     "content": "가공 및 다채로운 키워드로 구성된 풍부한 본문 내용 HTML (p, br 태그 등 적절히 활용)",
-    "baseComments": ["댓글 1", "댓글 2", "댓글 3"]
+    "baseComments": ["댓글 1", "댓글 2", "댓글 3"]${jsonSchemaPrompt}
   }
 ]`;
 
@@ -326,8 +389,8 @@ export async function POST(request: NextRequest) {
     try {
       if (aiProvider === 'local') {
         baseTemplates = crawledData.map((item: any) => {
-          let spunTitle = spinTitle(item.title || '');
-          let spunContent = spinContent(item.content || item.body || '');
+          let spunTitle = spinTitle(item.title || '', category);
+          let spunContent = spinContent(item.content || item.body || '', category);
           
           const baseComments = (item.comments || []).map((c: any) => {
             return typeof c === 'string' ? c : (c.content || c.body || '좋은 정보 감사합니다!');
@@ -337,10 +400,23 @@ export async function POST(request: NextRequest) {
             baseComments.push('ㄹㅇ 공감합니다 ㅋㅋㅋ', '좋은 정보 감사합니다!', '이거 진짜인듯', '대박이네요');
           }
           
+          let betLog = null;
+          if (category === 'review' || category === 'strategy') {
+            const matches = ['레알 마드리드 vs 바르셀로나 (레알 마드리드 승)', '맨시티 vs 아스널 (무승부)', 'LA 다저스 vs SF 자이언츠 (LA 다저스 승)', '골든스테이트 vs LA 레이커스 (레이커스 승)'];
+            const results = ['win', 'lose', 'half-win', 'half-lose', 'void'];
+            betLog = {
+              match: item.title ? `${item.title} 배팅` : matches[Math.floor(Math.random() * matches.length)],
+              odds: Number((Math.random() * 1.5 + 1.3).toFixed(2)),
+              stake: [10000, 30000, 50000, 100000, 200000][Math.floor(Math.random() * 5)],
+              result: results[Math.floor(Math.random() * results.length)]
+            };
+          }
+          
           return {
             title: spunTitle,
             content: spunContent,
-            baseComments: baseComments
+            baseComments: baseComments,
+            betLog: betLog
           };
         });
       } else {
@@ -374,22 +450,87 @@ ${JSON.stringify(crawledData, null, 2)}`;
     const now = new Date();
 
     // Map base comments to generate dynamic sub-replies
-    const commentRepliesPool = [
-      'ㄹㅇ 공감합니다 ㅋㅋㅋ', '좋은 정보 감사합니다!', '이거 진짜인듯', '대박이네요',
-      '와 대단하다', '근데 이건 케바케 아닌가요?', '한수 배웁니다.', '동의합니다 추천 누르고 가요',
-      '인정 ㅋㅋㅋㅋ', '대박 ㅋㅋㅋㅋ', '아 글쿤요', '꿀팁 고맙습니다'
-    ];
+    const commentRepliesPool = ['notices', 'guide', 'spotlight'].includes(category)
+      ? [
+          '확인했습니다. 공지 감사합니다.',
+          '자세한 가이드 감사드립니다. 도움이 많이 되었네요.',
+          '내용 잘 숙지했습니다.',
+          '안내해주신 대로 진행하겠습니다.',
+          '정보 공유 감사합니다!',
+          '신속한 공지 감사합니다.'
+        ]
+      : [
+          'ㄹㅇ 공감합니다 ㅋㅋㅋ', '좋은 정보 감사합니다!', '이거 진짜인듯', '대박이네요',
+          '와 대단하다', '근데 이건 케바케 아닌가요?', '한수 배웁니다.', '동의합니다 추천 누르고 가요',
+          '인정 ㅋㅋㅋㅋ', '대박 ㅋㅋㅋㅋ', '아 글쿤요', '꿀팁 고맙습니다'
+        ];
 
     for (let i = 0; i < totalCount; i++) {
       const template = baseTemplates[i % baseTemplates.length];
       
-      // Add subtle random variations to titles & content locally so each is unique and looks natural
-      const randomSuffixes = ['', '!', ' ㅋㅋ', '...', ' ㅇㅇ', ' 대박', ' 추천', ' 진짜네요', ' 공유합니다', ' ㅎ', ' 대박이네요', ' 강추', '👍', '🔥', ' 후기', ' 대박인듯'];
+      // Category specific title suffixes for natural professional/informal variety
+      let randomSuffixes = [''];
+      if (category === 'notices') {
+        randomSuffixes = ['', ' 안내', ' 공지', '의 건', ' 관련 안내'];
+      } else if (category === 'guide') {
+        randomSuffixes = ['', ' 가이드', ' 방법 안내', ' 팁', ' 정보'];
+      } else if (category === 'spotlight') {
+        randomSuffixes = ['', ' 뉴스', ' 특집', ' 스페셜', ' 칼럼'];
+      } else if (category === 'analysis' || category === 'bankroll') {
+        randomSuffixes = ['', ' 분석', ' 칼럼', ' 후기', ' 공유', ' 추천', ' 전략', '👍', '🔥'];
+      } else {
+        randomSuffixes = ['', '!', ' ㅋㅋ', '...', ' ㅇㅇ', ' 대박', ' 추천', ' 진짜네요', ' 공유합니다', ' ㅎ', ' 대박이네요', ' 강추', '👍', '🔥', ' 후기', ' 대박인듯'];
+      }
+
       const randomSuffix = randomSuffixes[Math.floor(Math.random() * randomSuffixes.length)];
-      const variationTitle = spinTitle(`${template.title}${randomSuffix}`);
+      const variationTitle = spinTitle(`${template.title}${randomSuffix}`, category);
       
       // Dynamic content variation with local synonym and ending spinners
-      let variationContent = spinContent(template.content);
+      let variationContent = spinContent(template.content, category);
+
+      // Prepend BETLOG tag if it is review or strategy category
+      if (category === 'review' || category === 'strategy') {
+        const baseBetLog = template.betLog || {
+          match: '스포츠 경기 배팅',
+          odds: 1.85,
+          stake: 50000,
+          result: 'win'
+        };
+        
+        // Randomize odds slightly (+-0.2, min 1.05)
+        const oddsOffset = (Math.random() * 0.4 - 0.2);
+        const odds = Math.max(1.05, Number((baseBetLog.odds + oddsOffset).toFixed(2)));
+        
+        // Randomize stake
+        const stakes = [10000, 30000, 50000, 100000, 150000, 200000, 300000, 500000];
+        const stake = stakes[Math.floor(Math.random() * stakes.length)];
+        
+        // Match name variation
+        const matchSuffixes = [' 분석 복기', ' 결과', ' 배팅 후기', ' 픽', ' 매치'];
+        const match = baseBetLog.match + (Math.random() < 0.3 ? matchSuffixes[Math.floor(Math.random() * matchSuffixes.length)] : '');
+        
+        // Randomize result (80% keep the template result, 20% random to create variety)
+        const results = ['win', 'lose', 'half-win', 'half-lose', 'void'];
+        const result = Math.random() < 0.8 ? baseBetLog.result : results[Math.floor(Math.random() * results.length)];
+        
+        // Calculate net profit
+        let net = 0;
+        switch (result) {
+          case 'win': net = Math.round(stake * (odds - 1)); break;
+          case 'lose': net = -Math.round(stake); break;
+          case 'half-win': net = Math.round(stake * (odds - 1) * 0.5); break;
+          case 'half-lose': net = -Math.round(stake * 0.5); break;
+          case 'void':
+          default: net = 0;
+        }
+        
+        const finalBetLog = { match, odds, stake, result, net };
+        const logTag = `[BETLOG:${JSON.stringify(finalBetLog)}]`;
+        
+        // Ensure there is no existing betlog tag, then prepend
+        variationContent = variationContent.replace(/\[BETLOG:(\{.*?\})\]\n?/g, '');
+        variationContent = logTag + '\n' + variationContent;
+      }
 
       // Author & engagement relationship logic
       // Likes/views scale with comments count
