@@ -1920,15 +1920,46 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
 
-  const TYPES = [
-    { id: "community", label: "커뮤니티" },
-    { id: "concepts", label: "개념 탑재" },
-    { id: "notices", label: "공지/이슈" },
-    { id: "guide", label: "가이드" },
-    { id: "qna", label: "Q&A" },
-    { id: "analysis", label: "분석/칼럼" },
-    { id: "spotlight", label: "스포트라이트" },
-  ];
+  // Menu types state
+  const [menuTypes, setMenuTypes] = useState<any[]>([]);
+  const [isMenuMode, setIsMenuMode] = useState(false);
+  const [menuIsLoading, setMenuIsLoading] = useState(true);
+
+  // New menu form state
+  const [newMenuId, setNewMenuId] = useState("");
+  const [newMenuLabel, setNewMenuLabel] = useState("");
+  const [newMenuLabelEn, setNewMenuLabelEn] = useState("");
+  const [newMenuIcon, setNewMenuIcon] = useState("HelpCircle");
+  const [newMenuHref, setNewMenuHref] = useState("");
+
+  // Edit menu form state
+  const [editingMenuId, setEditingMenuId] = useState<number | null>(null);
+  const [editMenuIdStr, setEditMenuIdStr] = useState("");
+  const [editMenuLabel, setEditMenuLabel] = useState("");
+  const [editMenuLabelEn, setEditMenuLabelEn] = useState("");
+  const [editMenuIcon, setEditMenuIcon] = useState("HelpCircle");
+  const [editMenuHref, setEditMenuHref] = useState("");
+
+  const fetchMenuTypes = async () => {
+    setMenuIsLoading(true);
+    try {
+      const res = await fetch('/api/menus');
+      const data = await res.json();
+      if (data.success && data.menus) {
+        setMenuTypes(data.menus);
+        if (data.menus.length > 0 && !initialType) {
+          const exists = data.menus.some((m: any) => m.menuId === activeType);
+          if (!exists) {
+            setActiveType(data.menus[0].menuId);
+          }
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setMenuIsLoading(false);
+    }
+  };
 
   const fetchCategories = async () => {
     setIsLoading(true);
@@ -1946,8 +1977,14 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   };
 
   useEffect(() => {
-    fetchCategories();
-  }, [activeType]);
+    fetchMenuTypes();
+  }, []);
+
+  useEffect(() => {
+    if (activeType && !isMenuMode) {
+      fetchCategories();
+    }
+  }, [activeType, isMenuMode]);
 
   const handleAdd = async () => {
     if (!newCatName) return;
@@ -2004,99 +2041,454 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
     }
   };
 
+  const handleAddMenu = async () => {
+    if (!newMenuId || !newMenuLabel || !newMenuLabelEn || !newMenuIcon || !newMenuHref) {
+      alert("모든 필수 항목을 입력해주세요.");
+      return;
+    }
+    try {
+      const nextSortOrder = menuTypes.length > 0 
+        ? Math.max(...menuTypes.map((m: any) => m.sortOrder || 0)) + 10 
+        : 10;
+
+      const res = await fetch("/api/admin/menus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          menuId: newMenuId,
+          label: newMenuLabel,
+          labelEn: newMenuLabelEn,
+          icon: newMenuIcon,
+          href: newMenuHref,
+          sortOrder: nextSortOrder
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewMenuId("");
+        setNewMenuLabel("");
+        setNewMenuLabelEn("");
+        setNewMenuIcon("HelpCircle");
+        setNewMenuHref("");
+        fetchMenuTypes();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpdateMenu = async (id: number) => {
+    if (!editMenuIdStr || !editMenuLabel || !editMenuLabelEn || !editMenuIcon || !editMenuHref) {
+      alert("모든 필수 항목을 입력해 주세요.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/menus", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          menuId: editMenuIdStr,
+          label: editMenuLabel,
+          labelEn: editMenuLabelEn,
+          icon: editMenuIcon,
+          href: editMenuHref
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditingMenuId(null);
+        fetchMenuTypes();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteMenu = async (id: number) => {
+    if (!confirm("정말 이 메뉴(게시판)를 삭제하시겠습니까?\n삭제 시 헤더 네비게이션에서 제외되며 복구할 수 없습니다.")) return;
+    try {
+      const res = await fetch(`/api/admin/menus?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        fetchMenuTypes();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleMoveMenu = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= menuTypes.length) return;
+
+    const updatedMenus = [...menuTypes];
+    const tempOrder = updatedMenus[index].sortOrder;
+    updatedMenus[index].sortOrder = updatedMenus[targetIndex].sortOrder;
+    updatedMenus[targetIndex].sortOrder = tempOrder;
+
+    updatedMenus.sort((a, b) => a.sortOrder - b.sortOrder);
+    setMenuTypes(updatedMenus);
+
+    try {
+      const res = await fetch('/api/admin/menus', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          menus: updatedMenus.map(m => ({ id: m.id, sortOrder: m.sortOrder }))
+        })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error);
+        fetchMenuTypes();
+      }
+    } catch (e) {
+      console.error(e);
+      fetchMenuTypes();
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {!hideHeader && (
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">카테고리 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">각 메뉴별 세부 카테고리를 관리합니다</p>
-        </div>
-      )}
-
-      {!hideHeader && (
-        <div className="flex items-center gap-2 border-b border-white/[0.06] pb-1">
-          {TYPES.map(t => (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">카테고리 관리</h1>
+            <p className="text-sm text-muted-foreground mt-1">각 메뉴별 세부 카테고리와 메인 메뉴 목록을 관리합니다</p>
+          </div>
+          
+          {!hideHeader && (
             <button
-              key={t.id}
-              onClick={() => setActiveType(t.id)}
+              onClick={() => setIsMenuMode(prev => !prev)}
               className={cn(
-                "px-4 py-2 text-sm font-bold transition-all relative",
-                activeType === t.id ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                "self-start sm:self-auto px-4 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl border transition-all flex items-center gap-1.5",
+                isMenuMode 
+                  ? "bg-primary/20 text-primary border-primary/30 shadow-[0_0_12px_rgba(239,68,68,0.2)]" 
+                  : "bg-white/5 text-muted-foreground border-white/10 hover:text-foreground hover:bg-white/10"
               )}
             >
-              {t.label}
-              {activeType === t.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-              )}
+              <Settings className="w-3.5 h-3.5 animate-spin-slow" />
+              <span>{isMenuMode ? "카테고리 관리로 돌아가기" : "메인 메뉴 및 순서 관리"}</span>
             </button>
-          ))}
+          )}
         </div>
       )}
 
-      <div className="glass-card rounded-2xl p-6 space-y-6">
-        <div className="flex gap-2">
-          <input
-            value={newCatName}
-            onChange={e => setNewCatName(e.target.value)}
-            placeholder="새 카테고리 이름..."
-            className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
-            onKeyDown={e => e.key === "Enter" && handleAdd()}
-          />
-          <button
-            onClick={handleAdd}
-            className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-[0_0_15px_rgba(239,68,68,0.2)]"
-          >
-            추가
-          </button>
-        </div>
+      {/* Main Menu Management Mode */}
+      {isMenuMode ? (
+        <div className="space-y-6">
+          {/* Add Menu Form */}
+          <div className="glass-card rounded-2xl p-6 space-y-4">
+            <h3 className="text-sm font-bold text-primary flex items-center gap-1.5">
+              <Plus className="w-4 h-4" />
+              <span>새 메인 메뉴 추가</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+              <input
+                value={newMenuId}
+                onChange={e => setNewMenuId(e.target.value)}
+                placeholder="메뉴 ID (예: custom)"
+                className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+              />
+              <input
+                value={newMenuLabel}
+                onChange={e => setNewMenuLabel(e.target.value)}
+                placeholder="한글 라벨 (예: 자유게시판)"
+                className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+              />
+              <input
+                value={newMenuLabelEn}
+                onChange={e => setNewMenuLabelEn(e.target.value)}
+                placeholder="영어 라벨 (예: Free Board)"
+                className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+              />
+              <select
+                value={newMenuIcon}
+                onChange={e => setNewMenuIcon(e.target.value)}
+                className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all text-muted-foreground"
+              >
+                <option value="Home" className="bg-neutral-900">Home (홈)</option>
+                <option value="TrendingUp" className="bg-neutral-900">TrendingUp (배당)</option>
+                <option value="BarChart3" className="bg-neutral-900">BarChart3 (분석)</option>
+                <option value="Star" className="bg-neutral-900">Star (스포트라이트)</option>
+                <option value="Lightbulb" className="bg-neutral-900">Lightbulb (개념 탑재)</option>
+                <option value="Users" className="bg-neutral-900">Users (커뮤니티)</option>
+                <option value="BookOpen" className="bg-neutral-900">BookOpen (가이드)</option>
+                <option value="Bell" className="bg-neutral-900">Bell (공지)</option>
+                <option value="HelpCircle" className="bg-neutral-900">HelpCircle (Q&A)</option>
+                <option value="Trophy" className="bg-neutral-900">Trophy (트로피)</option>
+                <option value="Shield" className="bg-neutral-900">Shield (방패)</option>
+                <option value="Zap" className="bg-neutral-900">Zap (번개)</option>
+                <option value="Flame" className="bg-neutral-900">Flame (불꽃)</option>
+              </select>
+              <input
+                value={newMenuHref}
+                onChange={e => setNewMenuHref(e.target.value)}
+                placeholder="경로 (예: /custom)"
+                className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={handleAddMenu}
+                className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+              >
+                <Plus className="w-4 h-4" />
+                <span>메뉴 추가</span>
+              </button>
+            </div>
+          </div>
 
-        {isLoading ? (
-          <div className="text-center py-10 text-muted-foreground animate-pulse">불러오는 중...</div>
-        ) : (
-          <div className="space-y-2">
-            {categories.map(cat => (
-              <div key={cat.id} className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl hover:bg-white/[0.04] transition-all group">
-                {editingId === cat.id ? (
-                  <input
-                    autoFocus
-                    value={editName}
-                    onChange={e => setEditName(e.target.value)}
-                    className="flex-1 px-3 py-1 bg-black/40 border border-primary/30 rounded-lg text-sm focus:outline-none"
-                    onKeyDown={e => {
-                      if (e.key === "Enter") handleUpdate(cat.id);
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                  />
-                ) : (
-                  <span className={cn("font-bold text-sm", cat.name === "사기주의" && "text-red-400")}>
-                    {cat.name}
-                    {cat.name === "사기주의" && <span className="ml-2 text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 uppercase">고정</span>}
-                  </span>
-                )}
+          {/* Menu List */}
+          <div className="glass-card rounded-2xl p-6 space-y-4">
+            <div className="flex justify-between items-center border-b border-white/5 pb-3">
+              <h3 className="text-sm font-bold text-muted-foreground">메인 메뉴 목록 및 순서 관리</h3>
+              <span className="text-[10px] text-muted-foreground bg-white/5 px-2.5 py-1 rounded-md border border-white/5">정렬 순서(sortOrder) 기준 정렬됨</span>
+            </div>
 
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {editingId === cat.id ? (
-                    <>
-                      <button onClick={() => handleUpdate(cat.id)} className="p-1.5 text-emerald-400 hover:bg-emerald-400/10 rounded-lg"><Plus className="w-4 h-4" /></button>
-                      <button onClick={() => setEditingId(null)} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg"><LogOut className="w-4 h-4 rotate-180" /></button>
-                    </>
-                  ) : (
-                    <>
-                      <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); }} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
-                      {cat.name !== "사기주의" && (
-                        <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+            {menuIsLoading ? (
+              <div className="text-center py-10 text-muted-foreground animate-pulse">불러오는 중...</div>
+            ) : (
+              <div className="space-y-3">
+                {menuTypes.map((m, idx) => (
+                  <div key={m.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl hover:bg-white/[0.04] transition-all group gap-4">
+                    {editingMenuId === m.id ? (
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
+                        <input
+                          value={editMenuIdStr}
+                          onChange={e => setEditMenuIdStr(e.target.value)}
+                          className="px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-xs focus:outline-none text-foreground"
+                          placeholder="메뉴 ID"
+                        />
+                        <input
+                          value={editMenuLabel}
+                          onChange={e => setEditMenuLabel(e.target.value)}
+                          className="px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-xs focus:outline-none text-foreground"
+                          placeholder="한글 라벨"
+                        />
+                        <input
+                          value={editMenuLabelEn}
+                          onChange={e => setEditMenuLabelEn(e.target.value)}
+                          className="px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-xs focus:outline-none text-foreground"
+                          placeholder="영어 라벨"
+                        />
+                        <select
+                          value={editMenuIcon}
+                          onChange={e => setEditMenuIcon(e.target.value)}
+                          className="px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-xs focus:outline-none text-muted-foreground"
+                        >
+                          <option value="Home">Home</option>
+                          <option value="TrendingUp">TrendingUp</option>
+                          <option value="BarChart3">BarChart3</option>
+                          <option value="Star">Star</option>
+                          <option value="Lightbulb">Lightbulb</option>
+                          <option value="Users">Users</option>
+                          <option value="BookOpen">BookOpen</option>
+                          <option value="Bell">Bell</option>
+                          <option value="HelpCircle">HelpCircle</option>
+                          <option value="Trophy">Trophy</option>
+                          <option value="Shield">Shield</option>
+                          <option value="Zap">Zap</option>
+                          <option value="Flame">Flame</option>
+                        </select>
+                        <input
+                          value={editMenuHref}
+                          onChange={e => setEditMenuHref(e.target.value)}
+                          className="px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-xs focus:outline-none text-foreground"
+                          placeholder="경로"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xs font-black">
+                          {idx + 1}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 flex-1">
+                          <div>
+                            <span className="text-[10px] text-muted-foreground/60 block font-bold">한글 라벨 (ID)</span>
+                            <span className="text-sm font-bold text-foreground">{m.label} <span className="text-xs text-muted-foreground">({m.menuId})</span></span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground/60 block font-bold">영어 라벨 (아이콘)</span>
+                            <span className="text-xs font-bold text-muted-foreground">{m.labelEn} <span className="text-[10px] text-primary/80">({m.icon})</span></span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-[10px] text-muted-foreground/60 block font-bold">링크 경로</span>
+                            <span className="text-xs font-mono text-muted-foreground/80">{m.href}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      {/* Order Buttons */}
+                      {!editingMenuId && (
+                        <div className="flex items-center bg-white/5 rounded-lg border border-white/10 p-0.5">
+                          <button
+                            disabled={idx === 0}
+                            onClick={() => handleMoveMenu(idx, 'up')}
+                            className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground transition-all"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="w-px h-3 bg-white/10" />
+                          <button
+                            disabled={idx === menuTypes.length - 1}
+                            onClick={() => handleMoveMenu(idx, 'down')}
+                            className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground transition-all"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       )}
-                    </>
-                  )}
-                </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1">
+                        {editingMenuId === m.id ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdateMenu(m.id)}
+                              className="p-2 text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-all"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setEditingMenuId(null)}
+                              className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingMenuId(m.id);
+                                setEditMenuIdStr(m.menuId);
+                                setEditMenuLabel(m.label);
+                                setEditMenuLabelEn(m.labelEn);
+                                setEditMenuIcon(m.icon);
+                                setEditMenuHref(m.href);
+                              }}
+                              className="p-2 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMenu(m.id)}
+                              className="p-2 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {menuTypes.length === 0 && (
+                  <div className="text-center py-10 text-muted-foreground text-sm">등록된 메뉴가 없습니다.</div>
+                )}
               </div>
-            ))}
-            {categories.length === 0 && (
-              <div className="text-center py-10 text-muted-foreground text-sm">등록된 카테고리가 없습니다.</div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        /* Subcategory Management Mode */
+        <div className="space-y-6">
+          {!hideHeader && (
+            <div className="flex items-center gap-2 border-b border-white/[0.06] pb-1 overflow-x-auto whitespace-nowrap">
+              {menuTypes.map(t => (
+                <button
+                  key={t.menuId}
+                  onClick={() => setActiveType(t.menuId)}
+                  className={cn(
+                    "px-4 py-2 text-sm font-bold transition-all relative shrink-0",
+                    activeType === t.menuId ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {t.label}
+                  {activeType === t.menuId && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="glass-card rounded-2xl p-6 space-y-6">
+            <div className="flex gap-2">
+              <input
+                value={newCatName}
+                onChange={e => setNewCatName(e.target.value)}
+                placeholder="새 카테고리 이름..."
+                className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+                onKeyDown={e => e.key === "Enter" && handleAdd()}
+              />
+              <button
+                onClick={handleAdd}
+                className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+              >
+                추가
+              </button>
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-10 text-muted-foreground animate-pulse">불러오는 중...</div>
+            ) : (
+              <div className="space-y-2">
+                {categories.map(cat => (
+                  <div key={cat.id} className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl hover:bg-white/[0.04] transition-all group">
+                    {editingId === cat.id ? (
+                      <input
+                        autoFocus
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        className="flex-1 px-3 py-1 bg-black/40 border border-primary/30 rounded-lg text-sm focus:outline-none text-foreground"
+                        onKeyDown={e => {
+                          if (e.key === "Enter") handleUpdate(cat.id);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                      />
+                    ) : (
+                      <span className={cn("font-bold text-sm", cat.name === "사기주의" && "text-red-400")}>
+                        {cat.name}
+                        {cat.name === "사기주의" && <span className="ml-2 text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 uppercase">고정</span>}
+                      </span>
+                    )}
+
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {editingId === cat.id ? (
+                        <>
+                          <button onClick={() => handleUpdate(cat.id)} className="p-1.5 text-emerald-400 hover:bg-emerald-400/10 rounded-lg"><Plus className="w-4 h-4" /></button>
+                          <button onClick={() => setEditingId(null)} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg"><LogOut className="w-4 h-4 rotate-180" /></button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); }} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
+                          {cat.name !== "사기주의" && (
+                            <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {categories.length === 0 && (
+                  <div className="text-center py-10 text-muted-foreground text-sm">등록된 카테고리가 없습니다.</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
