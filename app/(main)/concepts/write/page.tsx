@@ -9,10 +9,18 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const CONCEPT_META: Record<string, { label: string; icon: any; desc: string }> = {
+  experiments: { label: "기상천외 배팅 실험실", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션" },
+  fails: { label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
+  gamification: { label: "레벨/경험치", icon: Flame, desc: "커뮤니티 활동 및 보상 통계" },
+  flex: { label: "수익 인증", icon: Trophy, desc: "나의 수익 및 당첨 베팅 자랑하기" },
+  sentiment: { label: "시장 여론", icon: Shield, desc: "베팅 시장의 심리 및 흐름 분석" },
+};
+
 const CONCEPT_CATEGORIES = [
-  { id: "review", label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
-  { id: "bankroll", label: "심리/자금관리", icon: Shield, desc: "마인드 및 자금 관리" },
-  { id: "strategy", label: "기상천외 배팅 실험실", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션" },
+  { id: "fails", label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
+  { id: "sentiment", label: "시장 여론", icon: Shield, desc: "베팅 시장의 심리 및 흐름 분석" },
+  { id: "experiments", label: "기상천외 배팅 실험실", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션" },
 ];
 
 const TEMPLATES = [
@@ -36,7 +44,7 @@ export default function ConceptsWritePage() {
   
   const [formData, setFormData] = useState({
     title: '',
-    category: 'review',
+    category: 'fails',
     content: '',
     tags: '',
     image: '',
@@ -49,7 +57,7 @@ export default function ConceptsWritePage() {
     result: 'win'
   });
 
-  const isBetLogCategory = formData.category === 'review' || formData.category === 'strategy';
+  const isBetLogCategory = formData.category === 'review' || formData.category === 'strategy' || formData.category === 'fails' || formData.category === 'experiments';
 
   const calculateNetProfit = () => {
     const oddsNum = parseFloat(betLog.odds) || 0;
@@ -73,12 +81,34 @@ export default function ConceptsWritePage() {
   };
 
   const searchParams = useSearchParams();
+  const [dynCategories, setDynCategories] = useState<any[]>(CONCEPT_CATEGORIES);
 
   useEffect(() => {
-    const qCat = searchParams.get('category');
-    if (qCat && CONCEPT_CATEGORIES.find(c => c.id === qCat)) {
-      setFormData(prev => ({ ...prev, category: qCat }));
-    }
+    const fetchCats = async () => {
+      try {
+        const res = await fetch("/api/admin/categories?type=concepts");
+        const data = await res.json();
+        if (data.success && data.categories && data.categories.length > 0) {
+          const mapped = data.categories.map((c: any) => ({
+            id: c.name,
+            label: CONCEPT_META[c.name]?.label || c.name,
+            icon: CONCEPT_META[c.name]?.icon || Lightbulb,
+            desc: CONCEPT_META[c.name]?.desc || "",
+          }));
+          setDynCategories(mapped);
+          
+          const qCat = searchParams.get('category');
+          if (qCat && mapped.find((c: any) => c.id === qCat)) {
+            setFormData(prev => ({ ...prev, category: qCat }));
+          } else if (mapped.length > 0) {
+            setFormData(prev => ({ ...prev, category: mapped[0].id }));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch concepts categories:", e);
+      }
+    };
+    fetchCats();
   }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -189,7 +219,7 @@ export default function ConceptsWritePage() {
 
           {/* Category Picker - Only Concept Categories */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {CONCEPT_CATEGORIES.map(cat => (
+            {dynCategories.map(cat => (
               <button
                 key={cat.id}
                 type="button"

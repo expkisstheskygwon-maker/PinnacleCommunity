@@ -36,10 +36,18 @@ ChartJS.register(
   Filler
 );
 
+const CONCEPT_META: Record<string, { label: string; icon: any; desc: string }> = {
+  experiments: { label: "기상천외 배팅 실험실", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션" },
+  fails: { label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
+  gamification: { label: "레벨/경험치", icon: Flame, desc: "커뮤니티 활동 및 보상 통계" },
+  flex: { label: "수익 인증", icon: Trophy, desc: "나의 수익 및 당첨 베팅 자랑하기" },
+  sentiment: { label: "시장 여론", icon: Shield, desc: "베팅 시장의 심리 및 흐름 분석" },
+};
+
 const CONCEPT_CATEGORIES = [
-  { id: "review", label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
-  { id: "bankroll", label: "심리/자금관리", icon: Shield, desc: "마인드 및 자금 관리" },
-  { id: "strategy", label: "기상천외 배팅 실험실", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션" },
+  { id: "fails", label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
+  { id: "sentiment", label: "시장 여론", icon: Shield, desc: "베팅 시장의 심리 및 흐름 분석" },
+  { id: "experiments", label: "기상천외 배팅 실험실", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션" },
 ];
 
 const STRATEGY_INFO = [
@@ -78,7 +86,12 @@ function ConceptsDashboard({ activeCat }: { activeCat: string }) {
     review: { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 },
     bankroll: { profit: "+850,000원", winRate: 72, avgOdds: "1.75", roi: "109.8%", bets: 28 },
     strategy: { profit: "+3,120,000원", winRate: 59, avgOdds: "2.10", roi: "128.3%", bets: 65 },
-  }[activeCat as 'review' | 'bankroll' | 'strategy'] || { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 };
+    fails: { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 },
+    sentiment: { profit: "+850,000원", winRate: 72, avgOdds: "1.75", roi: "109.8%", bets: 28 },
+    experiments: { profit: "+3,120,000원", winRate: 59, avgOdds: "2.10", roi: "128.3%", bets: 65 },
+    gamification: { profit: "+450,000원", winRate: 60, avgOdds: "1.80", roi: "105.0%", bets: 15 },
+    flex: { profit: "+2,100,000원", winRate: 75, avgOdds: "2.05", roi: "120.0%", bets: 50 },
+  }[activeCat as any] || { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 };
 
   return (
     <div className="glass-card rounded-3xl p-6 mb-8 border-white/10 relative overflow-hidden animate-fade-in">
@@ -148,8 +161,30 @@ export default function ConceptsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [dynCategories, setDynCategories] = useState<any[]>(CONCEPT_CATEGORIES);
 
-  const activeCat = searchParams.get("cat") || "review";
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const res = await fetch("/api/admin/categories?type=concepts");
+        const data = await res.json();
+        if (data.success && data.categories && data.categories.length > 0) {
+          const mapped = data.categories.map((c: any) => ({
+            id: c.name,
+            label: CONCEPT_META[c.name]?.label || c.name,
+            icon: CONCEPT_META[c.name]?.icon || Lightbulb,
+            desc: CONCEPT_META[c.name]?.desc || "",
+          }));
+          setDynCategories(mapped);
+        }
+      } catch (e) {
+        console.error("Failed to fetch concepts categories:", e);
+      }
+    };
+    fetchCats();
+  }, []);
+
+  const activeCat = searchParams.get("cat") || (dynCategories[0]?.id || "fails");
   const currentSearch = searchParams.get("search") || "";
 
   // User session state
@@ -424,7 +459,7 @@ export default function ConceptsPage() {
           <span className="hover:text-primary transition-colors cursor-pointer" onClick={() => router.push('/concepts')}>개념 탑재</span>
           <span>/</span>
           <span className="text-foreground font-bold">
-            {CONCEPT_CATEGORIES.find(c => c.id === activeCat)?.label || "베팅 복기"}
+            {dynCategories.find(c => c.id === activeCat)?.label || "베팅 복기"}
           </span>
         </div>
 
@@ -465,7 +500,7 @@ export default function ConceptsPage() {
 
         {/* Categories */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {CONCEPT_CATEGORIES.map(cat => (
+          {dynCategories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCat(cat.id)}
@@ -482,8 +517,8 @@ export default function ConceptsPage() {
           ))}
         </div>
 
-        {/* Mini Dashboard - Hide on Strategy tab */}
-        {activeCat !== "strategy" && <ConceptsDashboard activeCat={activeCat} />}
+        {/* Mini Dashboard - Hide on Strategy / Experiments tab */}
+        {activeCat !== "strategy" && activeCat !== "experiments" && <ConceptsDashboard activeCat={activeCat} />}
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           
@@ -491,7 +526,7 @@ export default function ConceptsPage() {
           <div className="xl:col-span-8 space-y-8">
             
             {/* Strategy Lab (Interactive Betting Strategy Simulator) */}
-            {activeCat === "strategy" && (
+            {(activeCat === "strategy" || activeCat === "experiments") && (
               <div className="space-y-6">
                 <div className="glass-card rounded-3xl p-6 md:p-8 border-white/10 relative overflow-hidden">
                   <div className="absolute -right-24 -top-24 w-48 h-48 rounded-full bg-primary/10 blur-[80px] pointer-events-none" />
@@ -753,7 +788,7 @@ export default function ConceptsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                             <span className="text-[9px] font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">
-                              {CONCEPT_CATEGORIES.find(c => c.id === post.category)?.label || post.category}
+                              {dynCategories.find(c => c.id === post.category)?.label || post.category}
                             </span>
                             {post.views > 1000 && (
                               <span className="badge-danger text-[8px]">
@@ -862,8 +897,8 @@ export default function ConceptsPage() {
               )}
             </div>
 
-            {/* Betting Lab Strategy Explanations (Shown on Strategy tab) */}
-            {activeCat === "strategy" && (
+            {/* Betting Lab Strategy Explanations (Shown on Strategy / Experiments tab) */}
+            {(activeCat === "strategy" || activeCat === "experiments") && (
               <div className="glass-card rounded-2xl p-5 space-y-4">
                 <h3 className="font-black text-sm text-foreground flex items-center gap-1.5 border-b border-white/5 pb-2">
                   <Zap className="w-4 h-4 text-primary" /> 실험실 배팅 기법 요약
