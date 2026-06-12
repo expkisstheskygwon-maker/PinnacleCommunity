@@ -1945,17 +1945,46 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
     try {
       const res = await fetch('/api/menus');
       const data = await res.json();
-      if (data.success && data.menus) {
+      if (data.success && data.menus && data.menus.length > 0) {
         setMenuTypes(data.menus);
-        if (data.menus.length > 0 && !initialType) {
+        if (!initialType) {
           const exists = data.menus.some((m: any) => m.menuId === activeType);
           if (!exists) {
             setActiveType(data.menus[0].menuId);
           }
         }
+      } else {
+        // Fallback to static default menus if DB table is empty or error occurs
+        const DEFAULT_TYPES = [
+          { menuId: "analysis", label: "분석/칼럼", labelEn: "Analysis", icon: "BarChart3", href: "/analysis", sortOrder: 30 },
+          { menuId: "spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: "Star", href: "/spotlight", sortOrder: 40 },
+          { menuId: "concepts", label: "개념 탑재", labelEn: "Concepts", icon: "Lightbulb", href: "/concepts", sortOrder: 50 },
+          { menuId: "community", label: "커뮤니티", labelEn: "Forum", icon: "Users", href: "/community", sortOrder: 60 },
+          { menuId: "guide", label: "가이드", labelEn: "Guide", icon: "BookOpen", href: "/guide", sortOrder: 70 },
+          { menuId: "qna", label: "Q&A", labelEn: "Q&A", icon: "HelpCircle", href: "/qna", sortOrder: 75 },
+          { menuId: "notices", label: "공지/이슈", labelEn: "Notices", icon: "Bell", href: "/notices", sortOrder: 80 }
+        ];
+        setMenuTypes(DEFAULT_TYPES);
+        if (!initialType && !DEFAULT_TYPES.some((m: any) => m.menuId === activeType)) {
+          setActiveType(DEFAULT_TYPES[0].menuId);
+        }
       }
     } catch (e) {
       console.error(e);
+      // Fallback in case of fetch errors
+      const DEFAULT_TYPES = [
+        { menuId: "analysis", label: "분석/칼럼", labelEn: "Analysis", icon: "BarChart3", href: "/analysis", sortOrder: 30 },
+        { menuId: "spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: "Star", href: "/spotlight", sortOrder: 40 },
+        { menuId: "concepts", label: "개념 탑재", labelEn: "Concepts", icon: "Lightbulb", href: "/concepts", sortOrder: 50 },
+        { menuId: "community", label: "커뮤니티", labelEn: "Forum", icon: "Users", href: "/community", sortOrder: 60 },
+        { menuId: "guide", label: "가이드", labelEn: "Guide", icon: "BookOpen", href: "/guide", sortOrder: 70 },
+        { menuId: "qna", label: "Q&A", labelEn: "Q&A", icon: "HelpCircle", href: "/qna", sortOrder: 75 },
+        { menuId: "notices", label: "공지/이슈", labelEn: "Notices", icon: "Bell", href: "/notices", sortOrder: 80 }
+      ];
+      setMenuTypes(DEFAULT_TYPES);
+      if (!initialType && !DEFAULT_TYPES.some((m: any) => m.menuId === activeType)) {
+        setActiveType(DEFAULT_TYPES[0].menuId);
+      }
     } finally {
       setMenuIsLoading(false);
     }
@@ -2038,6 +2067,37 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleInitializeDefaultMenus = async () => {
+    if (!confirm("기본 메뉴 데이터를 데이터베이스에 초기화(생성)하시겠습니까?\n이 작업은 D1 데이터베이스의 main_menus 테이블에 기본 메뉴 데이터를 등록합니다.")) return;
+    try {
+      const defaultMenus = [
+        { menuId: 'home', label: '홈', labelEn: 'Home', icon: 'Home', href: '/', sortOrder: 10 },
+        { menuId: 'odds', label: '배당/경기', labelEn: 'Odds', icon: 'TrendingUp', href: '/odds', sortOrder: 20 },
+        { menuId: 'analysis', label: '분석/칼럼', labelEn: 'Analysis', icon: 'BarChart3', href: '/analysis', sortOrder: 30 },
+        { menuId: 'spotlight', label: '스포트라이트', labelEn: 'Spotlight', icon: 'Star', href: '/spotlight', sortOrder: 40 },
+        { menuId: 'concepts', label: '개념 탑재', labelEn: 'Concepts', icon: 'Lightbulb', href: '/concepts', sortOrder: 50 },
+        { menuId: 'community', label: '커뮤니티', labelEn: 'Forum', icon: 'Users', href: '/community', sortOrder: 60 },
+        { menuId: 'guide', label: '가이드', labelEn: 'Guide', icon: 'BookOpen', href: '/guide', sortOrder: 70 },
+        { menuId: 'qna', label: 'Q&A', labelEn: 'Q&A', icon: 'HelpCircle', href: '/qna', sortOrder: 75 },
+        { menuId: 'notices', label: '공지/이슈', labelEn: 'Notices', icon: 'Bell', href: '/notices', sortOrder: 80 },
+        { menuId: 'mypage', label: '마이페이지', labelEn: 'My Page', icon: 'User', href: '/mypage', sortOrder: 90 }
+      ];
+
+      for (const menu of defaultMenus) {
+        await fetch("/api/admin/menus", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(menu),
+        });
+      }
+      alert("기본 메뉴 데이터가 데이터베이스에 성공적으로 초기화되었습니다.");
+      fetchMenuTypes();
+    } catch (e) {
+      console.error(e);
+      alert("초기화 도중 오류가 발생했습니다. D1 데이터베이스에 main_menus 테이블이 정상적으로 생성되었는지 확인해 주세요.");
     }
   };
 
@@ -2250,7 +2310,15 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
           <div className="glass-card rounded-2xl p-6 space-y-4">
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
               <h3 className="text-sm font-bold text-muted-foreground">메인 메뉴 목록 및 순서 관리</h3>
-              <span className="text-[10px] text-muted-foreground bg-white/5 px-2.5 py-1 rounded-md border border-white/5">정렬 순서(sortOrder) 기준 정렬됨</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleInitializeDefaultMenus}
+                  className="px-3 py-1 bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-foreground text-[10px] font-bold rounded border border-white/10 transition-all animate-pulse hover:animate-none"
+                >
+                  기본 메뉴 데이터 초기화
+                </button>
+                <span className="text-[10px] text-muted-foreground bg-white/5 px-2.5 py-1 rounded-md border border-white/5">정렬 순서(sortOrder) 기준 정렬됨</span>
+              </div>
             </div>
 
             {menuIsLoading ? (
