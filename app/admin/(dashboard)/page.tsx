@@ -6,7 +6,8 @@ import {
   Shield, Users, FileText, BarChart3, Bell, BookOpen, HelpCircle,
   TrendingUp, LogOut, Home, ChevronRight, Search, Plus, Edit, Trash2,
   Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, 
-  Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet, Gavel, Award, Layers, Sparkles
+  Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet, Gavel, Award, Layers, Sparkles,
+  ArrowUp, ArrowDown, Check
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
