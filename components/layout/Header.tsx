@@ -147,18 +147,21 @@ export default function Header({ user }: HeaderProps) {
     // Fetch dynamic categories for all types
     const fetchAllCats = async () => {
       try {
-        const types = ["spotlight", "analysis", "qna", "notices", "guide"];
+        const types = ["spotlight", "analysis", "qna", "notices", "guide", "community", "concepts"];
         const catsMap: Record<string, SubItem[]> = {};
         
         await Promise.all(types.map(async (type) => {
           const res = await fetch(`/api/admin/categories?type=${type}`);
           const data = await res.json();
           if (data.success && data.categories.length > 0) {
-            catsMap[type] = data.categories.map((c: any) => ({
-              href: `/${type}?cat=${encodeURIComponent(c.name)}`,
-              label: c.name,
-              labelEn: c.name
-            }));
+            catsMap[type] = data.categories.map((c: any) => {
+              const translation = CATEGORY_TRANSLATIONS[c.name];
+              return {
+                href: `/${type}?cat=${encodeURIComponent(c.name)}`,
+                label: translation ? translation.ko : c.name,
+                labelEn: translation ? translation.en : c.name
+              };
+            });
           }
         }));
         
@@ -208,14 +211,9 @@ export default function Header({ user }: HeaderProps) {
     const staticChildren = item.children || [];
     
     if (dynamic.length > 0) {
-      // Merge: static first, then dynamic (excluding duplicates by label)
-      const merged = [...staticChildren];
-      dynamic.forEach(d => {
-        if (!merged.find(s => s.label === d.label)) {
-          merged.push(d);
-        }
-      });
-      return { ...item, children: merged };
+      // If dynamic categories are fetched successfully, only keep special static children (like leaderboard)
+      const specialStatic = staticChildren.filter(s => s.href.includes('/leaderboard'));
+      return { ...item, children: [...specialStatic, ...dynamic] };
     }
     return item;
   });
