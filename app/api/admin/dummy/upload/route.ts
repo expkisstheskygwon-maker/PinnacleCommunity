@@ -83,6 +83,16 @@ export async function POST(request: NextRequest) {
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
+    let categoryType = category;
+    try {
+      const catInfo = await db.prepare("SELECT type FROM post_categories WHERE name = ? LIMIT 1").bind(category).first();
+      if (catInfo) {
+        categoryType = catInfo.type;
+      }
+    } catch (e) {
+      console.error("Failed to query category type for upload:", e);
+    }
+
     // 1. Gather all unique authors
     const uniqueUsernamesSet = new Set<string>();
     for (const p of posts) {
@@ -145,7 +155,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Batch insert posts with views, likes, and createdAt
     const postStatements = [];
-    const isHtmlAllowed = allowHtml !== undefined ? allowHtml : ['notices', 'guide', 'analysis', 'spotlight'].includes(category);
+    const isHtmlAllowed = allowHtml !== undefined ? allowHtml : ['notices', 'guide', 'analysis', 'spotlight'].includes(categoryType);
 
     for (const p of posts) {
       let authorId = 0;

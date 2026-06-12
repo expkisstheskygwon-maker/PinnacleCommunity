@@ -415,7 +415,7 @@ export async function POST(request: NextRequest) {
           }
           
           let betLog = null;
-          if (category === 'review' || category === 'strategy') {
+          if (categoryType === 'concepts' || ['review', 'strategy', 'fails', 'experiments'].includes(category)) {
             const matches = ['레알 마드리드 vs 바르셀로나 (레알 마드리드 승)', '맨시티 vs 아스널 (무승부)', 'LA 다저스 vs SF 자이언츠 (LA 다저스 승)', '골든스테이트 vs LA 레이커스 (레이커스 승)'];
             const results = ['win', 'lose', 'half-win', 'half-lose', 'void'];
             betLog = {
@@ -464,7 +464,7 @@ ${JSON.stringify(crawledData, null, 2)}`;
     const now = new Date();
 
     // Map base comments to generate dynamic sub-replies
-    const commentRepliesPool = ['notices', 'guide', 'spotlight'].includes(category)
+    const commentRepliesPool = ['notices', 'guide', 'spotlight'].includes(categoryType)
       ? [
           '확인했습니다. 공지 감사합니다.',
           '자세한 가이드 감사드립니다. 도움이 많이 되었네요.',
@@ -484,26 +484,26 @@ ${JSON.stringify(crawledData, null, 2)}`;
       
       // Category specific title suffixes for natural professional/informal variety
       let randomSuffixes = [''];
-      if (category === 'notices') {
+      if (categoryType === 'notices') {
         randomSuffixes = ['', ' 안내', ' 공지', '의 건', ' 관련 안내'];
-      } else if (category === 'guide') {
+      } else if (categoryType === 'guide') {
         randomSuffixes = ['', ' 가이드', ' 방법 안내', ' 팁', ' 정보'];
-      } else if (category === 'spotlight') {
+      } else if (categoryType === 'spotlight') {
         randomSuffixes = ['', ' 뉴스', ' 특집', ' 스페셜', ' 칼럼'];
-      } else if (category === 'analysis' || category === 'bankroll') {
+      } else if (categoryType === 'analysis' || categoryType === 'bankroll') {
         randomSuffixes = ['', ' 분석', ' 칼럼', ' 후기', ' 공유', ' 추천', ' 전략', '👍', '🔥'];
       } else {
         randomSuffixes = ['', '!', ' ㅋㅋ', '...', ' ㅇㅇ', ' 대박', ' 추천', ' 진짜네요', ' 공유합니다', ' ㅎ', ' 대박이네요', ' 강추', '👍', '🔥', ' 후기', ' 대박인듯'];
       }
 
       const randomSuffix = randomSuffixes[Math.floor(Math.random() * randomSuffixes.length)];
-      const variationTitle = spinTitle(`${template.title}${randomSuffix}`, category);
+      const variationTitle = spinTitle(`${template.title}${randomSuffix}`, categoryType);
       
       // Dynamic content variation with local synonym and ending spinners
-      let variationContent = spinContent(template.content, category);
+      let variationContent = spinContent(template.content, categoryType);
 
-      // Prepend BETLOG tag if it is review or strategy category
-      if (category === 'review' || category === 'strategy') {
+      // Prepend BETLOG tag if it is review or strategy category or concepts parent type
+      if (categoryType === 'concepts' || ['review', 'strategy', 'fails', 'experiments'].includes(category)) {
         const baseBetLog = template.betLog || {
           match: '스포츠 경기 배팅',
           odds: 1.85,
