@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 // Korean Natural Nickname Pool to avoid unnatural/Chinese-looking names
 const SURNAMES = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '전', '홍'];
@@ -246,23 +247,36 @@ export async function POST(request: NextRequest) {
       ? '각 세트별로 서로 다른 톤앤매너(예: 1번 세트는 매우 신난 어조, 2번 세트는 화가 난 어조, 3번 세트는 TMI 수다, 4번 세트는 짧고 무성의한 코멘트, 5번 세트는 진지한 정보글 등)를 다채롭게 골고루 지정하여 작성'
       : (aiParams.tone || '일반적인 커뮤니티 글');
 
+    const { env } = getCloudflareContext();
+    const db = env.DB as any;
+
+    let categoryType = category;
+    try {
+      const catInfo = await db.prepare("SELECT type FROM post_categories WHERE name = ? LIMIT 1").bind(category).first();
+      if (catInfo) {
+        categoryType = catInfo.type;
+      }
+    } catch (e) {
+      console.error("Failed to query category type for generator:", e);
+    }
+
     // Category specific instructions & JSON structure changes
     let categoryPrompt = '';
     let jsonSchemaPrompt = '';
     
-    if (category === 'free') {
+    if (category === 'free' || categoryType === 'community') {
       categoryPrompt = '자유게시판용 글로서, 일상적인 대화, 가벼운 스포츠 잡담, 커뮤니티 유저들이 쓰는 친근하고 자연스러운 문투(ㅋㅋㅋ, ㅎㅎ, 짤막한 감탄사 등 적절히 혼용)로 가공하십시오.';
-    } else if (category === 'analysis') {
+    } else if (category === 'analysis' || categoryType === 'analysis') {
       categoryPrompt = '스포츠 경기 분석/칼럼용 글로서, 양 팀의 최근 경기력 분석, 라인업 정보, 주요 배당 변화, 최종 추천 픽 등을 정성스럽고 전문적인 분석 어조로 가공하십시오. 필요시 HTML 표나 리스트를 활용해 가독성 있게 구조화하십시오.';
-    } else if (category === 'guide') {
+    } else if (category === 'guide' || categoryType === 'guide') {
       categoryPrompt = '가입 및 입출금 가이드용 글로서, 초보자를 위한 단계별 안내(Step 1, Step 2...), 주의 사항, 규정 등을 매끄럽고 친절한 공식 가이드 어조로 가공하십시오. HTML 태그를 적절히 활용하여 구조를 명확히 하십시오.';
-    } else if (category === 'qna') {
+    } else if (category === 'qna' || categoryType === 'qna') {
       categoryPrompt = 'Q&A 게시판용 질문 글로서, 이용 시의 애로사항이나 궁금증(예: 충환전 지연 문의, 배팅 규정 질문, 계정 문제 등)을 일반 유저 관점에서 묻는 형태로 가공하십시오. 특히 "baseComments"에는 질문에 대한 성실하고 유용한 답변이나 해결책을 주는 다른 유저들의 댓글을 포함시켜 주세요.';
-    } else if (category === 'notices') {
+    } else if (category === 'notices' || categoryType === 'notices') {
       categoryPrompt = '공지사항용 글로서, 시스템 점검 공지, 정책 변경, 보안 주의보 등 관리자 관점의 공식적이고 격식 있는 어조(하십시오체, 해요체)로 가공하십시오. 사족이나 불필요한 감탄사를 배제하고 명확한 일정이나 규정을 명시하도록 하십시오.';
-    } else if (category === 'spotlight') {
+    } else if (category === 'spotlight' || categoryType === 'spotlight') {
       categoryPrompt = '스포트라이트용 글로서, 국내외 주요 스포츠 뉴스, 특집 인터뷰, 특별 기획 기사 등의 성격을 띱니다. 기자나 에디터의 시각에서 정중하고 정보력이 뛰어나며 격조 높은 저널리즘 스타일 어조로 작성해 주세요.';
-    } else if (category === 'review' || category === 'strategy') {
+    } else if (category === 'review' || category === 'strategy' || category === 'fails' || category === 'experiments' || categoryType === 'concepts') {
       categoryPrompt = `배팅 복기 및 실험실 게시판용 글로서, 특정 경기 배팅 결과에 대한 소회, 승리 또는 패배 원인 분석, 자금 관리 성찰 등을 가공하십시오.
 반드시 각 세트에 "betLog" 객체를 추가로 포함해야 합니다. "betLog"는 가공할 대상 경기에 매칭되는 실제 배팅 결과 기록이어야 합니다.`;
       
@@ -273,7 +287,7 @@ export async function POST(request: NextRequest) {
       "stake": 베팅금액 정수값 (예: 50000),
       "result": "결과 ('win', 'lose', 'void', 'half-win', 'half-lose' 중 하나)"
     }`;
-    } else if (category === 'bankroll') {
+    } else if (category === 'bankroll' || category === 'sentiment' || category === 'flex' || category === 'gamification') {
       categoryPrompt = '심리 및 자금관리용 글로서, 배팅 자금 관리 규칙(마틴 배팅 주의, 켈리 기준법 활용법, 분노 배팅 통제 등)에 대한 팁, 충고, 혹은 본인의 경험담을 이성적이고 차분한 어조로 가공하십시오.';
     }
 
