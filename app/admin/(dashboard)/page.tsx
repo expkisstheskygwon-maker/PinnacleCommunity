@@ -1921,6 +1921,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
 
   const TYPES = [
     { id: "community", label: "커뮤니티" },
+    { id: "concepts", label: "개념 탑재" },
     { id: "notices", label: "공지/이슈" },
     { id: "guide", label: "가이드" },
     { id: "qna", label: "Q&A" },

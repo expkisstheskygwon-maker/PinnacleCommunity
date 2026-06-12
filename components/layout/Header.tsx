@@ -28,6 +28,21 @@ interface NavItem {
   children?: SubItem[];
 }
 
+const CATEGORY_TRANSLATIONS: Record<string, { ko: string; en: string }> = {
+  // community
+  "free": { ko: "자유게시판", en: "Free Board" },
+  "match": { ko: "경기 토론", en: "Match Talk" },
+  "picks": { ko: "픽 공유", en: "Picks" },
+  "events": { ko: "이벤트/랭킹", en: "Events" },
+  
+  // concepts
+  "experiments": { ko: "기상천외 배팅 실험실", en: "Betting Lab" },
+  "fails": { ko: "베팅 복기", en: "Betting Review" },
+  "gamification": { ko: "레벨/경험치", en: "Gamification" },
+  "flex": { ko: "수익 인증", en: "Win Flex" },
+  "sentiment": { ko: "시장 여론", en: "Market Sentiment" },
+};
+
 const NAV_ITEMS: NavItem[] = [
   {
     id: "home", href: "/", label: "홈", labelEn: "Home", icon: Home
@@ -62,9 +77,9 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "concepts", href: "/concepts", label: "개념 탑재", labelEn: "Concepts", icon: Lightbulb,
     children: [
-      { href: "/concepts?cat=review", label: "베팅 복기", labelEn: "Betting Review" },
-      { href: "/concepts?cat=bankroll", label: "심리/자금관리", labelEn: "Mindset & Bankroll" },
-      { href: "/concepts?cat=strategy", label: "기상천외 배팅 실험실", labelEn: "Betting Lab" },
+      { href: "/concepts?cat=fails", label: "베팅 복기", labelEn: "Betting Review" },
+      { href: "/concepts?cat=experiments", label: "기상천외 배팅 실험실", labelEn: "Betting Lab" },
+      { href: "/concepts?cat=sentiment", label: "시장 여론", labelEn: "Market Sentiment" },
     ]
   },
   {
@@ -80,10 +95,10 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: "guide", href: "/guide", label: "가이드", labelEn: "Guide", icon: BookOpen,
     children: [
-      { href: "/qna?cat=auth", label: "가입/인증", labelEn: "Signup/KYC" },
-      { href: "/qna?cat=payment", label: "결제/입출금", labelEn: "Payment" },
-      { href: "/qna?cat=odds", label: "배당/정산", labelEn: "Odds/Settlement" },
-      { href: "/qna?cat=security", label: "계정/보안", labelEn: "Account/Security" },
+      { href: "/guide?cat=가입 가이드", label: "가입 가이드", labelEn: "Signup Guide" },
+      { href: "/guide?cat=입출금 가이드", label: "입출금 가이드", labelEn: "Deposit/Withdrawal Guide" },
+      { href: "/guide?cat=배팅 가이드", label: "배팅 가이드", labelEn: "Betting Guide" },
+      { href: "/guide?cat=기타", label: "기타", labelEn: "Others" },
     ]
   },
   {
