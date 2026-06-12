@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   PenLine, X, Check, ChevronLeft, Hash, 
   Info, Loader2, AlertTriangle, Image as ImageIcon, Send,
-  History, Shield, Zap, Lightbulb
+  History, Shield, Zap, Lightbulb, Flame, Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
