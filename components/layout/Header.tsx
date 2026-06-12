@@ -115,6 +115,12 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+const ICON_MAP: Record<string, any> = {
+  Trophy, Home, TrendingUp, BarChart3, Star, HelpCircle,
+  BookOpen, Bell, Users, User, Menu, X, ChevronDown,
+  Languages, LogIn, Shield, Zap, Flame, LogOut, Lightbulb
+};
+
 interface HeaderProps {
   user?: {
     id: number;
@@ -132,6 +138,7 @@ export default function Header({ user }: HeaderProps) {
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
+  const [dbMenus, setDbMenus] = useState<NavItem[]>([]);
   const [dynamicCategories, setDynamicCategories] = useState<Record<string, SubItem[]>>({});
   const [userStats, setUserStats] = useState<{ level: number, title: string } | null>(null);
   const [topBarMsg, setTopBarMsg] = useState({ ko: "", en: "" });
@@ -144,32 +151,87 @@ export default function Header({ user }: HeaderProps) {
       day: '2-digit'
     }).replace(/\//g, '.'));
 
-    // Fetch dynamic categories for all types
-    const fetchAllCats = async () => {
+    // Fetch dynamic menus and their subcategories
+    const fetchMenusAndCategories = async () => {
       try {
-        const types = ["spotlight", "analysis", "qna", "notices", "guide", "community", "concepts"];
-        const catsMap: Record<string, SubItem[]> = {};
-        
-        await Promise.all(types.map(async (type) => {
-          const res = await fetch(`/api/admin/categories?type=${type}`);
-          const data = await res.json();
-          if (data.success && data.categories.length > 0) {
-            catsMap[type] = data.categories.map((c: any) => {
-              const translation = CATEGORY_TRANSLATIONS[c.name];
-              return {
-                href: `/${type}?cat=${encodeURIComponent(c.name)}`,
-                label: translation ? translation.ko : c.name,
-                labelEn: translation ? translation.en : c.name
-              };
-            });
-          }
-        }));
-        
-        setDynamicCategories(catsMap);
+        const menusRes = await fetch('/api/menus');
+        const menusData = await menusRes.json();
+        if (menusData.success && menusData.menus && menusData.menus.length > 0) {
+          const rawMenus = menusData.menus;
+          
+          // Fetch categories for all dynamic menus
+          const catsMap: Record<string, SubItem[]> = {};
+          await Promise.all(rawMenus.map(async (menu: any) => {
+            if (['home', 'odds', 'mypage'].includes(menu.menuId)) return;
+
+            try {
+              const res = await fetch(`/api/admin/categories?type=${menu.menuId}`);
+              const data = await res.json();
+              if (data.success && data.categories.length > 0) {
+                catsMap[menu.menuId] = data.categories.map((c: any) => {
+                  const translation = CATEGORY_TRANSLATIONS[c.name];
+                  return {
+                    href: `/${menu.menuId}?cat=${encodeURIComponent(c.name)}`,
+                    label: translation ? translation.ko : c.name,
+                    labelEn: translation ? translation.en : c.name
+                  };
+                });
+              }
+            } catch (catErr) {
+              console.error(`Failed to fetch categories for ${menu.menuId}`, catErr);
+            }
+          }));
+
+          setDynamicCategories(catsMap);
+
+          // Map raw DB menus to NavItem format with Lucide components
+          const mappedMenus = rawMenus.map((m: any) => {
+            const IconComponent = ICON_MAP[m.icon] || HelpCircle;
+            return {
+              id: m.menuId,
+              href: m.href,
+              label: m.label,
+              labelEn: m.labelEn,
+              icon: IconComponent,
+              children: m.menuId === 'odds' ? [
+                { href: "/odds?cat=live", label: "라이브", labelEn: "Live" },
+                { href: "/odds?cat=soccer", label: "축구", labelEn: "Soccer" },
+                { href: "/odds?cat=basketball", label: "농구", labelEn: "Basketball" },
+                { href: "/odds?cat=baseball", label: "야구", labelEn: "Baseball" },
+                { href: "/odds?cat=volleyball", label: "배구", labelEn: "Volleyball" },
+                { href: "/odds?cat=hockey", label: "하키", labelEn: "Hockey" },
+                { href: "/odds?cat=handball", label: "핸드볼", labelEn: "Handball" },
+              ] : undefined
+            };
+          });
+
+          setDbMenus(mappedMenus);
+        } else {
+          // If no menus are stored in DB, fallback to fetching subcategories for hardcoded menus
+          const types = ["spotlight", "analysis", "qna", "notices", "guide", "community", "concepts"];
+          const catsMap: Record<string, SubItem[]> = {};
+          
+          await Promise.all(types.map(async (type) => {
+            const res = await fetch(`/api/admin/categories?type=${type}`);
+            const data = await res.json();
+            if (data.success && data.categories.length > 0) {
+              catsMap[type] = data.categories.map((c: any) => {
+                const translation = CATEGORY_TRANSLATIONS[c.name];
+                return {
+                  href: `/${type}?cat=${encodeURIComponent(c.name)}`,
+                  label: translation ? translation.ko : c.name,
+                  labelEn: translation ? translation.en : c.name
+                };
+              });
+            }
+          }));
+          setDynamicCategories(catsMap);
+        }
       } catch (err) {
-        console.error("Failed to fetch header categories", err);
+        console.error("Failed to fetch menus and categories", err);
       }
     };
+
     // Fetch user stats if logged in
     const fetchUserStats = async () => {
       if (!user) return;
@@ -200,13 +262,14 @@ export default function Header({ user }: HeaderProps) {
       }
     };
 
-    fetchAllCats();
+    fetchMenusAndCategories();
     fetchUserStats();
     fetchSettings();
   }, [lang, user]);
 
-  // Merge static NAV_ITEMS with dynamic categories
-  const navItems = NAV_ITEMS.map(item => {
+  // Merge static/dynamic NAV_ITEMS with dynamic categories
+  const activeMenus = dbMenus.length > 0 ? dbMenus : NAV_ITEMS;
+  const navItems = activeMenus.map(item => {
     const dynamic = dynamicCategories[item.id] || [];
     const staticChildren = item.children || [];
     
