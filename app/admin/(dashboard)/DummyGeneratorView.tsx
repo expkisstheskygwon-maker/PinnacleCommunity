@@ -7,6 +7,31 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const CATEGORY_TRANSLATIONS: Record<string, { ko: string; en: string }> = {
+  // community
+  "free": { ko: "자유게시판", en: "Free Board" },
+  "match": { ko: "경기 토론", en: "Match Talk" },
+  "picks": { ko: "픽 공유", en: "Picks" },
+  "events": { ko: "이벤트/랭킹", en: "Events" },
+  
+  // concepts
+  "experiments": { ko: "기상천외 배팅 실험실", en: "Betting Lab" },
+  "fails": { ko: "베팅 복기", en: "Betting Review" },
+  "gamification": { ko: "레벨/경험치", en: "Gamification" },
+  "flex": { ko: "수익 인증", en: "Win Flex" },
+  "sentiment": { ko: "시장 여론", en: "Market Sentiment" },
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  community: "커뮤니티",
+  concepts: "개념 탑재",
+  notices: "공지/이슈",
+  guide: "가이드",
+  qna: "Q&A",
+  analysis: "분석/칼럼",
+  spotlight: "스포트라이트",
+};
+
 export default function DummyGeneratorView() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -99,10 +124,38 @@ export default function DummyGeneratorView() {
     endpointUrl: "",
     apiKey: ""
   });
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const res = await fetch("/api/admin/categories");
+        const data = await res.json();
+        if (data.success && data.categories.length > 0) {
+          setDbCategories(data.categories);
+          const hasFree = data.categories.find((c: any) => c.name === 'free');
+          setTargetCategory(hasFree ? 'free' : data.categories[0].name);
+        }
+      } catch (e) {
+        console.error("Failed to fetch categories in DummyGeneratorView", e);
+      }
+    };
+    fetchCats();
+  }, []);
+
+  React.useEffect(() => {
+    if (dbCategories.length > 0 && targetCategory) {
+      const found = dbCategories.find(c => c.name === targetCategory);
+      const type = found ? found.type : targetCategory;
+      setAllowHtml(["notices", "guide", "analysis", "spotlight"].includes(type));
+    }
+  }, [dbCategories, targetCategory]);
 
   const handleCategoryChange = (cat: string) => {
     setTargetCategory(cat);
-    setAllowHtml(["notices", "guide", "analysis", "spotlight"].includes(cat));
+    const found = dbCategories.find(c => c.name === cat);
+    const type = found ? found.type : cat;
+    setAllowHtml(["notices", "guide", "analysis", "spotlight"].includes(type));
   };
 
   // Keep track of API key in LocalStorage
@@ -401,15 +454,22 @@ export default function DummyGeneratorView() {
                     onChange={(e) => handleCategoryChange(e.target.value)}
                     className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
                   >
-                    <option value="free">자유게시판 (free)</option>
-                    <option value="analysis">분석/칼럼 (analysis)</option>
-                    <option value="guide">가입/입출금 가이드 (guide)</option>
-                    <option value="qna">Q&A (qna)</option>
-                    <option value="notices">공지사항 (notices)</option>
-                    <option value="spotlight">스포트라이트 (spotlight)</option>
-                    <option value="review">베팅 복기 (review)</option>
-                    <option value="bankroll">심리/자금관리 (bankroll)</option>
-                    <option value="strategy">기상천외 배팅 실험실 (strategy)</option>
+                    {Object.entries(TYPE_LABELS).map(([typeId, typeLabel]) => {
+                      const typeCats = dbCategories.filter(c => c.type === typeId);
+                      if (typeCats.length === 0) return null;
+                      return (
+                        <optgroup key={typeId} label={typeLabel} className="bg-background text-foreground font-bold">
+                          {typeCats.map(c => {
+                            const translatedName = CATEGORY_TRANSLATIONS[c.name]?.ko || c.name;
+                            return (
+                              <option key={c.id} value={c.name} className="bg-background text-foreground font-normal">
+                                {translatedName} ({c.name})
+                              </option>
+                            );
+                          })}
+                        </optgroup>
+                      );
+                    })}
                   </select>
                   <p className="text-[10px] text-muted-foreground leading-relaxed">
                     선택한 게시판에 최적화된 프롬프트 지침이 AI에 적용되며, 로컬 엔진의 정교한 텍스트 변환 모듈이 활성화됩니다.
@@ -793,17 +853,16 @@ export default function DummyGeneratorView() {
                   <div className="flex flex-col justify-center text-left">
                     <label className="text-xs font-bold text-muted-foreground block mb-1.5">대상 게시판 카테고리</label>
                     <span className="text-xs font-bold text-red-400 bg-red-500/10 px-3 py-2 rounded-xl border border-red-500/20 text-center w-full">
-                      {
-                        targetCategory === "free" ? "자유게시판 (free)" :
-                        targetCategory === "analysis" ? "분석/칼럼 (analysis)" :
-                        targetCategory === "guide" ? "가입/입출금 가이드 (guide)" :
-                        targetCategory === "qna" ? "Q&A (qna)" :
-                        targetCategory === "notices" ? "공지사항 (notices)" :
-                        targetCategory === "spotlight" ? "스포트라이트 (spotlight)" :
-                        targetCategory === "review" ? "베팅 복기 (review)" :
-                        targetCategory === "bankroll" ? "심리/자금관리 (bankroll)" :
-                        targetCategory === "strategy" ? "기상천외 배팅 실험실 (strategy)" : targetCategory
-                      }
+                      {(() => {
+                        const found = dbCategories.find(c => c.name === targetCategory);
+                        if (found) {
+                          const translated = CATEGORY_TRANSLATIONS[targetCategory]?.ko || targetCategory;
+                          const parentLabel = TYPE_LABELS[found.type] || found.type;
+                          return `${parentLabel} > ${translated} (${targetCategory})`;
+                        }
+                        const translated = CATEGORY_TRANSLATIONS[targetCategory]?.ko || targetCategory;
+                        return `${translated} (${targetCategory})`;
+                      })()}
                     </span>
                   </div>
 
