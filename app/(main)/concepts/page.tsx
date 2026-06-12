@@ -82,7 +82,7 @@ const STRATEGY_INFO = [
 ];
 
 function ConceptsDashboard({ activeCat }: { activeCat: string }) {
-  const stats = {
+  const statsMap: Record<string, { profit: string; winRate: number; avgOdds: string; roi: string; bets: number }> = {
     review: { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 },
     bankroll: { profit: "+850,000원", winRate: 72, avgOdds: "1.75", roi: "109.8%", bets: 28 },
     strategy: { profit: "+3,120,000원", winRate: 59, avgOdds: "2.10", roi: "128.3%", bets: 65 },
@@ -91,7 +91,8 @@ function ConceptsDashboard({ activeCat }: { activeCat: string }) {
     experiments: { profit: "+3,120,000원", winRate: 59, avgOdds: "2.10", roi: "128.3%", bets: 65 },
     gamification: { profit: "+450,000원", winRate: 60, avgOdds: "1.80", roi: "105.0%", bets: 15 },
     flex: { profit: "+2,100,000원", winRate: 75, avgOdds: "2.05", roi: "120.0%", bets: 50 },
-  }[activeCat as any] || { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 };
+  };
+  const stats = statsMap[activeCat] || { profit: "+1,248,500원", winRate: 68, avgOdds: "1.92", roi: "114.5%", bets: 42 };
 
   return (
     <div className="glass-card rounded-3xl p-6 mb-8 border-white/10 relative overflow-hidden animate-fade-in">
