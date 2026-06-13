@@ -34,14 +34,14 @@ export async function POST(request: NextRequest) {
     const adminSession = cookieStore.get('admin_session');
     if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
 
-    const { type, name } = await request.json();
+    const { type, name, description } = await request.json();
     if (!type || !name) return NextResponse.json({ success: false, error: '필수 항목 누락' }, { status: 400 });
 
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
-    const result = await db.prepare('INSERT INTO post_categories (type, name) VALUES (?, ?)')
-      .bind(type, name)
+    const result = await db.prepare('INSERT INTO post_categories (type, name, description) VALUES (?, ?, ?)')
+      .bind(type, name, description || null)
       .run();
 
     if (!result.success) throw new Error('저장 실패');
@@ -58,14 +58,14 @@ export async function PATCH(request: NextRequest) {
     const adminSession = cookieStore.get('admin_session');
     if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
 
-    const { id, name } = await request.json();
+    const { id, name, description } = await request.json();
     if (!id || !name) return NextResponse.json({ success: false, error: '필수 항목 누락' }, { status: 400 });
 
     const { env } = getCloudflareContext();
     const db = env.DB as any;
 
-    const result = await db.prepare('UPDATE post_categories SET name = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
-      .bind(name, id)
+    const result = await db.prepare('UPDATE post_categories SET name = ?, description = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
+      .bind(name, description || null, id)
       .run();
 
     if (!result.success) throw new Error('수정 실패');
