@@ -163,12 +163,25 @@ export default function ConceptsPage() {
   const router = useRouter();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [dynCategories, setDynCategories] = useState<any[]>(CONCEPT_CATEGORIES);
+  const [mainMenuDesc, setMainMenuDesc] = useState<string>("성공적인 베팅을 위한 복기 및 자금 관리 전략 수립 공간");
 
   useEffect(() => {
     const fetchCats = async () => {
       try {
-        const res = await fetch("/api/admin/categories?type=concepts");
+        const [res, menusRes] = await Promise.all([
+          fetch("/api/admin/categories?type=concepts"),
+          fetch("/api/menus")
+        ]);
         const data = await res.json();
+        const menusData = await menusRes.json();
+        
+        if (menusData.success) {
+          const menu = menusData.menus.find((m: any) => m.menuId === "concepts" || m.href === "/concepts");
+          if (menu && menu.description) {
+            setMainMenuDesc(menu.description);
+          }
+        }
+
         if (data.success && data.categories && data.categories.length > 0) {
           const mapped = data.categories.map((c: any) => ({
             id: c.name,
@@ -470,7 +483,7 @@ export default function ConceptsPage() {
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter flex items-center gap-2">
               <Lightbulb className="w-8 h-8 text-[hsl(var(--gold))] animate-pulse" /> 개념 탑재
             </h1>
-            <p className="text-muted-foreground mt-1">성공적인 베팅을 위한 복기 및 자금 관리 전략 수립 공간</p>
+            <p className="text-muted-foreground mt-1">{mainMenuDesc}</p>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <form onSubmit={handleSearch} className="relative w-full sm:w-80">
