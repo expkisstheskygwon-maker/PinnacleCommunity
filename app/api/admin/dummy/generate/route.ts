@@ -251,10 +251,12 @@ export async function POST(request: NextRequest) {
     const db = env.DB as any;
 
     let categoryType = category;
+    let categoryDesc = '';
     try {
-      const catInfo = await db.prepare("SELECT type FROM post_categories WHERE name = ? LIMIT 1").bind(category).first();
+      const catInfo = await db.prepare("SELECT type, description FROM post_categories WHERE name = ? LIMIT 1").bind(category).first();
       if (catInfo) {
         categoryType = catInfo.type;
+        if (catInfo.description) categoryDesc = catInfo.description;
       }
     } catch (e) {
       console.error("Failed to query category type for generator:", e);
@@ -289,6 +291,10 @@ export async function POST(request: NextRequest) {
     }`;
     } else if (category === 'bankroll' || category === 'sentiment' || category === 'flex' || category === 'gamification') {
       categoryPrompt = '심리 및 자금관리용 글로서, 배팅 자금 관리 규칙(마틴 배팅 주의, 켈리 기준법 활용법, 분노 배팅 통제 등)에 대한 팁, 충고, 혹은 본인의 경험담을 이성적이고 차분한 어조로 가공하십시오.';
+    }
+
+    if (categoryDesc) {
+      categoryPrompt += `\n\n[특별 지시사항: 이 게시판의 고유 성격]\n다음은 관리자가 이 게시판에 대해 설정한 설명입니다: "${categoryDesc}"\n이 설명을 최우선적으로 반영하여, 글의 주제와 분위기가 해당 설명의 의도에 완벽하게 부합하도록 작성하십시오.`;
     }
 
     // 1. Build prompt for AI to rewrite the raw scraped content
