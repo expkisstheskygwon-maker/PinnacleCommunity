@@ -91,8 +91,14 @@ function AnalysisContent() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tighter">분석/칼럼</h1>
-          <p className="text-muted-foreground mt-1">전문가의 배당 분석, 전략 가이드, 라인 변동 인사이트</p>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter">
+            {activeCat === "all" ? "분석/칼럼" : activeCat}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {activeCat !== "all" && categories.find((c: any) => c.name === activeCat)?.description 
+              ? categories.find((c: any) => c.name === activeCat)?.description 
+              : "전문가의 배당 분석, 전략 가이드, 라인 변동 인사이트"}
+          </p>
         </div>
 
         {/* Categories */}
