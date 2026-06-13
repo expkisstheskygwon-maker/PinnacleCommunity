@@ -114,10 +114,11 @@ export default function DummyGeneratorView() {
       timeDistribution: { commute: 30, daytime: 20, evening: 40, night: 10 }
     };
   });
-  const [generatedPosts, setGeneratedPosts] = useState<any[]>([]);
+  const [generatedPostsGrouped, setGeneratedPostsGrouped] = useState<Record<string, any[]>>({});
+  const totalGeneratedCount = Object.values(generatedPostsGrouped).reduce((acc, posts) => acc + posts.length, 0);
 
   // Step 4: Upload Settings
-  const [targetCategory, setTargetCategory] = useState("free");
+  const [targetCategories, setTargetCategories] = useState<string[]>([]);
   const [allowHtml, setAllowHtml] = useState(false);
   const [apiConfig, setApiConfig] = useState({
     useExternalApi: false,
@@ -134,7 +135,7 @@ export default function DummyGeneratorView() {
         if (data.success && data.categories.length > 0) {
           setDbCategories(data.categories);
           const hasFree = data.categories.find((c: any) => c.name === 'free');
-          setTargetCategory(hasFree ? 'free' : data.categories[0].name);
+          setTargetCategories(hasFree ? ['free'] : [data.categories[0].name]);
         }
       } catch (e) {
         console.error("Failed to fetch categories in DummyGeneratorView", e);
@@ -144,19 +145,15 @@ export default function DummyGeneratorView() {
   }, []);
 
   React.useEffect(() => {
-    if (dbCategories.length > 0 && targetCategory) {
-      const found = dbCategories.find(c => c.name === targetCategory);
-      const type = found ? found.type : targetCategory;
-      setAllowHtml(["notices", "guide", "analysis", "spotlight"].includes(type));
+    if (dbCategories.length > 0 && targetCategories.length > 0) {
+      const needsHtml = targetCategories.some(catName => {
+        const found = dbCategories.find(c => c.name === catName);
+        const type = found ? found.type : catName;
+        return ["notices", "guide", "analysis", "spotlight"].includes(type);
+      });
+      setAllowHtml(needsHtml);
     }
-  }, [dbCategories, targetCategory]);
-
-  const handleCategoryChange = (cat: string) => {
-    setTargetCategory(cat);
-    const found = dbCategories.find(c => c.name === cat);
-    const type = found ? found.type : cat;
-    setAllowHtml(["notices", "guide", "analysis", "spotlight"].includes(type));
-  };
+  }, [dbCategories, targetCategories]);
 
   // Keep track of API key in LocalStorage
   const handleApiKeyChange = (val: string) => {
@@ -215,90 +212,121 @@ export default function DummyGeneratorView() {
       alert("AI 가공을 위해 API Key를 입력해주세요.");
       return;
     }
+    if (targetCategories.length === 0) {
+      alert("대상 게시판 카테고리를 최소 1개 이상 선택해주세요.");
+      return;
+    }
+
     setLoading(true);
-    setStatusText("AI 맥락 가공 및 100개 단위 로컬 시나리오 대량 팽창 중...");
-    try {
-      const res = await fetch("/api/admin/dummy/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          crawledData,
-          aiProvider,
-          apiKey,
-          model: aiProvider === "gemini" ? geminiModel : openaiModel,
-          aiParams,
-          localParams,
-          category: targetCategory
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setGeneratedPosts(data.posts);
-        setStatusText(`성공적으로 ${data.count}개의 더미 게시글이 완벽하게 빌드되었습니다.`);
-        setStep(4);
-      } else {
-        alert(data.error || "AI 가공 또는 대량 생성에 실패했습니다.");
+    const newGeneratedPostsGrouped: Record<string, any[]> = {};
+    let successCount = 0;
+    let totalCreated = 0;
+
+    for (let i = 0; i < targetCategories.length; i++) {
+      const cat = targetCategories[i];
+      setStatusText(`[${i+1}/${targetCategories.length}] '${CATEGORY_TRANSLATIONS[cat]?.ko || cat}' 게시판 AI 가공 및 팽창 중...`);
+      try {
+        const res = await fetch("/api/admin/dummy/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            crawledData,
+            aiProvider,
+            apiKey,
+            model: aiProvider === "gemini" ? geminiModel : openaiModel,
+            aiParams,
+            localParams,
+            category: cat
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          newGeneratedPostsGrouped[cat] = data.posts;
+          totalCreated += data.count;
+          successCount++;
+        } else {
+          console.error(`Failed to generate for ${cat}:`, data.error);
+        }
+      } catch (err) {
+        console.error(`Error generating for ${cat}:`, err);
       }
-    } catch (err) {
-      console.error(err);
-      alert("생성 과정 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
+    }
+
+    setLoading(false);
+    
+    if (successCount > 0) {
+      setGeneratedPostsGrouped(newGeneratedPostsGrouped);
+      setStatusText(`성공적으로 ${targetCategories.length}개 중 ${successCount}개 게시판에 대해 총 ${totalCreated}개의 더미글 세트 빌드 완료.`);
+      setStep(4);
+    } else {
+      alert("생성 과정 중 오류가 발생하여 데이터를 만들지 못했습니다.");
     }
   };
 
   // Step 4 Trigger: Upload Dummy Data
   const handleUploadData = async () => {
-    if (generatedPosts.length === 0) {
+    const cats = Object.keys(generatedPostsGrouped);
+    if (cats.length === 0) {
       alert("업로드할 더미 데이터가 없습니다.");
       return;
     }
     
     const confirmMsg = apiConfig.useExternalApi 
-      ? `지정한 외부 API (${apiConfig.endpointUrl})로 ${generatedPosts.length}개의 게시글을 전송하시겠습니까?`
-      : `현재 사이트의 [${targetCategory}] 게시판에 ${generatedPosts.length}개의 게시글과 댓글을 직접 삽입하시겠습니까? (이 작업은 영구적입니다.)`;
+      ? `지정한 외부 API (${apiConfig.endpointUrl})로 선택된 ${cats.length}개 게시판의 총 ${totalGeneratedCount}개 게시글을 전송하시겠습니까?`
+      : `현재 사이트의 선택된 ${cats.length}개 게시판에 총 ${totalGeneratedCount}개의 게시글과 댓글을 직접 삽입하시겠습니까? (이 작업은 영구적입니다.)`;
       
     if (!confirm(confirmMsg)) return;
 
     setLoading(true);
-    setStatusText("데이터 무결성 검증 및 일괄 데이터베이스 트랜잭션 주입 중...");
-    try {
-      const res = await fetch("/api/admin/dummy/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          posts: generatedPosts,
-          category: targetCategory,
-          apiConfig,
-          allowHtml
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert(data.message);
-        // Reset/Go back
-        setStep(1);
-        setCrawledData([]);
-        setGeneratedPosts([]);
-      } else {
-        alert(data.error || "업로드에 실패했습니다.");
+    let successCount = 0;
+
+    for (let i = 0; i < cats.length; i++) {
+      const cat = cats[i];
+      const posts = generatedPostsGrouped[cat];
+      setStatusText(`[${i+1}/${cats.length}] '${CATEGORY_TRANSLATIONS[cat]?.ko || cat}' 게시판 데이터베이스 주입 중...`);
+      try {
+        const res = await fetch("/api/admin/dummy/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            posts: posts,
+            category: cat,
+            apiConfig,
+            allowHtml
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          successCount++;
+        } else {
+          console.error(`Failed to upload to ${cat}:`, data.error);
+        }
+      } catch (err) {
+        console.error(`Error uploading to ${cat}:`, err);
       }
-    } catch (err) {
-      console.error(err);
-      alert("업로드 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
+    }
+
+    setLoading(false);
+    
+    if (successCount > 0) {
+      alert(`총 ${cats.length}개 게시판 중 ${successCount}개 게시판 업로드 완료!`);
+      // Reset/Go back
+      setStep(1);
+      setCrawledData([]);
+      setGeneratedPostsGrouped({});
+    } else {
+      alert("업로드에 모두 실패했습니다.");
     }
   };
 
   const handleDownloadJson = () => {
-    if (generatedPosts.length === 0) return;
-    const jsonStr = JSON.stringify(generatedPosts, null, 2);
+    if (Object.keys(generatedPostsGrouped).length === 0) return;
+    const jsonStr = JSON.stringify(generatedPostsGrouped, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `pinnacle_dummy_posts_${targetCategory}.json`;
+    link.download = `pinnacle_dummy_posts_multi.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -445,34 +473,68 @@ export default function DummyGeneratorView() {
                 </div>
 
                 {/* Target Category Selector */}
-                <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-2 text-left">
-                  <label className="text-xs font-bold text-muted-foreground uppercase block">
-                    대상 게시판 카테고리 (Target Board Category)
-                  </label>
-                  <select 
-                    value={targetCategory}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-red-500/50 text-white"
-                  >
+                <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3 text-left">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-muted-foreground uppercase block">
+                      대상 게시판 카테고리 (다중 선택 가능)
+                    </label>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setTargetCategories(dbCategories.map(c => c.name))}
+                        className="text-[10px] px-2 py-1 bg-white/10 hover:bg-white/20 rounded transition-colors"
+                      >
+                        전체 선택
+                      </button>
+                      <button 
+                        onClick={() => setTargetCategories([])}
+                        className="text-[10px] px-2 py-1 bg-white/10 hover:bg-white/20 rounded transition-colors"
+                      >
+                        모두 해제
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
                     {Object.entries(TYPE_LABELS).map(([typeId, typeLabel]) => {
                       const typeCats = dbCategories.filter(c => c.type === typeId);
                       if (typeCats.length === 0) return null;
                       return (
-                        <optgroup key={typeId} label={typeLabel} className="bg-background text-foreground font-bold">
-                          {typeCats.map(c => {
-                            const translatedName = CATEGORY_TRANSLATIONS[c.name]?.ko || c.name;
-                            return (
-                              <option key={c.id} value={c.name} className="bg-background text-foreground font-normal">
-                                {translatedName} ({c.name})
-                              </option>
-                            );
-                          })}
-                        </optgroup>
+                        <div key={typeId} className="space-y-2">
+                          <div className="text-[10px] font-bold text-red-400 border-b border-white/10 pb-1">{typeLabel}</div>
+                          <div className="space-y-1.5">
+                            {typeCats.map(c => {
+                              const translatedName = CATEGORY_TRANSLATIONS[c.name]?.ko || c.name;
+                              const isSelected = targetCategories.includes(c.name);
+                              return (
+                                <label key={c.id} className="flex items-center gap-2 cursor-pointer group">
+                                  <input 
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setTargetCategories([...targetCategories, c.name]);
+                                      } else {
+                                        setTargetCategories(targetCategories.filter(name => name !== c.name));
+                                      }
+                                    }}
+                                    className="w-3.5 h-3.5 rounded text-red-500 bg-black/50 border-white/20 focus:ring-0 focus:ring-offset-0 transition-all"
+                                  />
+                                  <span className={cn(
+                                    "text-xs transition-colors",
+                                    isSelected ? "text-white font-bold" : "text-muted-foreground group-hover:text-white/80"
+                                  )}>
+                                    {translatedName}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
                       );
                     })}
-                  </select>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    선택한 게시판에 최적화된 프롬프트 지침이 AI에 적용되며, 로컬 엔진의 정교한 텍스트 변환 모듈이 활성화됩니다.
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed pt-2 border-t border-white/5">
+                    선택한 각 게시판에 대해 순차적으로 최적화된 프롬프트 지침이 AI에 적용되며 개별 데이터 세트가 구축됩니다.
                   </p>
                 </div>
 
@@ -835,7 +897,7 @@ export default function DummyGeneratorView() {
                   <div>
                     <h3 className="text-base font-bold text-emerald-400">4. 최종 데이터 검증 및 일괄 배포</h3>
                     <p className="text-xs text-muted-foreground">
-                      생성된 {generatedPosts.length}개의 데이터 상세 목록을 최종 확인하고 대상 사이트 및 게시판에 업로드합니다.
+                      생성된 {totalGeneratedCount}개의 데이터 상세 목록을 최종 확인하고 대상 사이트 및 게시판에 업로드합니다.
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -853,16 +915,7 @@ export default function DummyGeneratorView() {
                   <div className="flex flex-col justify-center text-left">
                     <label className="text-xs font-bold text-muted-foreground block mb-1.5">대상 게시판 카테고리</label>
                     <span className="text-xs font-bold text-red-400 bg-red-500/10 px-3 py-2 rounded-xl border border-red-500/20 text-center w-full">
-                      {(() => {
-                        const found = dbCategories.find(c => c.name === targetCategory);
-                        if (found) {
-                          const translated = CATEGORY_TRANSLATIONS[targetCategory]?.ko || targetCategory;
-                          const parentLabel = TYPE_LABELS[found.type] || found.type;
-                          return `${parentLabel} > ${translated} (${targetCategory})`;
-                        }
-                        const translated = CATEGORY_TRANSLATIONS[targetCategory]?.ko || targetCategory;
-                        return `${translated} (${targetCategory})`;
-                      })()}
+                      {targetCategories.length > 0 ? `${targetCategories.length}개 게시판 선택됨` : '선택된 게시판 없음'}
                     </span>
                   </div>
 
@@ -933,21 +986,26 @@ export default function DummyGeneratorView() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {generatedPosts.slice(0, 10).map((p, idx) => (
-                        <tr key={idx} className="hover:bg-white/5 transition-colors">
-                          <td className="p-3 font-bold truncate max-w-[200px]" title={p.title}>{p.title}</td>
-                          <td className="p-3 text-muted-foreground">{p.author}</td>
-                          <td className="p-3 text-center">{p.views}</td>
-                          <td className="p-3 text-center">{p.likes}</td>
-                          <td className="p-3 text-center text-emerald-400">[{p.comments?.length || 0}]</td>
-                          <td className="p-3 text-[10px] text-muted-foreground">{p.createdAt.split('T')[0]}</td>
-                        </tr>
-                      ))}
+                      {Object.entries(generatedPostsGrouped).flatMap(([cat, posts]) => 
+                        posts.slice(0, 3).map((p: any, idx: number) => (
+                          <tr key={`${cat}-${idx}`} className="hover:bg-white/5 transition-colors">
+                            <td className="p-3 font-bold truncate max-w-[200px]" title={p.title}>
+                              <span className="text-[9px] px-1.5 py-0.5 bg-white/10 rounded mr-2 text-muted-foreground">{CATEGORY_TRANSLATIONS[cat]?.ko || cat}</span>
+                              {p.title}
+                            </td>
+                            <td className="p-3 text-muted-foreground">{p.author}</td>
+                            <td className="p-3 text-center">{p.views}</td>
+                            <td className="p-3 text-center">{p.likes}</td>
+                            <td className="p-3 text-center text-emerald-400">[{p.comments?.length || 0}]</td>
+                            <td className="p-3 text-[10px] text-muted-foreground">{p.createdAt.split('T')[0]}</td>
+                          </tr>
+                        ))
+                      ).slice(0, 10)}
                     </tbody>
                   </table>
-                  {generatedPosts.length > 10 && (
+                  {totalGeneratedCount > 10 && (
                     <div className="p-3 text-center text-muted-foreground text-[10px] border-t border-white/5 bg-white/[0.01]">
-                      외 {generatedPosts.length - 10}개의 더미 게시글이 목록 뒤에 더 존재합니다.
+                      외 {totalGeneratedCount - Object.entries(generatedPostsGrouped).flatMap(([cat, posts]) => posts.slice(0, 3)).slice(0, 10).length}개의 더미 게시글이 목록 뒤에 더 존재합니다.
                     </div>
                   )}
                 </div>
