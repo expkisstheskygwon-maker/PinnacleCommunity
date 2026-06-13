@@ -267,8 +267,8 @@ export default function Header({ user }: HeaderProps) {
     fetchSettings();
   }, [lang, user]);
 
-  // Merge static/dynamic NAV_ITEMS with dynamic categories
-  const activeMenus = dbMenus.length > 0 ? dbMenus : NAV_ITEMS;
+  // Merge static/dynamic NAV_ITEMS with dynamic categories (exclude mypage from main nav)
+  const activeMenus = (dbMenus.length > 0 ? dbMenus : NAV_ITEMS).filter(item => item.id !== 'mypage');
   const navItems = activeMenus.map(item => {
     const dynamic = dynamicCategories[item.id] || [];
     const staticChildren = item.children || [];
