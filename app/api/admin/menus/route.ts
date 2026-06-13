@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Single item update
-    const { id, menuId, label, labelEn, icon, href, sortOrder } = body;
+    const { id, menuId, label, labelEn, icon, href, sortOrder, isHidden } = body;
     if (!id) return NextResponse.json({ success: false, error: 'ID 필수' }, { status: 400 });
 
     const updates: string[] = [];
@@ -65,6 +65,7 @@ export async function PATCH(request: NextRequest) {
     if (icon !== undefined) { updates.push('icon = ?'); params.push(icon); }
     if (href !== undefined) { updates.push('href = ?'); params.push(href); }
     if (sortOrder !== undefined) { updates.push('sortOrder = ?'); params.push(sortOrder); }
+    if (isHidden !== undefined) { updates.push('isHidden = ?'); params.push(isHidden ? 1 : 0); }
 
     if (updates.length === 0) {
       return NextResponse.json({ success: false, error: '변경할 필드가 없습니다.' }, { status: 400 });

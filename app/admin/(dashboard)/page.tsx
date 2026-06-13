@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Shield, Users, FileText, BarChart3, Bell, BookOpen, HelpCircle,
   TrendingUp, LogOut, Home, ChevronRight, Search, Plus, Edit, Trash2,
-  Eye, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, 
+  Eye, EyeOff, ToggleLeft, ToggleRight, MessageSquare, AlertTriangle, Upload, 
   Image as ImageIcon, Star, Info, X, Settings, Download, FileSpreadsheet, Gavel, Award, Layers, Sparkles,
   ArrowUp, ArrowDown, Check
 } from "lucide-react";
@@ -2184,6 +2184,27 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
     }
   };
 
+  const handleToggleMenuVisibility = async (id: number, currentHidden: boolean) => {
+    try {
+      const res = await fetch("/api/admin/menus", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          isHidden: !currentHidden
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchMenuTypes();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleMoveMenu = async (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= menuTypes.length) return;
@@ -2381,7 +2402,15 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 flex-1">
                           <div>
                             <span className="text-[10px] text-muted-foreground/60 block font-bold">한글 라벨 (ID)</span>
-                            <span className="text-sm font-bold text-foreground">{m.label} <span className="text-xs text-muted-foreground">({m.menuId})</span></span>
+                            <span className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                              {m.label} 
+                              <span className="text-xs text-muted-foreground">({m.menuId})</span>
+                              {m.isHidden === 1 && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                                  숨김
+                                </span>
+                              )}
+                            </span>
                           </div>
                           <div>
                             <span className="text-[10px] text-muted-foreground/60 block font-bold">영어 라벨 (아이콘)</span>
@@ -2436,6 +2465,18 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                           </>
                         ) : (
                           <>
+                            <button
+                              onClick={() => handleToggleMenuVisibility(m.id, m.isHidden === 1)}
+                              title={m.isHidden === 1 ? "메인 사이트에 표시하기" : "메인 사이트에서 숨기기"}
+                              className={cn(
+                                "p-2 rounded-lg transition-all",
+                                m.isHidden === 1
+                                  ? "text-orange-400 hover:bg-orange-400/10"
+                                  : "text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10"
+                              )}
+                            >
+                              {m.isHidden === 1 ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
                             <button
                               onClick={() => {
                                 setEditingMenuId(m.id);

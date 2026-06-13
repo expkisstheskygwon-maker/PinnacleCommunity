@@ -157,7 +157,7 @@ export default function Header({ user }: HeaderProps) {
         const menusRes = await fetch('/api/menus');
         const menusData = await menusRes.json();
         if (menusData.success && menusData.menus && menusData.menus.length > 0) {
-          const rawMenus = menusData.menus;
+          const rawMenus = menusData.menus.filter((m: any) => m.isHidden !== 1);
           
           // Fetch categories for all dynamic menus
           const catsMap: Record<string, SubItem[]> = {};
