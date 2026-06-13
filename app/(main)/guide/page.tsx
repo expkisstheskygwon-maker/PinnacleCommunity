@@ -25,6 +25,7 @@ function GuideContent() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [guides, setGuides] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [mainMenuDesc, setMainMenuDesc] = useState<string>("가입부터 입출금, 계정 보안까지. 피나클 이용에 필요한 모든 것을 안내합니다.");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -34,15 +35,23 @@ function GuideContent() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [postsRes, catsRes] = await Promise.all([
+        const [postsRes, catsRes, menusRes] = await Promise.all([
           fetch("/api/posts?category=guide"),
-          fetch("/api/admin/categories?type=guide")
+          fetch("/api/admin/categories?type=guide"),
+          fetch("/api/menus")
         ]);
         const postsData = await postsRes.json();
         const catsData = await catsRes.json();
+        const menusData = await menusRes.json();
         
         if (postsData.success) setGuides(postsData.posts);
         if (catsData.success) setCategories(catsData.categories);
+        if (menusData.success) {
+          const menu = menusData.menus.find((m: any) => m.menuId === "guide" || m.href === "/guide");
+          if (menu && menu.description) {
+            setMainMenuDesc(menu.description);
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch guides", err);
       } finally {
@@ -75,7 +84,7 @@ function GuideContent() {
             피나클 <span className="text-primary italic">이용 가이드</span>
           </h1>
           <p className="text-muted-foreground text-lg">
-            가입부터 입출금, 계정 보안까지. 피나클 이용에 필요한 모든 것을 안내합니다.
+            {mainMenuDesc}
           </p>
         </div>
 

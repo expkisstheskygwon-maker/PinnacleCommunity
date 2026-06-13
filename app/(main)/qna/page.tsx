@@ -44,6 +44,7 @@ function QnAContent() {
   const [content, setContent] = useState("");
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mainMenuDesc, setMainMenuDesc] = useState<string>("자주 묻는 질문과 사용자 질문답변");
 
   const fetchQuestions = async () => {
     setIsLoadingQna(true);
@@ -71,8 +72,20 @@ function QnAContent() {
 
     const fetchCategories = async () => {
       try {
-        const res = await fetch("/api/admin/categories?type=qna");
+        const [res, menusRes] = await Promise.all([
+          fetch("/api/admin/categories?type=qna"),
+          fetch("/api/menus")
+        ]);
         const data = await res.json();
+        const menusData = await menusRes.json();
+        
+        if (menusData.success) {
+          const menu = menusData.menus.find((m: any) => m.menuId === "qna" || m.href === "/qna");
+          if (menu && menu.description) {
+            setMainMenuDesc(menu.description);
+          }
+        }
+
         if (data.success) {
           setCategories(data.categories);
         }
@@ -135,7 +148,7 @@ function QnAContent() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter">Q&A</h1>
-            <p className="text-muted-foreground mt-1">자주 묻는 질문과 사용자 질문답변</p>
+            <p className="text-muted-foreground mt-1">{mainMenuDesc}</p>
           </div>
           <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center gap-2 w-fit">
             <PenLine className="w-4 h-4" /> 질문하기

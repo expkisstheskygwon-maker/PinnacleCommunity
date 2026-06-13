@@ -27,6 +27,7 @@ function AnalysisContent() {
   const [articles, setArticles] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mainMenuDesc, setMainMenuDesc] = useState<string>("전문가의 배당 분석, 전략 가이드, 라인 변동 인사이트");
 
   // Sync state with URL parameter if it changes
   useEffect(() => {
@@ -40,13 +41,22 @@ function AnalysisContent() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [postsRes, catsRes] = await Promise.all([
+        const [postsRes, catsRes, menusRes] = await Promise.all([
           fetch("/api/posts?category=analysis"),
-          fetch("/api/admin/categories?type=analysis")
+          fetch("/api/admin/categories?type=analysis"),
+          fetch("/api/menus")
         ]);
         
         const postsData = await postsRes.json();
         const catsData = await catsRes.json();
+        const menusData = await menusRes.json();
+        
+        if (menusData.success) {
+          const menu = menusData.menus.find((m: any) => m.menuId === "analysis" || m.href === "/analysis");
+          if (menu && menu.description) {
+            setMainMenuDesc(menu.description);
+          }
+        }
         
         if (postsData.success && postsData.posts) {
           const formatted = postsData.posts.map((p: any) => ({
@@ -97,7 +107,7 @@ function AnalysisContent() {
           <p className="text-muted-foreground mt-1">
             {activeCat !== "all" && categories.find((c: any) => c.name === activeCat)?.description 
               ? categories.find((c: any) => c.name === activeCat)?.description 
-              : "전문가의 배당 분석, 전략 가이드, 라인 변동 인사이트"}
+              : mainMenuDesc}
           </p>
         </div>
 

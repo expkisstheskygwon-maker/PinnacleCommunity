@@ -25,6 +25,7 @@ function SpotlightContent() {
   const [posts, setPosts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mainMenuDesc, setMainMenuDesc] = useState<string>("전문가들이 선별한 프리미엄 베팅 인사이트");
 
   useEffect(() => {
     const cat = searchParams.get('cat');
@@ -33,16 +34,24 @@ function SpotlightContent() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [postsRes, catsRes] = await Promise.all([
+        const [postsRes, catsRes, menusRes] = await Promise.all([
           fetch(`/api/posts?category=spotlight&limit=20`),
-          fetch(`/api/admin/categories?type=spotlight`)
+          fetch(`/api/admin/categories?type=spotlight`),
+          fetch(`/api/menus`)
         ]);
         
         const postsData = await postsRes.json();
         const catsData = await catsRes.json();
+        const menusData = await menusRes.json();
         
         if (postsData.success) setPosts(postsData.posts);
         if (catsData.success) setCategories(catsData.categories);
+        if (menusData.success) {
+          const menu = menusData.menus.find((m: any) => m.menuId === "spotlight" || m.href === "/spotlight");
+          if (menu && menu.description) {
+            setMainMenuDesc(menu.description);
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch spotlight data", err);
       } finally {
@@ -70,7 +79,7 @@ function SpotlightContent() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter">스포트라이트</h1>
-            <p className="text-muted-foreground mt-1">전문가들이 선별한 프리미엄 베팅 인사이트</p>
+            <p className="text-muted-foreground mt-1">{mainMenuDesc}</p>
           </div>
         </div>
 

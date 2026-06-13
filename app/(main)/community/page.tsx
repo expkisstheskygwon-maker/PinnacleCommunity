@@ -49,6 +49,7 @@ const BADGE_COLORS: Record<string, string> = {
 export default function CommunityPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [totalPosts, setTotalPosts] = useState(0);
+  const [mainMenuDesc, setMainMenuDesc] = useState<string>("경기 토론, 픽 공유, 자유로운 소통의 공간");
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [dynCategories, setDynCategories] = useState<any[]>(CATEGORIES);
@@ -112,8 +113,20 @@ export default function CommunityPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch("/api/admin/categories?type=community");
+        const [res, menusRes] = await Promise.all([
+          fetch("/api/admin/categories?type=community"),
+          fetch("/api/menus")
+        ]);
         const data = await res.json();
+        const menusData = await menusRes.json();
+        
+        if (menusData.success) {
+          const menu = menusData.menus.find((m: any) => m.menuId === "community" || m.href === "/community");
+          if (menu && menu.description) {
+            setMainMenuDesc(menu.description);
+          }
+        }
+
         if (data.success && data.categories && data.categories.length > 0) {
           const mapped = data.categories.map((c: any) => ({
             id: c.name,
@@ -229,7 +242,7 @@ export default function CommunityPage() {
             <p className="text-muted-foreground mt-1">
               {activeCat !== "all" && dynCategories.find(c => c.id === activeCat)?.description 
                 ? dynCategories.find(c => c.id === activeCat)?.description 
-                : "경기 토론, 픽 공유, 자유로운 소통의 공간"}
+                : mainMenuDesc}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
