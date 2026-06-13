@@ -2125,7 +2125,8 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
           labelEn: newMenuLabelEn,
           icon: newMenuIcon,
           href: newMenuHref,
-          sortOrder: nextSortOrder
+          sortOrder: nextSortOrder,
+          description: newMenuDesc
         }),
       });
       const data = await res.json();
@@ -2135,6 +2136,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
         setNewMenuLabelEn("");
         setNewMenuIcon("HelpCircle");
         setNewMenuHref("");
+        setNewMenuDesc("");
         fetchMenuTypes();
       } else {
         alert(data.error);
@@ -2159,7 +2161,8 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
           label: editMenuLabel,
           labelEn: editMenuLabelEn,
           icon: editMenuIcon,
-          href: editMenuHref
+          href: editMenuHref,
+          description: editMenuDesc
         }),
       });
       const data = await res.json();
@@ -2320,6 +2323,12 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                 placeholder="경로 (예: /custom)"
                 className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
               />
+              <input
+                value={newMenuDesc}
+                onChange={e => setNewMenuDesc(e.target.value)}
+                placeholder="게시판 설명 (메인 메뉴 표출용)"
+                className="col-span-1 md:col-span-3 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+              />
             </div>
             <div className="flex justify-end">
               <button
@@ -2398,6 +2407,12 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                           className="px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-xs focus:outline-none text-foreground"
                           placeholder="경로"
                         />
+                        <input
+                          value={editMenuDesc}
+                          onChange={e => setEditMenuDesc(e.target.value)}
+                          className="col-span-1 sm:col-span-2 md:col-span-5 px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-xs focus:outline-none text-foreground mt-1"
+                          placeholder="메인 메뉴 설명"
+                        />
                       </div>
                     ) : (
                       <div className="flex items-center gap-4 flex-1">
@@ -2425,6 +2440,12 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                             <span className="text-[10px] text-muted-foreground/60 block font-bold">링크 경로</span>
                             <span className="text-xs font-mono text-muted-foreground/80">{m.href}</span>
                           </div>
+                          {m.description && (
+                            <div className="col-span-2 md:col-span-4 mt-1">
+                              <span className="text-[10px] text-muted-foreground/60 block font-bold">설명</span>
+                              <span className="text-xs text-muted-foreground/80">{m.description}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -2490,6 +2511,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                                 setEditMenuLabelEn(m.labelEn);
                                 setEditMenuIcon(m.icon);
                                 setEditMenuHref(m.href);
+                                setEditMenuDesc(m.description || "");
                               }}
                               className="p-2 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"
                             >
