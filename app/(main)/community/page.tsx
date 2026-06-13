@@ -118,7 +118,8 @@ export default function CommunityPage() {
           const mapped = data.categories.map((c: any) => ({
             id: c.name,
             label: c.name === 'free' ? '자유게시판' : c.name === 'match' ? '경기 토론' : c.name === 'picks' ? '픽 공유' : c.name === 'events' ? '이벤트/랭킹' : c.name,
-            icon: getIcon(c.name)
+            icon: getIcon(c.name),
+            description: c.description
           }));
           setDynCategories([
             { id: "all", label: "전체", icon: Users },
@@ -222,8 +223,14 @@ export default function CommunityPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">커뮤니티</h1>
-            <p className="text-muted-foreground mt-1">경기 토론, 픽 공유, 자유로운 소통의 공간</p>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">
+              {activeCat === "all" ? "커뮤니티" : (dynCategories.find(c => c.id === activeCat)?.label || "커뮤니티")}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {activeCat !== "all" && dynCategories.find(c => c.id === activeCat)?.description 
+                ? dynCategories.find(c => c.id === activeCat)?.description 
+                : "경기 토론, 픽 공유, 자유로운 소통의 공간"}
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <form onSubmit={handleSearch} className="relative w-full sm:w-80">
