@@ -1933,6 +1933,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   const [newMenuLabelEn, setNewMenuLabelEn] = useState("");
   const [newMenuIcon, setNewMenuIcon] = useState("HelpCircle");
   const [newMenuHref, setNewMenuHref] = useState("");
+  const [newMenuDesc, setNewMenuDesc] = useState("");
 
   // Edit menu form state
   const [editingMenuId, setEditingMenuId] = useState<number | null>(null);
@@ -1941,6 +1942,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   const [editMenuLabelEn, setEditMenuLabelEn] = useState("");
   const [editMenuIcon, setEditMenuIcon] = useState("HelpCircle");
   const [editMenuHref, setEditMenuHref] = useState("");
+  const [editMenuDesc, setEditMenuDesc] = useState("");
 
   const fetchMenuTypes = async () => {
     setMenuIsLoading(true);
