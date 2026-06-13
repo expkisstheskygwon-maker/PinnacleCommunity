@@ -31,6 +31,7 @@ function NoticeContent() {
   const [activeCat, setActiveCat] = useState(initialCat);
   const [notices, setNotices] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [mainMenuDesc, setMainMenuDesc] = useState<string>("점검 안내, 사기주의, 장애 보고, 정책 변경 등");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,15 +45,23 @@ function NoticeContent() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [postsRes, catsRes] = await Promise.all([
+        const [postsRes, catsRes, menusRes] = await Promise.all([
           fetch("/api/posts?category=notices"),
-          fetch("/api/admin/categories?type=notices")
+          fetch("/api/admin/categories?type=notices"),
+          fetch("/api/menus")
         ]);
         const postsData = await postsRes.json();
         const catsData = await catsRes.json();
+        const menusData = await menusRes.json();
         
         if (postsData.success) setNotices(postsData.posts);
         if (catsData.success) setCategories(catsData.categories);
+        if (menusData.success) {
+          const menu = menusData.menus.find((m: any) => m.menuId === "notices" || m.href === "/notices");
+          if (menu && menu.description) {
+            setMainMenuDesc(menu.description);
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch notices", err);
       } finally {
@@ -80,7 +89,7 @@ function NoticeContent() {
 
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-black tracking-tighter">공지/이슈</h1>
-          <p className="text-muted-foreground mt-1">점검 안내, 사기주의, 장애 보고, 정책 변경 등</p>
+          <p className="text-muted-foreground mt-1">{mainMenuDesc}</p>
         </div>
 
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
