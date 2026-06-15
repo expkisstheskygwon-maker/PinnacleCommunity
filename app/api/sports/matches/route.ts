@@ -9,6 +9,7 @@ const CACHE_TTL = 3 * 60 * 1000;
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get('sport') || 'soccer';
+  const dateParam = searchParams.get('date');
   
   const apiKey = process.env.APISPORTS_KEY;
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'API Key missing' }, { status: 500 });
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const targetDate = dateParam ? dateParam : new Date().toISOString().split('T')[0];
 
   // 종목별 설정 정의
   const sportConfigs: Record<string, { host: string; endpoint: string }> = {
@@ -83,10 +84,10 @@ export async function GET(request: Request) {
     const config = sportConfigs[sportKey] || { host: `v1.${sportKey}.api-sports.io`, endpoint: '/games' };
     
     // API-Sports의 v1 (농구, 야구 등)은 live=all 파라미터가 존재하지 않으므로, date로 전체 호출 후 자체 필터링
-    const url = `https://${config.host}${config.endpoint}?date=${today}&timezone=Asia/Seoul`;
+    const url = `https://${config.host}${config.endpoint}?date=${targetDate}&timezone=Asia/Seoul`;
 
     // 캐시 확인
-    const cacheKey = `route-matches-${sportKey}-${isLiveOnly}`;
+    const cacheKey = `route-matches-${sportKey}-${isLiveOnly}-${targetDate}`;
     if (cache[cacheKey] && (Date.now() - cache[cacheKey].timestamp < CACHE_TTL)) {
       return cache[cacheKey].data;
     }
@@ -122,7 +123,7 @@ export async function GET(request: Request) {
       }
 
       // 배당 데이터
-      const oddsUrl = `https://${config.host}/odds?date=${today}&timezone=Asia/Seoul`;
+      const oddsUrl = `https://${config.host}/odds?date=${targetDate}&timezone=Asia/Seoul`;
       const oddsResponse = await fetch(oddsUrl, { 
         headers: { 'x-apisports-key': apiKey },
         next: { revalidate: 180 }
