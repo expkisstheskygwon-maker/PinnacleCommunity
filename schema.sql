@@ -40,3 +40,15 @@ CREATE TABLE IF NOT EXISTS posts (
 -- Index for posts
 CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(category);
 CREATE INDEX IF NOT EXISTS idx_posts_authorId ON posts(authorId);
+
+-- Crawler Targets Table
+CREATE TABLE IF NOT EXISTS crawler_targets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  url TEXT UNIQUE NOT NULL,
+  category TEXT DEFAULT 'spotlight',
+  subCategory TEXT DEFAULT '최신 동향',
+  isActive INTEGER DEFAULT 1,
+  lastCrawledAt DATETIME,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+);
