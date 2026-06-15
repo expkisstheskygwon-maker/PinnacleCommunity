@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { uploadImageToR2 } from '@/lib/r2';
 
 /**
  * 봇 전용 게시글 등록 API
@@ -38,6 +39,11 @@ export async function POST(request: NextRequest) {
     `).run();
 
     // 5. 게시글 저장
+    let finalImageUrl = image;
+    if (image && image.startsWith('data:image/')) {
+      finalImageUrl = await uploadImageToR2(image);
+    }
+
     // externalUrl이 있으면 본문 하단에 출처 링크 추가 가능
     const finalContent = externalUrl 
       ? `${content}<br/><br/><p style="color:gray; font-size:12px;">출처: <a href="${externalUrl}" target="_blank" style="color:#3b82f6;">Pinnacle Betting Resources</a></p>`
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     const result = await db
       .prepare('INSERT INTO posts (title, content, authorId, category, tags, image) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(title, finalContent, 0, category, subCategory || null, image || null)
+      .bind(title, finalContent, 0, category, subCategory || null, finalImageUrl || null)
       .run();
 
     return NextResponse.json({ 
