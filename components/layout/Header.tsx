@@ -60,12 +60,10 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
-    id: "analysis", href: "/analysis", label: "분석/칼럼", labelEn: "Analysis", icon: BarChart3,
+    id: "analysis", href: "/analysis", label: "분석/결과", labelEn: "Analysis", icon: BarChart3,
     children: [
-      { href: "/analysis?cat=beginner", label: "초보 가이드", labelEn: "Beginner Guide" },
-      { href: "/analysis?cat=odds", label: "배당 이해", labelEn: "Odds Guide" },
-      { href: "/analysis?cat=line", label: "라인 변동", labelEn: "Line Movement" },
-      { href: "/analysis?cat=strategy", label: "전략/리스크", labelEn: "Strategy" },
+      { href: "/analysis?tab=analysis", label: "스포츠 분석", labelEn: "Sports Analysis" },
+      { href: "/analysis?tab=result", label: "예측/결과", labelEn: "Prediction/Result" },
     ]
   },
   {
@@ -162,7 +160,7 @@ export default function Header({ user }: HeaderProps) {
           // Fetch categories for all dynamic menus
           const catsMap: Record<string, SubItem[]> = {};
           await Promise.all(rawMenus.map(async (menu: any) => {
-            if (['home', 'odds', 'mypage'].includes(menu.menuId)) return;
+            if (['home', 'odds', 'mypage', 'analysis'].includes(menu.menuId)) return;
 
             try {
               const res = await fetch(`/api/admin/categories?type=${menu.menuId}`);
@@ -201,6 +199,9 @@ export default function Header({ user }: HeaderProps) {
                 { href: "/odds?cat=volleyball", label: "배구", labelEn: "Volleyball" },
                 { href: "/odds?cat=hockey", label: "하키", labelEn: "Hockey" },
                 { href: "/odds?cat=handball", label: "핸드볼", labelEn: "Handball" },
+              ] : m.menuId === 'analysis' ? [
+                { href: "/analysis?tab=analysis", label: "스포츠 분석", labelEn: "Sports Analysis" },
+                { href: "/analysis?tab=result", label: "예측/결과", labelEn: "Prediction/Result" },
               ] : undefined
             };
           });
@@ -208,7 +209,7 @@ export default function Header({ user }: HeaderProps) {
           setDbMenus(mappedMenus);
         } else {
           // If no menus are stored in DB, fallback to fetching subcategories for hardcoded menus
-          const types = ["spotlight", "analysis", "qna", "notices", "guide", "community", "concepts"];
+          const types = ["spotlight", "qna", "notices", "guide", "community", "concepts"];
           const catsMap: Record<string, SubItem[]> = {};
           
           await Promise.all(types.map(async (type) => {

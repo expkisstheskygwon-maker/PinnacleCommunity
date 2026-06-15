@@ -19,7 +19,7 @@ function AnalysisPageContent() {
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
           <Link href="/" className="hover:text-primary transition-colors">홈</Link>
           <span>/</span>
-          <span className="text-foreground font-bold">분석/칼럼</span>
+          <span className="text-foreground font-bold">분석/결과</span>
         </div>
 
         {/* Top Header & Tab Switcher */}
