@@ -188,8 +188,8 @@ export default function Header({ user }: HeaderProps) {
             return {
               id: m.menuId,
               href: m.href,
-              label: m.label,
-              labelEn: m.labelEn,
+              label: m.menuId === 'analysis' ? "분석/결과" : m.label,
+              labelEn: m.menuId === 'analysis' ? "Prediction/Result" : m.labelEn,
               icon: IconComponent,
               children: m.menuId === 'odds' ? [
                 { href: "/odds?cat=live", label: "라이브", labelEn: "Live" },
