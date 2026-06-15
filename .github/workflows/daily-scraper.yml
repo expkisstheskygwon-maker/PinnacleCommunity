@@ -1,0 +1,35 @@
+name: Daily Pinnacle Scraper
+
+on:
+  schedule:
+    # 매일 UTC 18:00 (한국 시간 새벽 3시)에 실행
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    # Github Actions 탭에서 수동으로 실행 가능
+
+jobs:
+  scrape-and-post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Playwright Scraper
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BOT_API_KEY: ${{ secrets.BOT_API_KEY }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://your-production-url.com' }}
+        run: npx tsx scripts/playwright-scraper.ts
