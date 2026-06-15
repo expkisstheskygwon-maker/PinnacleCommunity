@@ -82,7 +82,7 @@ async function scrapePinnacle() {
   console.log(`[Scraper] Started at ${new Date().toISOString()}`);
 
   // 1. Fetch target URLs
-  let targets = [];
+  let targets: any[] = [];
   try {
     const res = await fetch(TARGETS_API);
     if (!res.ok) throw new Error('Failed to fetch targets from API');
@@ -123,7 +123,7 @@ async function scrapePinnacle() {
       const articles = await page.evaluate(() => {
         // 피나클의 전형적인 카드형 레이아웃 요소 찾기 (예시 CSS)
         const cards = document.querySelectorAll('a[href*="/betting-resources/ko/"]');
-        const results = [];
+        const results: { url: string; title: string; image: string }[] = [];
         const seen = new Set();
         
         cards.forEach(card => {
