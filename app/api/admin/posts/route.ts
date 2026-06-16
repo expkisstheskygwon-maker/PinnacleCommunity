@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, content, category, subCategory, image: rawImage } = await request.json();
+    const { title, content, category, subCategory, image: rawImage, isHtml } = await request.json();
 
     if (!title || !content || !category) {
       return NextResponse.json(
@@ -45,9 +45,9 @@ export async function POST(request: NextRequest) {
     // 실제 사이트의 posts 테이블 스키마에 맞춤
     const result = await db
       .prepare(
-        'INSERT INTO posts (title, content, authorId, category, tags, image) VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO posts (title, content, authorId, category, tags, image, isHtml) VALUES (?, ?, ?, ?, ?, ?, ?)'
       )
-      .bind(title, content, 0, category, subCategory || null, image || null)
+      .bind(title, content, 0, category, subCategory || null, image || null, isHtml ? 1 : 0)
       .run();
 
 
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     const db = env.DB as any;
 
     const { results } = await db.prepare(`
-      SELECT p.id, p.title, p.content, p.image, p.category, p.views, p.likes, p.createdAt as date, p.status, u.nickname as author
+      SELECT p.id, p.title, p.content, p.image, p.category, p.views, p.likes, p.createdAt as date, p.status, p.isHtml, u.nickname as author
       FROM posts p
       JOIN users u ON p.authorId = u.id
       ORDER BY p.createdAt DESC
@@ -102,7 +102,7 @@ export async function PATCH(request: NextRequest) {
     const adminSession = cookieStore.get('admin_session');
     if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
 
-    const { postId, title, content, category, subCategory, image: rawImage, status, views, likes } = await request.json();
+    const { postId, title, content, category, subCategory, image: rawImage, status, views, likes, isHtml } = await request.json();
     if (!postId) return NextResponse.json({ success: false, error: '잘못된 요청: postId 누락' }, { status: 400 });
 
     const { env } = getCloudflareContext();
@@ -143,6 +143,10 @@ export async function PATCH(request: NextRequest) {
     if (likes !== undefined) {
       setClauses.push('likes = ?');
       bindParams.push(parseInt(likes));
+    }
+    if (isHtml !== undefined) {
+      setClauses.push('isHtml = ?');
+      bindParams.push(isHtml ? 1 : 0);
     }
 
     if (setClauses.length === 0) {

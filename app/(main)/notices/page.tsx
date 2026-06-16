@@ -160,7 +160,7 @@ function NoticeContent() {
                       </button>
                       {expandedId === notice.id && (
                         <div className="px-5 pb-5 pl-[76px] animate-fade-in">
-                          <div className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: formatContent(notice.content) }} />
+                          <div className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: notice.isHtml === 1 ? notice.content : formatContent(notice.content) }} />
                         </div>
                       )}
                     </div>
@@ -199,7 +199,7 @@ function NoticeContent() {
                       </button>
                       {expandedId === notice.id && (
                         <div className="px-5 pb-5 pl-[68px] animate-fade-in">
-                          <div className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: formatContent(notice.content) }} />
+                          <div className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: notice.isHtml === 1 ? notice.content : formatContent(notice.content) }} />
                         </div>
                       )}
                     </div>

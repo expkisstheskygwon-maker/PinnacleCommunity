@@ -1645,6 +1645,7 @@ function PostEditorView({ categoryName, categoryType }: { categoryName: string; 
   const [isPublishing, setIsPublishing] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
+  const [isHtml, setIsHtml] = useState(false);
   
   // Edit state
   const [editPostId, setEditPostId] = useState<number | null>(null);
@@ -1711,6 +1712,7 @@ function PostEditorView({ categoryName, categoryType }: { categoryName: string; 
         category: type,
         subCategory: subCategory || undefined,
         image: imageBase64 || undefined,
+        isHtml: isHtml ? 1 : 0
       };
 
       const response = await fetch(url, {
@@ -1747,6 +1749,7 @@ function PostEditorView({ categoryName, categoryType }: { categoryName: string; 
     setContent(post.content);
     setSubCategory(post.tags || "");
     setImageBase64(post.image || "");
+    setIsHtml(post.isHtml === 1);
     setActiveSubTab("write");
   };
 
@@ -1773,6 +1776,7 @@ function PostEditorView({ categoryName, categoryType }: { categoryName: string; 
     setContent("");
     setSubCategory("");
     setImageBase64("");
+    setIsHtml(false);
   };
 
   return (
@@ -2017,19 +2021,34 @@ function PostEditorView({ categoryName, categoryType }: { categoryName: string; 
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between ml-1">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">본문 {isPreview && "(미리보기)"}</label>
-                    {!isPreview && <span className="text-[10px] text-muted-foreground italic">* HTML 태그를 직접 사용할 수 있으며, 마크다운 기법 및 일반 텍스트 줄바꿈이 자동 지원됩니다.</span>}
+                    <div className="flex items-center gap-4">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">본문 {isPreview && "(미리보기)"}</label>
+                      <label className="text-xs font-bold text-muted-foreground cursor-pointer flex items-center gap-1.5 select-none">
+                        <input
+                          type="checkbox"
+                          checked={isHtml}
+                          onChange={e => setIsHtml(e.target.checked)}
+                          className="rounded border-white/10 bg-white/5 text-primary focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                        />
+                        <span>HTML 형식으로 작성</span>
+                      </label>
+                    </div>
+                    {!isPreview && (
+                      <span className="text-[10px] text-muted-foreground italic">
+                        {isHtml ? "* HTML 태그가 그대로 렌더링됩니다." : "* 마크다운 기법 및 일반 텍스트 줄바꿈이 자동 지원됩니다."}
+                      </span>
+                    )}
                   </div>
                   {isPreview ? (
                     <div 
                       className="w-full min-h-[500px] bg-white/[0.02] border border-white/10 rounded-xl px-6 py-6 prose prose-invert prose-sm max-w-none overflow-y-auto"
-                      dangerouslySetInnerHTML={{ __html: formatContent(content) || "<p class='text-muted-foreground italic text-center py-20'>내용이 없습니다.</p>" }}
+                      dangerouslySetInnerHTML={{ __html: isHtml ? content : formatContent(content) || "<p class='text-muted-foreground italic text-center py-20'>내용이 없습니다.</p>" }}
                     />
                   ) : (
                     <textarea
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      placeholder="내용을 입력하세요 (HTML 가능)..."
+                      placeholder="내용을 입력하세요..."
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[500px] font-mono leading-relaxed"
                     />
                   )}

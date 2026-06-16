@@ -234,7 +234,7 @@ export default function SpotlightDetailPage() {
               <div className="p-6 md:p-8">
                 <div 
                   className="text-base md:text-lg leading-relaxed font-medium opacity-90 prose prose-invert max-w-none break-all" 
-                  dangerouslySetInnerHTML={{ __html: formatContent(post.content) }} 
+                  dangerouslySetInnerHTML={{ __html: post.isHtml === 1 ? post.content : formatContent(post.content) }} 
                 />
               </div>
 

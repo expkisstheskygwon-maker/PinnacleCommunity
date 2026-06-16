@@ -171,7 +171,7 @@ function GuideContent() {
                       <div className="px-5 pb-5 md:px-8 md:pb-8 pt-2 border-t border-white/[0.04] animate-fade-in">
                         <div 
                           className="prose prose-invert prose-primary max-w-none text-xs md:text-sm leading-relaxed text-muted-foreground/90"
-                          dangerouslySetInnerHTML={{ __html: formatContent(guide.content) }}
+                          dangerouslySetInnerHTML={{ __html: guide.isHtml === 1 ? guide.content : formatContent(guide.content) }}
                         />
                       </div>
                     )}
@@ -198,7 +198,7 @@ function GuideContent() {
                     {/* HTML Content */}
                     <div 
                       className="glass-card rounded-2xl p-6 md:p-12 prose prose-invert prose-primary max-w-none shadow-2xl border-white/[0.03]"
-                      dangerouslySetInnerHTML={{ __html: formatContent(guide.content) }}
+                      dangerouslySetInnerHTML={{ __html: guide.isHtml === 1 ? guide.content : formatContent(guide.content) }}
                     />
                     
                     {/* Footer Decoration */}

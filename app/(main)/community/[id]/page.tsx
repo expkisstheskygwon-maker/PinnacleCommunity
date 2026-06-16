@@ -368,7 +368,7 @@ export default function PostDetailPage() {
                 {post.authorId === 0 || ['notices', 'guide', 'analysis', 'spotlight'].includes(post.category) ? (
                   <div 
                     className="text-base md:text-lg leading-relaxed font-medium opacity-90 prose prose-invert max-w-none break-all" 
-                    dangerouslySetInnerHTML={{ __html: formatContent(cleanContent) }} 
+                    dangerouslySetInnerHTML={{ __html: post.isHtml === 1 ? cleanContent : formatContent(cleanContent) }} 
                   />
                 ) : (
                   <div className="text-base md:text-lg leading-relaxed whitespace-pre-wrap font-medium opacity-90">
