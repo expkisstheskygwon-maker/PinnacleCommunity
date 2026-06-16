@@ -102,7 +102,7 @@ export async function PATCH(request: NextRequest) {
     const adminSession = cookieStore.get('admin_session');
     if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
 
-    const { postId, status, views, likes } = await request.json();
+    const { postId, title, content, category, subCategory, image: rawImage, status, views, likes } = await request.json();
     if (!postId) return NextResponse.json({ success: false, error: '잘못된 요청: postId 누락' }, { status: 400 });
 
     const { env } = getCloudflareContext();
@@ -111,6 +111,27 @@ export async function PATCH(request: NextRequest) {
     let setClauses: string[] = [];
     let bindParams: any[] = [];
 
+    if (title !== undefined) {
+      setClauses.push('title = ?');
+      bindParams.push(title);
+    }
+    if (content !== undefined) {
+      setClauses.push('content = ?');
+      bindParams.push(content);
+    }
+    if (category !== undefined) {
+      setClauses.push('category = ?');
+      bindParams.push(category);
+    }
+    if (subCategory !== undefined) {
+      setClauses.push('tags = ?');
+      bindParams.push(subCategory);
+    }
+    if (rawImage !== undefined) {
+      const image = rawImage && rawImage.startsWith('data:') ? await uploadImageToR2(rawImage) : rawImage;
+      setClauses.push('image = ?');
+      bindParams.push(image);
+    }
     if (status !== undefined) {
       setClauses.push('status = ?');
       bindParams.push(status);
