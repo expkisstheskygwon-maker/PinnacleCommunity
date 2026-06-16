@@ -8,7 +8,7 @@ import {
   Share2, AlertTriangle, Loader2, User as UserIcon,
   Award, Hash, Heart, MoreVertical, Flag, Target, Star
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatContent } from '@/lib/utils';
 
 const parseBetLog = (content: string) => {
   if (!content) return { cleanContent: '', betData: null };
@@ -365,10 +365,10 @@ export default function PostDetailPage() {
                   </div>
                 )}
                 
-                {['notices', 'guide', 'analysis', 'spotlight'].includes(post.category) ? (
+                {post.authorId === 0 || ['notices', 'guide', 'analysis', 'spotlight'].includes(post.category) ? (
                   <div 
                     className="text-base md:text-lg leading-relaxed font-medium opacity-90 prose prose-invert max-w-none break-all" 
-                    dangerouslySetInnerHTML={{ __html: cleanContent }} 
+                    dangerouslySetInnerHTML={{ __html: formatContent(cleanContent) }} 
                   />
                 ) : (
                   <div className="text-base md:text-lg leading-relaxed whitespace-pre-wrap font-medium opacity-90">

@@ -10,7 +10,7 @@ import {
   ArrowUp, ArrowDown, Check
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatContent } from "@/lib/utils";
 import DummyGeneratorView from "./DummyGeneratorView";
 
 const SIDEBAR_ITEMS = [
@@ -125,36 +125,95 @@ export default function AdminDashboard() {
 /* ============ Sub Views ============ */
 
 function ContentEditorTabsView() {
-  const [activeCategory, setActiveCategory] = useState("공지/이슈");
-  
-  const TABS = [
-    { id: "공지/이슈", icon: Bell },
-    { id: "가이드", icon: BookOpen },
-    { id: "분석/칼럼", icon: TrendingUp },
-    { id: "스포트라이트", icon: Star },
-  ];
+  const [activeMenuId, setActiveMenuId] = useState<string>("notices");
+  const [activeMenuLabel, setActiveMenuLabel] = useState<string>("공지/이슈");
+  const [writeableMenus, setWriteableMenus] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWriteableMenus = async () => {
+      try {
+        const res = await fetch("/api/menus");
+        const data = await res.json();
+        if (data.success && data.menus) {
+          // Filter menus where isAdminWrite === 1
+          const filtered = data.menus.filter((m: any) => m.isAdminWrite === 1);
+          setWriteableMenus(filtered);
+          if (filtered.length > 0) {
+            const hasActive = filtered.some((m: any) => m.menuId === activeMenuId);
+            if (!hasActive) {
+              setActiveMenuId(filtered[0].menuId);
+              setActiveMenuLabel(filtered[0].label);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch menus for editor:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchWriteableMenus();
+  }, []);
+
+  const getIconComponent = (iconName: string) => {
+    switch (iconName) {
+      case "Home": return Home;
+      case "TrendingUp": return TrendingUp;
+      case "BarChart3": return BarChart3;
+      case "Star": return Star;
+      case "Lightbulb": return HelpCircle;
+      case "Users": return Users;
+      case "BookOpen": return BookOpen;
+      case "Bell": return Bell;
+      case "HelpCircle": return HelpCircle;
+      default: return BookOpen;
+    }
+  };
+
+  if (isLoading) {
+    return <div className="text-center py-20 text-muted-foreground animate-pulse font-bold text-sm">로딩 중...</div>;
+  }
+
+  if (writeableMenus.length === 0) {
+    return (
+      <div className="glass-card p-10 rounded-3xl text-center space-y-4 max-w-md mx-auto">
+        <Info className="w-12 h-12 text-primary mx-auto opacity-45" />
+        <h3 className="text-lg font-bold">콘텐츠 등록 가능한 메뉴가 없습니다</h3>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          '카테고리 관리' 메뉴의 '메인 메뉴 및 순서 관리'에서 원하는 메뉴를 '관리자 전용 작성 콘텐츠 메뉴'로 설정해 주세요.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex gap-2 p-1.5 bg-white/5 border border-white/10 rounded-2xl w-fit">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveCategory(tab.id)}
-            className={cn(
-              "px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
-              activeCategory === tab.id 
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
-                : "text-muted-foreground hover:bg-white/10 hover:text-foreground"
-            )}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.id}
-          </button>
-        ))}
+      <div className="flex gap-2 p-1.5 bg-white/5 border border-white/10 rounded-2xl w-fit flex-wrap">
+        {writeableMenus.map(menu => {
+          const IconComp = getIconComponent(menu.icon);
+          return (
+            <button
+              key={menu.menuId}
+              onClick={() => {
+                setActiveMenuId(menu.menuId);
+                setActiveMenuLabel(menu.label);
+              }}
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
+                activeMenuId === menu.menuId 
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                  : "text-muted-foreground hover:bg-white/10 hover:text-foreground"
+              )}
+            >
+              <IconComp className="w-4 h-4" />
+              {menu.label}
+            </button>
+          );
+        })}
       </div>
       
-      <PostEditorView key={activeCategory} category={activeCategory} />
+      <PostEditorView key={activeMenuId} categoryName={activeMenuLabel} categoryType={activeMenuId} />
     </div>
   );
 }
@@ -1577,7 +1636,7 @@ const parseCSV = (csvText: string) => {
   }).filter(row => row.title && row.content); // Filter out empty or invalid rows
 };
 
-function PostEditorView({ category }: { category: string }) {
+function PostEditorView({ categoryName, categoryType }: { categoryName: string; categoryType: string }) {
   const [activeSubTab, setActiveSubTab] = useState<"write" | "manage">("write");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -1594,19 +1653,7 @@ function PostEditorView({ category }: { category: string }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
 
-  // Map category to backend category ID
-  const getCategoryType = () => {
-    switch(category) {
-      case "가이드": return "guide";
-      case "Q&A": return "qna";
-      case "공지/이슈": return "notices";
-      case "분석/칼럼": return "analysis";
-      case "스포트라이트": return "spotlight";
-      default: return "free";
-    }
-  };
-
-  const type = getCategoryType();
+  const type = categoryType;
   const [subOptions, setSubOptions] = useState<any[]>([]);
 
   useEffect(() => {
@@ -1732,9 +1779,9 @@ function PostEditorView({ category }: { category: string }) {
     <div className="space-y-6 animate-fade-in max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight">{category} 콘텐츠 관리</h1>
+          <h1 className="text-2xl font-black tracking-tight">{categoryName} 콘텐츠 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {category} 메뉴의 게시글을 작성, 수정 또는 삭제합니다.
+            {categoryName} 메뉴의 게시글을 작성, 수정 또는 삭제합니다.
           </p>
         </div>
         
@@ -1874,7 +1921,7 @@ function PostEditorView({ category }: { category: string }) {
               </div>
               <div>
                 <h3 className="text-sm font-black">대량 게시글 업로드</h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">CSV 파일을 업로드하여 여러 개의 {category} 게시글을 한 번에 등록합니다.</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">CSV 파일을 업로드하여 여러 개의 {categoryName} 게시글을 한 번에 등록합니다.</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -1963,7 +2010,7 @@ function PostEditorView({ category }: { category: string }) {
                   <input 
                     value={title} 
                     onChange={e => setTitle(e.target.value)} 
-                    placeholder={`${category} 제목을 입력하세요`} 
+                    placeholder={`${categoryName} 제목을 입력하세요`} 
                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all" 
                   />
                 </div>
@@ -1976,7 +2023,7 @@ function PostEditorView({ category }: { category: string }) {
                   {isPreview ? (
                     <div 
                       className="w-full min-h-[500px] bg-white/[0.02] border border-white/10 rounded-xl px-6 py-6 prose prose-invert prose-sm max-w-none overflow-y-auto"
-                      dangerouslySetInnerHTML={{ __html: content || "<p class='text-muted-foreground italic text-center py-20'>내용이 없습니다.</p>" }}
+                      dangerouslySetInnerHTML={{ __html: formatContent(content) || "<p class='text-muted-foreground italic text-center py-20'>내용이 없습니다.</p>" }}
                     />
                   ) : (
                     <textarea
@@ -2063,7 +2110,7 @@ function PostEditorView({ category }: { category: string }) {
                   <Info className="w-3 h-3" /> 관리자 팁
                 </h4>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  가이드 메뉴는 HTML을 직접 입력하거나 일반 글자 및 마크다운 표기로 작성할 수 있습니다. 줄바꿈이 정상적으로 표시됩니다.
+                  {categoryName} 메뉴는 HTML을 직접 입력하거나 일반 글자 및 마크다운 표기로 작성할 수 있습니다. 줄바꿈이 정상적으로 표시됩니다.
                 </p>
               </div>
             </div>
@@ -2076,7 +2123,7 @@ function PostEditorView({ category }: { category: string }) {
           <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in">
             <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
               <div>
-                <h3 className="font-black text-lg">{category} 카테고리 관리</h3>
+                <h3 className="font-black text-lg">{categoryName} 카테고리 관리</h3>
                 <p className="text-[10px] text-muted-foreground mt-0.5">글 작성 시 선택 가능한 세부 분류를 관리합니다</p>
               </div>
               <button onClick={() => setIsManageModalOpen(false)} className="text-muted-foreground hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all">✕</button>
@@ -2117,6 +2164,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   const [newMenuIcon, setNewMenuIcon] = useState("HelpCircle");
   const [newMenuHref, setNewMenuHref] = useState("");
   const [newMenuDesc, setNewMenuDesc] = useState("");
+  const [newMenuIsAdminWrite, setNewMenuIsAdminWrite] = useState(false);
 
   // Edit menu form state
   const [editingMenuId, setEditingMenuId] = useState<number | null>(null);
@@ -2126,6 +2174,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   const [editMenuIcon, setEditMenuIcon] = useState("HelpCircle");
   const [editMenuHref, setEditMenuHref] = useState("");
   const [editMenuDesc, setEditMenuDesc] = useState("");
+  const [editMenuIsAdminWrite, setEditMenuIsAdminWrite] = useState(false);
 
   const fetchMenuTypes = async () => {
     setMenuIsLoading(true);
@@ -2143,13 +2192,13 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
       } else {
         // Fallback to static default menus if DB table is empty or error occurs
         const DEFAULT_TYPES = [
-          { menuId: "analysis", label: "분석/칼럼", labelEn: "Analysis", icon: "BarChart3", href: "/analysis", sortOrder: 30 },
-          { menuId: "spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: "Star", href: "/spotlight", sortOrder: 40 },
-          { menuId: "concepts", label: "개념 탑재", labelEn: "Concepts", icon: "Lightbulb", href: "/concepts", sortOrder: 50 },
-          { menuId: "community", label: "커뮤니티", labelEn: "Forum", icon: "Users", href: "/community", sortOrder: 60 },
-          { menuId: "guide", label: "가이드", labelEn: "Guide", icon: "BookOpen", href: "/guide", sortOrder: 70 },
-          { menuId: "qna", label: "Q&A", labelEn: "Q&A", icon: "HelpCircle", href: "/qna", sortOrder: 75 },
-          { menuId: "notices", label: "공지/이슈", labelEn: "Notices", icon: "Bell", href: "/notices", sortOrder: 80 }
+          { menuId: "analysis", label: "분석/결과", labelEn: "Prediction/Result", icon: "BarChart3", href: "/analysis", sortOrder: 30, isAdminWrite: 0 },
+          { menuId: "spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: "Star", href: "/spotlight", sortOrder: 40, isAdminWrite: 1 },
+          { menuId: "concepts", label: "개념 탑재", labelEn: "Concepts", icon: "Lightbulb", href: "/concepts", sortOrder: 50, isAdminWrite: 0 },
+          { menuId: "community", label: "커뮤니티", labelEn: "Forum", icon: "Users", href: "/community", sortOrder: 60, isAdminWrite: 0 },
+          { menuId: "guide", label: "가이드", labelEn: "Guide", icon: "BookOpen", href: "/guide", sortOrder: 70, isAdminWrite: 1 },
+          { menuId: "qna", label: "Q&A", labelEn: "Q&A", icon: "HelpCircle", href: "/qna", sortOrder: 75, isAdminWrite: 0 },
+          { menuId: "notices", label: "공지/이슈", labelEn: "Notices", icon: "Bell", href: "/notices", sortOrder: 80, isAdminWrite: 1 }
         ];
         setMenuTypes(DEFAULT_TYPES);
         if (!initialType && !DEFAULT_TYPES.some((m: any) => m.menuId === activeType)) {
@@ -2160,13 +2209,13 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
       console.error(e);
       // Fallback in case of fetch errors
       const DEFAULT_TYPES = [
-        { menuId: "analysis", label: "분석/칼럼", labelEn: "Analysis", icon: "BarChart3", href: "/analysis", sortOrder: 30 },
-        { menuId: "spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: "Star", href: "/spotlight", sortOrder: 40 },
-        { menuId: "concepts", label: "개념 탑재", labelEn: "Concepts", icon: "Lightbulb", href: "/concepts", sortOrder: 50 },
-        { menuId: "community", label: "커뮤니티", labelEn: "Forum", icon: "Users", href: "/community", sortOrder: 60 },
-        { menuId: "guide", label: "가이드", labelEn: "Guide", icon: "BookOpen", href: "/guide", sortOrder: 70 },
-        { menuId: "qna", label: "Q&A", labelEn: "Q&A", icon: "HelpCircle", href: "/qna", sortOrder: 75 },
-        { menuId: "notices", label: "공지/이슈", labelEn: "Notices", icon: "Bell", href: "/notices", sortOrder: 80 }
+        { menuId: "analysis", label: "분석/결과", labelEn: "Prediction/Result", icon: "BarChart3", href: "/analysis", sortOrder: 30, isAdminWrite: 0 },
+        { menuId: "spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: "Star", href: "/spotlight", sortOrder: 40, isAdminWrite: 1 },
+        { menuId: "concepts", label: "개념 탑재", labelEn: "Concepts", icon: "Lightbulb", href: "/concepts", sortOrder: 50, isAdminWrite: 0 },
+        { menuId: "community", label: "커뮤니티", labelEn: "Forum", icon: "Users", href: "/community", sortOrder: 60, isAdminWrite: 0 },
+        { menuId: "guide", label: "가이드", labelEn: "Guide", icon: "BookOpen", href: "/guide", sortOrder: 70, isAdminWrite: 1 },
+        { menuId: "qna", label: "Q&A", labelEn: "Q&A", icon: "HelpCircle", href: "/qna", sortOrder: 75, isAdminWrite: 0 },
+        { menuId: "notices", label: "공지/이슈", labelEn: "Notices", icon: "Bell", href: "/notices", sortOrder: 80, isAdminWrite: 1 }
       ];
       setMenuTypes(DEFAULT_TYPES);
       if (!initialType && !DEFAULT_TYPES.some((m: any) => m.menuId === activeType)) {
@@ -2262,16 +2311,16 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
     if (!confirm("기본 메뉴 데이터를 데이터베이스에 초기화(생성)하시겠습니까?\n이 작업은 D1 데이터베이스의 main_menus 테이블에 기본 메뉴 데이터를 등록합니다.")) return;
     try {
       const defaultMenus = [
-        { menuId: 'home', label: '홈', labelEn: 'Home', icon: 'Home', href: '/', sortOrder: 10 },
-        { menuId: 'odds', label: '배당/경기', labelEn: 'Odds', icon: 'TrendingUp', href: '/odds', sortOrder: 20 },
-        { menuId: 'analysis', label: '분석/칼럼', labelEn: 'Analysis', icon: 'BarChart3', href: '/analysis', sortOrder: 30 },
-        { menuId: 'spotlight', label: '스포트라이트', labelEn: 'Spotlight', icon: 'Star', href: '/spotlight', sortOrder: 40 },
-        { menuId: 'concepts', label: '개념 탑재', labelEn: 'Concepts', icon: 'Lightbulb', href: '/concepts', sortOrder: 50 },
-        { menuId: 'community', label: '커뮤니티', labelEn: 'Forum', icon: 'Users', href: '/community', sortOrder: 60 },
-        { menuId: 'guide', label: '가이드', labelEn: 'Guide', icon: 'BookOpen', href: '/guide', sortOrder: 70 },
-        { menuId: 'qna', label: 'Q&A', labelEn: 'Q&A', icon: 'HelpCircle', href: '/qna', sortOrder: 75 },
-        { menuId: 'notices', label: '공지/이슈', labelEn: 'Notices', icon: 'Bell', href: '/notices', sortOrder: 80 },
-        { menuId: 'mypage', label: '마이페이지', labelEn: 'My Page', icon: 'User', href: '/mypage', sortOrder: 90 }
+        { menuId: 'home', label: '홈', labelEn: 'Home', icon: 'Home', href: '/', sortOrder: 10, isAdminWrite: 0 },
+        { menuId: 'odds', label: '배당/경기', labelEn: 'Odds', icon: 'TrendingUp', href: '/odds', sortOrder: 20, isAdminWrite: 0 },
+        { menuId: 'analysis', label: '분석/결과', labelEn: 'Prediction/Result', icon: 'BarChart3', href: '/analysis', sortOrder: 30, isAdminWrite: 0 },
+        { menuId: 'spotlight', label: '스포트라이트', labelEn: 'Spotlight', icon: 'Star', href: '/spotlight', sortOrder: 40, isAdminWrite: 1 },
+        { menuId: 'concepts', label: '개념 탑재', labelEn: 'Concepts', icon: 'Lightbulb', href: '/concepts', sortOrder: 50, isAdminWrite: 0 },
+        { menuId: 'community', label: '커뮤니티', labelEn: 'Forum', icon: 'Users', href: '/community', sortOrder: 60, isAdminWrite: 0 },
+        { menuId: 'guide', label: '가이드', labelEn: 'Guide', icon: 'BookOpen', href: '/guide', sortOrder: 70, isAdminWrite: 1 },
+        { menuId: 'qna', label: 'Q&A', labelEn: 'Q&A', icon: 'HelpCircle', href: '/qna', sortOrder: 75, isAdminWrite: 0 },
+        { menuId: 'notices', label: '공지/이슈', labelEn: 'Notices', icon: 'Bell', href: '/notices', sortOrder: 80, isAdminWrite: 1 },
+        { menuId: 'mypage', label: '마이페이지', labelEn: 'My Page', icon: 'User', href: '/mypage', sortOrder: 90, isAdminWrite: 0 }
       ];
 
       for (const menu of defaultMenus) {
@@ -2309,7 +2358,8 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
           icon: newMenuIcon,
           href: newMenuHref,
           sortOrder: nextSortOrder,
-          description: newMenuDesc
+          description: newMenuDesc,
+          isAdminWrite: newMenuIsAdminWrite
         }),
       });
       const data = await res.json();
@@ -2320,6 +2370,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
         setNewMenuIcon("HelpCircle");
         setNewMenuHref("");
         setNewMenuDesc("");
+        setNewMenuIsAdminWrite(false);
         fetchMenuTypes();
       } else {
         alert(data.error);
@@ -2345,7 +2396,8 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
           labelEn: editMenuLabelEn,
           icon: editMenuIcon,
           href: editMenuHref,
-          description: editMenuDesc
+          description: editMenuDesc,
+          isAdminWrite: editMenuIsAdminWrite
         }),
       });
       const data = await res.json();
@@ -2513,10 +2565,21 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                 className="col-span-1 md:col-span-3 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
               />
             </div>
-            <div className="flex justify-end">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+              <div className="flex items-center gap-2 ml-1">
+                <label className="text-xs font-bold text-muted-foreground cursor-pointer flex items-center gap-2 select-none">
+                  <input
+                    type="checkbox"
+                    checked={newMenuIsAdminWrite}
+                    onChange={e => setNewMenuIsAdminWrite(e.target.checked)}
+                    className="rounded border-white/10 bg-white/5 text-primary focus:ring-0 w-4 h-4 cursor-pointer"
+                  />
+                  <span>관리자 전용 작성 콘텐츠 메뉴로 설정 (예: 공지사항, 가이드 등)</span>
+                </label>
+              </div>
               <button
                 onClick={handleAddMenu}
-                className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.2)] self-end sm:self-auto"
               >
                 <Plus className="w-4 h-4" />
                 <span>메뉴 추가</span>
@@ -2596,6 +2659,17 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                           className="col-span-1 sm:col-span-2 md:col-span-5 px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-xs focus:outline-none text-foreground mt-1"
                           placeholder="메인 메뉴 설명"
                         />
+                        <div className="col-span-1 sm:col-span-2 md:col-span-5 flex items-center gap-2 mt-1 ml-1">
+                          <label className="text-[11px] font-bold text-muted-foreground cursor-pointer flex items-center gap-1.5 select-none">
+                            <input
+                              type="checkbox"
+                              checked={editMenuIsAdminWrite}
+                              onChange={e => setEditMenuIsAdminWrite(e.target.checked)}
+                              className="rounded border-white/10 bg-white/5 text-primary focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                            />
+                            <span>관리자 전용 작성 콘텐츠 메뉴로 설정</span>
+                          </label>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center gap-4 flex-1">
@@ -2605,12 +2679,17 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 flex-1">
                           <div>
                             <span className="text-[10px] text-muted-foreground/60 block font-bold">한글 라벨 (ID)</span>
-                            <span className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                            <span className="text-sm font-bold text-foreground flex items-center gap-1.5 flex-wrap">
                               {m.label} 
                               <span className="text-xs text-muted-foreground">({m.menuId})</span>
                               {m.isHidden === 1 && (
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20">
                                   숨김
+                                </span>
+                              )}
+                              {m.isAdminWrite === 1 && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                                  관리자 전용 작성
                                 </span>
                               )}
                             </span>
@@ -2695,6 +2774,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                                 setEditMenuIcon(m.icon);
                                 setEditMenuHref(m.href);
                                 setEditMenuDesc(m.description || "");
+                                setEditMenuIsAdminWrite(m.isAdminWrite === 1);
                               }}
                               className="p-2 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"
                             >
