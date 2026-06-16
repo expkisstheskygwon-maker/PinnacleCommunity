@@ -2,6 +2,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { notFound } from 'next/navigation';
 import { Shield, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { formatContent } from '@/lib/utils';
 
 export default async function PolicyPage({ params }: { params: Promise<{ type: string }> }) {
   const { type } = await params;
@@ -53,7 +54,7 @@ export default async function PolicyPage({ params }: { params: Promise<{ type: s
 
           <div 
             className="prose prose-invert prose-sm max-w-none leading-relaxed text-muted-foreground"
-            dangerouslySetInnerHTML={{ __html: content || "<p className='italic py-20 text-center'>등록된 내용이 없습니다.</p>" }}
+            dangerouslySetInnerHTML={{ __html: formatContent(content) || "<p className='italic py-20 text-center'>등록된 내용이 없습니다.</p>" }}
           />
         </div>
       </div>

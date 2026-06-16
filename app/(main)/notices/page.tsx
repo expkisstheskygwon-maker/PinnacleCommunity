@@ -7,7 +7,7 @@ import {
   Bell, AlertTriangle, Wrench, FileText, Shield,
   Clock, ChevronRight, Pin, Megaphone, XCircle, Info
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatContent } from "@/lib/utils";
 
 const TYPE_CONFIG: Record<string, { icon: any; color: string; bgColor: string; label: string }> = {
   사기주의: { icon: Shield, color: "text-red-400", bgColor: "bg-red-500/15", label: "사기주의" },
@@ -160,7 +160,7 @@ function NoticeContent() {
                       </button>
                       {expandedId === notice.id && (
                         <div className="px-5 pb-5 pl-[76px] animate-fade-in">
-                          <div className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: notice.content }} />
+                          <div className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: formatContent(notice.content) }} />
                         </div>
                       )}
                     </div>
@@ -199,7 +199,7 @@ function NoticeContent() {
                       </button>
                       {expandedId === notice.id && (
                         <div className="px-5 pb-5 pl-[68px] animate-fade-in">
-                          <div className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: notice.content }} />
+                          <div className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: formatContent(notice.content) }} />
                         </div>
                       )}
                     </div>
