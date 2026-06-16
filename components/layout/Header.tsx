@@ -70,6 +70,7 @@ const NAV_ITEMS: NavItem[] = [
     id: "spotlight", href: "/spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: Star,
     children: [
       { href: "/spotlight?cat=news", label: "긴급 뉴스", labelEn: "Breaking News" },
+      { href: "/calculator", label: "배당/마진율 계산기", labelEn: "Margin Calculator" },
     ]
   },
   {
