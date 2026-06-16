@@ -28,7 +28,7 @@ const TYPE_LABELS: Record<string, string> = {
   notices: "공지/이슈",
   guide: "가이드",
   qna: "Q&A",
-  analysis: "분석/칼럼",
+  analysis: "분석/결과",
   spotlight: "스포트라이트",
 };
 

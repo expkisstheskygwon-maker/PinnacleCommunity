@@ -269,7 +269,7 @@ export async function POST(request: NextRequest) {
     if (category === 'free' || categoryType === 'community') {
       categoryPrompt = '자유게시판용 글로서, 일상적인 대화, 가벼운 스포츠 잡담, 커뮤니티 유저들이 쓰는 친근하고 자연스러운 문투(ㅋㅋㅋ, ㅎㅎ, 짤막한 감탄사 등 적절히 혼용)로 가공하십시오.';
     } else if (category === 'analysis' || categoryType === 'analysis') {
-      categoryPrompt = '스포츠 경기 분석/칼럼용 글로서, 양 팀의 최근 경기력 분석, 라인업 정보, 주요 배당 변화, 최종 추천 픽 등을 정성스럽고 전문적인 분석 어조로 가공하십시오. 필요시 HTML 표나 리스트를 활용해 가독성 있게 구조화하십시오.';
+      categoryPrompt = '스포츠 경기 분석/결과용 글로서, 양 팀의 최근 경기력 분석, 라인업 정보, 주요 배당 변화, 최종 추천 픽 등을 정성스럽고 전문적인 분석 어조로 가공하십시오. 필요시 HTML 표나 리스트를 활용해 가독성 있게 구조화하십시오.';
     } else if (category === 'guide' || categoryType === 'guide') {
       categoryPrompt = '가입 및 입출금 가이드용 글로서, 초보자를 위한 단계별 안내(Step 1, Step 2...), 주의 사항, 규정 등을 매끄럽고 친절한 공식 가이드 어조로 가공하십시오. HTML 태그를 적절히 활용하여 구조를 명확히 하십시오.';
     } else if (category === 'qna' || categoryType === 'qna') {

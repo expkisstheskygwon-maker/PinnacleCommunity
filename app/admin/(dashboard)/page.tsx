@@ -1256,7 +1256,7 @@ function CommunityView() {
                 >
                   <option value="all">전체 카테고리</option>
                   <option value="free">자유게시판 (free)</option>
-                  <option value="analysis">분석/칼럼 (analysis)</option>
+                  <option value="analysis">분석/결과 (analysis)</option>
                   <option value="guide">가입/입출금 가이드 (guide)</option>
                   <option value="qna">Q&A (qna)</option>
                   <option value="notices">공지사항 (notices)</option>
@@ -1378,7 +1378,7 @@ function CommunityView() {
                 >
                   <option value="all">전체 카테고리</option>
                   <option value="free">자유게시판 (free)</option>
-                  <option value="analysis">분석/칼럼 (analysis)</option>
+                  <option value="analysis">분석/결과 (analysis)</option>
                   <option value="guide">가입/입출금 가이드 (guide)</option>
                   <option value="qna">Q&A (qna)</option>
                   <option value="notices">공지사항 (notices)</option>
