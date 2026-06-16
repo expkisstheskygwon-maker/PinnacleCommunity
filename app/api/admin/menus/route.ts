@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const adminSession = cookieStore.get('admin_session');
     if (!adminSession?.value) return NextResponse.json({ success: false, error: '권한 없음' }, { status: 401 });
 
-    const { menuId, label, labelEn, icon, href, sortOrder, description } = await request.json();
+    const { menuId, label, labelEn, icon, href, sortOrder, description, isAdminWrite } = await request.json();
     if (!menuId || !label || !labelEn || !icon || !href) {
       return NextResponse.json({ success: false, error: '필수 항목 누락' }, { status: 400 });
     }
@@ -19,9 +19,9 @@ export async function POST(request: NextRequest) {
     const finalSortOrder = sortOrder !== undefined ? sortOrder : 0;
 
     const result = await db.prepare(
-      'INSERT INTO main_menus (menuId, label, labelEn, icon, href, sortOrder, description) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO main_menus (menuId, label, labelEn, icon, href, sortOrder, description, isAdminWrite) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     )
-      .bind(menuId, label, labelEn, icon, href, finalSortOrder, description || null)
+      .bind(menuId, label, labelEn, icon, href, finalSortOrder, description || null, isAdminWrite ? 1 : 0)
       .run();
 
     if (!result.success) throw new Error('저장 실패');
@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Single item update
-    const { id, menuId, label, labelEn, icon, href, sortOrder, isHidden, description } = body;
+    const { id, menuId, label, labelEn, icon, href, sortOrder, isHidden, description, isAdminWrite } = body;
     if (!id) return NextResponse.json({ success: false, error: 'ID 필수' }, { status: 400 });
 
     const updates: string[] = [];
@@ -67,6 +67,7 @@ export async function PATCH(request: NextRequest) {
     if (sortOrder !== undefined) { updates.push('sortOrder = ?'); params.push(sortOrder); }
     if (isHidden !== undefined) { updates.push('isHidden = ?'); params.push(isHidden ? 1 : 0); }
     if (description !== undefined) { updates.push('description = ?'); params.push(description); }
+    if (isAdminWrite !== undefined) { updates.push('isAdminWrite = ?'); params.push(isAdminWrite ? 1 : 0); }
 
     if (updates.length === 0) {
       return NextResponse.json({ success: false, error: '변경할 필드가 없습니다.' }, { status: 400 });
