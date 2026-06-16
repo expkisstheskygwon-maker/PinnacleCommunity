@@ -3759,7 +3759,7 @@ function QnaAdminTabsView() {
       </div>
 
       {subTab === "faq-write" ? (
-        <PostEditorView category="Q&A" />
+        <PostEditorView categoryName="Q&A" categoryType="qna" />
       ) : (
         <AdminUserQnaView />
       )}
