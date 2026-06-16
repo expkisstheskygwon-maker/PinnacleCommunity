@@ -9,6 +9,40 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Helper to convert plain text or basic markdown to HTML, preserving newlines
+const formatContent = (text: string) => {
+  if (!text) return "";
+  
+  // If it already contains HTML tags, render it as-is
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    return text;
+  }
+  
+  // Otherwise, escape and convert markdown and newlines
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+    
+  // Convert basic markdown tags
+  html = html.replace(/^### (.*?)$/gm, "<h3>$1</h3>");
+  html = html.replace(/^## (.*?)$/gm, "<h2>$1</h2>");
+  html = html.replace(/^# (.*?)$/gm, "<h1>$1</h1>");
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/__(.*?)__/g, "<strong>$1</strong>");
+  html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+  html = html.replace(/_(.*?)_/g, "<em>$1</em>");
+  html = html.replace(/`(.*?)`/g, "<code>$1</code>");
+  html = html.replace(/^&gt; (.*?)$/gm, "<blockquote>$1</blockquote>");
+  html = html.replace(/^\s*[-*+]\s+(.*?)$/gm, "<li>$1</li>");
+  html = html.replace(/^\s*\d+\.\s+(.*?)$/gm, "<li>$1</li>");
+  
+  // Convert newlines to <br />
+  html = html.replace(/\n/g, "<br />");
+  
+  return html;
+};
+
 export default function SpotlightDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -234,7 +268,7 @@ export default function SpotlightDetailPage() {
               <div className="p-6 md:p-8">
                 <div 
                   className="text-base md:text-lg leading-relaxed font-medium opacity-90 prose prose-invert max-w-none break-all" 
-                  dangerouslySetInnerHTML={{ __html: post.content }} 
+                  dangerouslySetInnerHTML={{ __html: formatContent(post.content) }} 
                 />
               </div>
 

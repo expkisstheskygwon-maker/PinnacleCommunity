@@ -1578,6 +1578,7 @@ const parseCSV = (csvText: string) => {
 };
 
 function PostEditorView({ category }: { category: string }) {
+  const [activeSubTab, setActiveSubTab] = useState<"write" | "manage">("write");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [subCategory, setSubCategory] = useState("");
@@ -1585,6 +1586,13 @@ function PostEditorView({ category }: { category: string }) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
+  
+  // Edit state
+  const [editPostId, setEditPostId] = useState<number | null>(null);
+  
+  // Posts for management
+  const [posts, setPosts] = useState<any[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
 
   // Map category to backend category ID
   const getCategoryType = () => {
@@ -1616,6 +1624,28 @@ function PostEditorView({ category }: { category: string }) {
     fetchCats();
   }, [type, isManageModalOpen]);
 
+  const fetchCategoryPosts = async () => {
+    setPostsLoading(true);
+    try {
+      const res = await fetch("/api/admin/posts");
+      const data = await res.json();
+      if (data.success) {
+        const filtered = data.posts.filter((p: any) => p.category === type);
+        setPosts(filtered);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeSubTab === "manage") {
+      fetchCategoryPosts();
+    }
+  }, [activeSubTab, type]);
+
   const handlePublish = async () => {
     if (!title || !content) {
       alert("제목과 내용을 모두 입력해주세요.");
@@ -1624,24 +1654,34 @@ function PostEditorView({ category }: { category: string }) {
 
     try {
       setIsPublishing(true);
-      const response = await fetch("/api/admin/posts", {
-        method: "POST",
+      const url = "/api/admin/posts";
+      const method = editPostId ? "PATCH" : "POST";
+      
+      const payload = {
+        postId: editPostId || undefined,
+        title,
+        content,
+        category: type,
+        subCategory: subCategory || undefined,
+        image: imageBase64 || undefined,
+      };
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          content,
-          category: type,
-          subCategory: subCategory || undefined,
-          image: imageBase64 || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        alert("게시글이 성공적으로 발행되었습니다.");
+        alert(editPostId ? "게시글이 성공적으로 수정되었습니다." : "게시글이 성공적으로 발행되었습니다.");
         setTitle("");
         setContent("");
         setSubCategory("");
         setImageBase64("");
+        setEditPostId(null);
+        if (editPostId) {
+          setActiveSubTab("manage");
+        }
       } else {
         const data = await response.json();
         alert(`오류: ${data.error}`);
@@ -1654,239 +1694,382 @@ function PostEditorView({ category }: { category: string }) {
     }
   };
 
+  const handleEditClick = (post: any) => {
+    setEditPostId(post.id);
+    setTitle(post.title);
+    setContent(post.content);
+    setSubCategory(post.tags || "");
+    setImageBase64(post.image || "");
+    setActiveSubTab("write");
+  };
 
+  const handleDeleteClick = async (postId: number) => {
+    if (!confirm("정말 이 게시글을 삭제하시겠습니까? 관련 댓글 정보도 함께 지워집니다.")) return;
+    try {
+      const res = await fetch(`/api/admin/posts?id=${postId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        alert("게시글이 삭제되었습니다.");
+        fetchCategoryPosts();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditPostId(null);
+    setTitle("");
+    setContent("");
+    setSubCategory("");
+    setImageBase64("");
+  };
 
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight">{category} 작성</h1>
-          <p className="text-sm text-muted-foreground mt-1">새로운 {category} 콘텐츠를 작성합니다 (HTML 지원)</p>
+          <h1 className="text-2xl font-black tracking-tight">{category} 콘텐츠 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {category} 메뉴의 게시글을 작성, 수정 또는 삭제합니다.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsPreview(!isPreview)}
-            className={cn(
-              "px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5",
-              isPreview ? "bg-primary text-white border-primary" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
-            )}
-          >
-            {isPreview ? <Edit className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-            {isPreview ? "에디터" : "미리보기"}
-          </button>
-          <button
-            onClick={handlePublish}
-            disabled={isPublishing}
-            className="btn-primary py-2 px-8 text-xs flex items-center gap-2"
-          >
-            {isPublishing ? <Plus className="w-3.5 h-3.5" /> : null}
-            {isPublishing ? "발행 중..." : "발행하기"}
-          </button>
-        </div>
-      </div>
-
-      {/* Bulk Upload Section */}
-      <div className="glass-card rounded-2xl p-6 border-dashed border-white/10 bg-white/[0.01] flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-            <FileSpreadsheet className="w-6 h-6 text-emerald-400" />
-          </div>
-          <div>
-            <h3 className="text-sm font-black">대량 게시글 업로드</h3>
-            <p className="text-[11px] text-muted-foreground mt-0.5">CSV 파일을 업로드하여 여러 개의 {category} 게시글을 한 번에 등록합니다.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              const csvContent = "title,content,subCategory,image\n\"샘플 제목 1\",\"<p>HTML 내용이 들어갈 수 있습니다.</p>\",\"분류1\",\"https://example.com/image1.jpg\"\n\"샘플 제목 2\",\"<p>두 번째 글 내용입니다.</p>\",\"분류2\",";
-              const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement("a");
-              link.setAttribute("href", url);
-              link.setAttribute("download", `sample_bulk_upload_${type}.csv`);
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold hover:bg-white/10 transition-all"
-          >
-            <Download className="w-3.5 h-3.5" /> 샘플 파일 다운로드
-          </button>
-          <div className="relative">
-            <input
-              type="file"
-              accept=".csv,.json"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                  const text = event.target?.result as string;
-                  let parsed: any[] = [];
-                  if (file.name.toLowerCase().endsWith('.json')) {
-                    try {
-                      const json = JSON.parse(text);
-                      parsed = Array.isArray(json) ? json : [json];
-                    } catch (e) {
-                      alert("JSON 형식이 올바르지 않습니다.");
-                      return;
-                    }
-                  } else {
-                    parsed = parseCSV(text);
-                  }
-                  if (parsed.length === 0) {
-                    alert("데이터가 없거나 형식이 잘못되었습니다.");
-                    return;
-                  }
-                  
-                  if (!confirm(`${parsed.length}개의 게시글을 업로드하시겠습니까?`)) return;
-                  
-                  setIsPublishing(true);
-                  try {
-                    const res = await fetch('/api/admin/posts/bulk', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ posts: parsed, category: type })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                      alert(data.message);
-                    } else {
-                      alert(data.error);
-                    }
-                  } catch (err) {
-                    alert("업로드 중 오류가 발생했습니다.");
-                  } finally {
-                    setIsPublishing(false);
-                    e.target.value = '';
-                  }
-                };
-                reader.readAsText(file);
-              }}
-              className="absolute inset-0 opacity-0 cursor-pointer"
-            />
-            <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 text-white text-[11px] font-black hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20">
-              <Upload className="w-3.5 h-3.5" /> CSV/JSON 파일 업로드
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="glass-card rounded-2xl p-6 space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">제목</label>
-              <input 
-                value={title} 
-                onChange={e => setTitle(e.target.value)} 
-                placeholder={`${category} 제목을 입력하세요`} 
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all" 
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between ml-1">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">본문 {isPreview && "(미리보기)"}</label>
-                {!isPreview && <span className="text-[10px] text-muted-foreground italic">* HTML 태그를 직접 사용할 수 있습니다.</span>}
-              </div>
-              {isPreview ? (
-                <div 
-                  className="w-full min-h-[500px] bg-white/[0.02] border border-white/10 rounded-xl px-6 py-6 prose prose-invert prose-sm max-w-none overflow-y-auto"
-                  dangerouslySetInnerHTML={{ __html: content || "<p class='text-muted-foreground italic text-center py-20'>내용이 없습니다.</p>" }}
-                />
-              ) : (
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="내용을 입력하세요 (HTML 가능)..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[500px] font-mono leading-relaxed"
-                />
+        
+        {activeSubTab === "write" && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsPreview(!isPreview)}
+              className={cn(
+                "px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5",
+                isPreview ? "bg-primary text-white border-primary" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
               )}
-            </div>
+            >
+              {isPreview ? <Edit className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              {isPreview ? "에디터" : "미리보기"}
+            </button>
+            <button
+              onClick={handlePublish}
+              disabled={isPublishing}
+              className="btn-primary py-2 px-8 text-xs flex items-center gap-2"
+            >
+              {isPublishing ? <Plus className="w-3.5 h-3.5" /> : null}
+              {isPublishing ? "발행 중..." : editPostId ? "수정 완료" : "발행하기"}
+            </button>
+            {editPostId && (
+              <button
+                onClick={handleCancelEdit}
+                className="px-4 py-2 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold transition-all"
+              >
+                수정 취소
+              </button>
+            )}
           </div>
-        </div>
+        )}
+      </div>
 
-        <div className="space-y-4">
-          <div className="glass-card rounded-2xl p-6 space-y-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">세부 카테고리</label>
-                <button 
-                  onClick={() => setIsManageModalOpen(true)}
-                  className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-lg"
-                >
-                  <Edit className="w-2.5 h-2.5" /> 관리
-                </button>
+      {/* Sub Tabs */}
+      <div className="flex gap-4 border-b border-white/10 pb-2">
+        <button
+          onClick={() => setActiveSubTab("write")}
+          className={cn(
+            "text-xs font-bold pb-2 px-1 border-b-2 transition-all",
+            activeSubTab === "write" 
+              ? "border-primary text-primary font-black" 
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {editPostId ? "콘텐츠 수정" : "새 콘텐츠 작성"}
+        </button>
+        <button
+          onClick={() => setActiveSubTab("manage")}
+          className={cn(
+            "text-xs font-bold pb-2 px-1 border-b-2 transition-all",
+            activeSubTab === "manage" 
+              ? "border-primary text-primary font-black" 
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          기존 등록글 관리
+        </button>
+      </div>
+
+      {activeSubTab === "manage" ? (
+        <div className="glass-card rounded-2xl overflow-hidden">
+          {postsLoading ? (
+            <div className="py-20 text-center animate-pulse text-muted-foreground font-bold">
+              콘텐츠 목록을 불러오는 중...
+            </div>
+          ) : posts.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-white/[0.06] bg-white/[0.02]">
+                    <th className="text-left px-5 py-4 font-bold">제목</th>
+                    <th className="text-left px-3 py-4 font-bold">세부 카테고리</th>
+                    <th className="text-center px-3 py-4 font-bold">조회수</th>
+                    <th className="text-center px-3 py-4 font-bold">작성일</th>
+                    <th className="text-right px-5 py-4 font-bold">작업</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {posts.map(p => (
+                    <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-5 py-4 font-bold truncate max-w-[300px]" title={p.title}>
+                        <span dangerouslySetInnerHTML={{ __html: p.title }} />
+                      </td>
+                      <td className="px-3 py-4">
+                        {p.tags ? (
+                          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                            {p.tags}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground italic">없음</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-4 text-center text-muted-foreground">
+                        {(p.views || 0).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-4 text-center text-muted-foreground text-xs">
+                        {p.date ? new Date(p.date).toISOString().split('T')[0] : "-"}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEditClick(p)}
+                            className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
+                            title="수정"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(p.id)}
+                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-all"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-20 text-center text-muted-foreground">
+              등록된 게시글이 없습니다.
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Bulk Upload Section */}
+          <div className="glass-card rounded-2xl p-6 border-dashed border-white/10 bg-white/[0.01] flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                <FileSpreadsheet className="w-6 h-6 text-emerald-400" />
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {subOptions.length > 0 ? (
-                  subOptions.map(c => (
-                    <button 
-                      key={c.id} 
-                      onClick={() => setSubCategory(c.name)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
-                        subCategory === c.name 
-                          ? (c.name === "사기주의" ? "bg-red-500/20 text-red-400 border-red-500/50" : "bg-primary/20 text-primary border-primary/50")
-                          : (c.name === "사기주의" ? "border-red-500/20 bg-red-500/5 text-red-400/70 hover:bg-red-500/10 hover:text-red-400" : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20")
-                      )}
-                    >
-                      {c.name}
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-[10px] text-muted-foreground py-1 italic">등록된 카테고리가 없습니다.</p>
-                )}
+              <div>
+                <h3 className="text-sm font-black">대량 게시글 업로드</h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">CSV 파일을 업로드하여 여러 개의 {category} 게시글을 한 번에 등록합니다.</p>
               </div>
             </div>
-
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">대표 이미지</label>
-              <div className="relative group">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  const csvContent = "title,content,subCategory,image\n\"샘플 제목 1\",\"<p>HTML 내용이 들어갈 수 있습니다.</p>\",\"분류1\",\"https://example.com/image1.jpg\"\n\"샘플 제목 2\",\"<p>두 번째 글 내용입니다.</p>\",\"분류2\",";
+                  const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.setAttribute("href", url);
+                  link.setAttribute("download", `sample_bulk_upload_${type}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold hover:bg-white/10 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" /> 샘플 파일 다운로드
+              </button>
+              <div className="relative">
                 <input
                   type="file"
-                  accept="image/*"
-                  onChange={(e) => {
+                  accept=".csv,.json"
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => setImageBase64(reader.result as string);
-                      reader.readAsDataURL(file);
-                    }
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                      const text = event.target?.result as string;
+                      let parsed: any[] = [];
+                      if (file.name.toLowerCase().endsWith('.json')) {
+                        try {
+                          const json = JSON.parse(text);
+                          parsed = Array.isArray(json) ? json : [json];
+                        } catch (e) {
+                          alert("JSON 형식이 올바르지 않습니다.");
+                          return;
+                        }
+                      } else {
+                        parsed = parseCSV(text);
+                      }
+                      if (parsed.length === 0) {
+                        alert("데이터가 없거나 형식이 잘못되었습니다.");
+                        return;
+                      }
+                      
+                      if (!confirm(`${parsed.length}개의 게시글을 업로드하시겠습니까?`)) return;
+                      
+                      setIsPublishing(true);
+                      try {
+                        const res = await fetch('/api/admin/posts/bulk', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ posts: parsed, category: type })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          alert(data.message);
+                        } else {
+                          alert(data.error);
+                        }
+                      } catch (err) {
+                        alert("업로드 중 오류가 발생했습니다.");
+                      } finally {
+                        setIsPublishing(false);
+                        e.target.value = '';
+                      }
+                    };
+                    reader.readAsText(file);
                   }}
-                  className="hidden"
-                  id="image-upload"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
                 />
-                <label
-                  htmlFor="image-upload"
-                  className="cursor-pointer block w-full aspect-video bg-white/5 border border-dashed border-white/20 rounded-xl overflow-hidden hover:bg-white/10 transition-all flex flex-col items-center justify-center"
-                >
-                  {imageBase64 ? (
-                    <img src={imageBase64} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <Star className="w-5 h-5 opacity-20" />
-                      <span className="text-[10px] font-bold">대표 이미지 선택</span>
-                    </div>
-                  )}
-                </label>
+                <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 text-white text-[11px] font-black hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20">
+                  <Upload className="w-3.5 h-3.5" /> CSV/JSON 파일 업로드
+                </button>
               </div>
             </div>
           </div>
-          
-          <div className="glass-card p-6 rounded-2xl bg-primary/[0.03] border-primary/10">
-            <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-1.5">
-              <Info className="w-3 h-3" /> 관리자 팁
-            </h4>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              가이드 메뉴는 HTML을 직접 입력하여 리스트, 표 등을 자유롭게 구성할 수 있습니다. 미리보기 버튼을 눌러 디자인을 확인하세요.
-            </p>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="glass-card rounded-2xl p-6 space-y-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">제목</label>
+                  <input 
+                    value={title} 
+                    onChange={e => setTitle(e.target.value)} 
+                    placeholder={`${category} 제목을 입력하세요`} 
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">본문 {isPreview && "(미리보기)"}</label>
+                    {!isPreview && <span className="text-[10px] text-muted-foreground italic">* HTML 태그를 직접 사용할 수 있으며, 마크다운 기법 및 일반 텍스트 줄바꿈이 자동 지원됩니다.</span>}
+                  </div>
+                  {isPreview ? (
+                    <div 
+                      className="w-full min-h-[500px] bg-white/[0.02] border border-white/10 rounded-xl px-6 py-6 prose prose-invert prose-sm max-w-none overflow-y-auto"
+                      dangerouslySetInnerHTML={{ __html: content || "<p class='text-muted-foreground italic text-center py-20'>내용이 없습니다.</p>" }}
+                    />
+                  ) : (
+                    <textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="내용을 입력하세요 (HTML 가능)..."
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-primary/50 transition-all min-h-[500px] font-mono leading-relaxed"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="glass-card rounded-2xl p-6 space-y-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">세부 카테고리</label>
+                    <button 
+                      onClick={() => setIsManageModalOpen(true)}
+                      className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-lg"
+                    >
+                      <Edit className="w-2.5 h-2.5" /> 관리
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {subOptions.length > 0 ? (
+                      subOptions.map(c => (
+                        <button 
+                          key={c.id} 
+                          onClick={() => setSubCategory(c.name)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
+                            subCategory === c.name 
+                              ? (c.name === "사기주의" ? "bg-red-500/20 text-red-400 border-red-500/50" : "bg-primary/20 text-primary border-primary/50")
+                              : (c.name === "사기주의" ? "border-red-500/20 bg-red-500/5 text-red-400/70 hover:bg-red-500/10 hover:text-red-400" : "border-white/10 bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/20")
+                          )}
+                        >
+                          {c.name}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground py-1 italic">등록된 카테고리가 없습니다.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">대표 이미지</label>
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => setImageBase64(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className="cursor-pointer block w-full aspect-video bg-white/5 border border-dashed border-white/20 rounded-xl overflow-hidden hover:bg-white/10 transition-all flex flex-col items-center justify-center"
+                    >
+                      {imageBase64 ? (
+                        <img src={imageBase64} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                          <Star className="w-5 h-5 opacity-20" />
+                          <span className="text-[10px] font-bold">대표 이미지 선택</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="glass-card p-6 rounded-2xl bg-primary/[0.03] border-primary/10">
+                <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                  <Info className="w-3 h-3" /> 관리자 팁
+                </h4>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  가이드 메뉴는 HTML을 직접 입력하거나 일반 글자 및 마크다운 표기로 작성할 수 있습니다. 줄바꿈이 정상적으로 표시됩니다.
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {isManageModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
