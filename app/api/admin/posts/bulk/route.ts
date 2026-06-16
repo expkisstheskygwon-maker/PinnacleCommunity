@@ -156,10 +156,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      const isHtml = p.isHtml !== undefined ? (p.isHtml ? 1 : 0) : (/<[a-z][\s\S]*>/i.test(content) ? 1 : 0);
       postStatements.push(
         db.prepare(
-          'INSERT INTO posts (title, content, authorId, category, tags, image, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        ).bind(title, content, authorId, cat, subCat || null, img || null, createdAt)
+          'INSERT INTO posts (title, content, authorId, category, tags, image, createdAt, isHtml) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        ).bind(title, content, authorId, cat, subCat || null, img || null, createdAt, isHtml)
       );
       validPostsToInsert.push(p);
     }
