@@ -76,8 +76,8 @@ const NAV_ITEMS: NavItem[] = [
     id: "concepts", href: "/concepts", label: "개념 탑재", labelEn: "Concepts", icon: Lightbulb,
     children: [
       { href: "/concepts?cat=fails", label: "베팅 복기", labelEn: "Betting Review" },
-      { href: "/concepts?cat=experiments", label: "기상천외 배팅 실험실", labelEn: "Betting Lab" },
       { href: "/concepts?cat=sentiment", label: "시장 여론", labelEn: "Market Sentiment" },
+      { href: "/concepts?cat=experiments", label: "기상천외 배팅 실험실", labelEn: "Betting Lab" },
       { href: "/calculator", label: "배당/마진율 계산기", labelEn: "Margin Calculator" },
     ]
   },
@@ -208,6 +208,9 @@ export default function Header({ user }: HeaderProps) {
               ];
             } else if (m.menuId === 'concepts') {
               staticCh = [
+                { href: "/concepts?cat=fails", label: "베팅 복기", labelEn: "Betting Review" },
+                { href: "/concepts?cat=sentiment", label: "시장 여론", labelEn: "Market Sentiment" },
+                { href: "/concepts?cat=experiments", label: "기상천외 배팅 실험실", labelEn: "Betting Lab" },
                 { href: "/calculator", label: "배당/마진율 계산기", labelEn: "Margin Calculator" }
               ];
             }
@@ -291,6 +294,26 @@ export default function Header({ user }: HeaderProps) {
     const staticChildren = item.children || [];
     
     if (dynamic.length > 0) {
+      if (item.id === 'concepts') {
+        const order = ['fails', 'sentiment', 'experiments'];
+        const sortedDynamic = [...dynamic].sort((a, b) => {
+          const catA = a.href.split('cat=')[1] ? decodeURIComponent(a.href.split('cat=')[1]) : '';
+          const catB = b.href.split('cat=')[1] ? decodeURIComponent(b.href.split('cat=')[1]) : '';
+          const indexA = order.indexOf(catA);
+          const indexB = order.indexOf(catB);
+          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+          return 0;
+        });
+        const calculatorItem = staticChildren.find(s => s.href.includes('/calculator'));
+        const finalChildren = [...sortedDynamic];
+        if (calculatorItem) {
+          finalChildren.push(calculatorItem);
+        }
+        return { ...item, children: finalChildren };
+      }
+      
       // If dynamic categories are fetched successfully, only keep special static children (like leaderboard, calculator)
       const specialStatic = staticChildren.filter(s => s.href.includes('/leaderboard') || s.href.includes('/calculator'));
       return { ...item, children: [...specialStatic, ...dynamic] };
