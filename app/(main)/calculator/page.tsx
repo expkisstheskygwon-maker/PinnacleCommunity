@@ -92,7 +92,7 @@ export default function CalculatorPage() {
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-6">
           <Link href="/" className="hover:text-primary transition-colors">홈</Link>
           <span>/</span>
-          <span className="text-foreground font-bold">배팅 도구</span>
+          <Link href="/concepts" className="hover:text-primary transition-colors">개념 탑재</Link>
           <span>/</span>
           <span className="text-foreground font-bold">배당 및 마진율 계산기</span>
         </div>

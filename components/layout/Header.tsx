@@ -70,7 +70,6 @@ const NAV_ITEMS: NavItem[] = [
     id: "spotlight", href: "/spotlight", label: "스포트라이트", labelEn: "Spotlight", icon: Star,
     children: [
       { href: "/spotlight?cat=news", label: "긴급 뉴스", labelEn: "Breaking News" },
-      { href: "/calculator", label: "배당/마진율 계산기", labelEn: "Margin Calculator" },
     ]
   },
   {
@@ -79,6 +78,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: "/concepts?cat=fails", label: "베팅 복기", labelEn: "Betting Review" },
       { href: "/concepts?cat=experiments", label: "기상천외 배팅 실험실", labelEn: "Betting Lab" },
       { href: "/concepts?cat=sentiment", label: "시장 여론", labelEn: "Market Sentiment" },
+      { href: "/calculator", label: "배당/마진율 계산기", labelEn: "Margin Calculator" },
     ]
   },
   {
@@ -186,13 +186,9 @@ export default function Header({ user }: HeaderProps) {
           // Map raw DB menus to NavItem format with Lucide components
           const mappedMenus = rawMenus.map((m: any) => {
             const IconComponent = ICON_MAP[m.icon] || HelpCircle;
-            return {
-              id: m.menuId,
-              href: m.href,
-              label: m.menuId === 'analysis' ? "분석/결과" : m.label,
-              labelEn: m.menuId === 'analysis' ? "Prediction/Result" : m.labelEn,
-              icon: IconComponent,
-              children: m.menuId === 'odds' ? [
+            let staticCh: SubItem[] | undefined = undefined;
+            if (m.menuId === 'odds') {
+              staticCh = [
                 { href: "/odds?cat=live", label: "라이브", labelEn: "Live" },
                 { href: "/odds?cat=soccer", label: "축구", labelEn: "Soccer" },
                 { href: "/odds?cat=basketball", label: "농구", labelEn: "Basketball" },
@@ -200,10 +196,29 @@ export default function Header({ user }: HeaderProps) {
                 { href: "/odds?cat=volleyball", label: "배구", labelEn: "Volleyball" },
                 { href: "/odds?cat=hockey", label: "하키", labelEn: "Hockey" },
                 { href: "/odds?cat=handball", label: "핸드볼", labelEn: "Handball" },
-              ] : m.menuId === 'analysis' ? [
+              ];
+            } else if (m.menuId === 'analysis') {
+              staticCh = [
                 { href: "/analysis?tab=analysis", label: "스포츠 분석", labelEn: "Sports Analysis" },
                 { href: "/analysis?tab=result", label: "예측/결과", labelEn: "Prediction/Result" },
-              ] : undefined
+              ];
+            } else if (m.menuId === 'community') {
+              staticCh = [
+                { href: "/community/leaderboard", label: "수익률 랭킹", labelEn: "ROI Leaderboard" }
+              ];
+            } else if (m.menuId === 'concepts') {
+              staticCh = [
+                { href: "/calculator", label: "배당/마진율 계산기", labelEn: "Margin Calculator" }
+              ];
+            }
+            
+            return {
+              id: m.menuId,
+              href: m.href,
+              label: m.menuId === 'analysis' ? "분석/결과" : m.label,
+              labelEn: m.menuId === 'analysis' ? "Prediction/Result" : m.labelEn,
+              icon: IconComponent,
+              children: staticCh
             };
           });
 
@@ -276,8 +291,8 @@ export default function Header({ user }: HeaderProps) {
     const staticChildren = item.children || [];
     
     if (dynamic.length > 0) {
-      // If dynamic categories are fetched successfully, only keep special static children (like leaderboard)
-      const specialStatic = staticChildren.filter(s => s.href.includes('/leaderboard'));
+      // If dynamic categories are fetched successfully, only keep special static children (like leaderboard, calculator)
+      const specialStatic = staticChildren.filter(s => s.href.includes('/leaderboard') || s.href.includes('/calculator'));
       return { ...item, children: [...specialStatic, ...dynamic] };
     }
     return item;

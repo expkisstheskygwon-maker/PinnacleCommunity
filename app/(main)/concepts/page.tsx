@@ -6,7 +6,8 @@ import {
   Users, PenLine, ThumbsUp, Eye, Clock, Flame,
   Hash, Search, X,
   History, Shield, Zap, Lightbulb, Trophy,
-  Play, RefreshCw, AlertCircle, BookOpen, TrendingUp
+  Play, RefreshCw, AlertCircle, BookOpen, TrendingUp,
+  Calculator
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -529,6 +530,13 @@ export default function ConceptsPage() {
               {cat.label}
             </button>
           ))}
+          <Link
+            href="/calculator"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap bg-white/5 text-muted-foreground hover:bg-white/10 border border-white/[0.06]"
+          >
+            <Calculator className="w-3.5 h-3.5" />
+            배당/마진율 계산기
+          </Link>
         </div>
 
         {/* Mini Dashboard - Hide on Strategy / Experiments tab */}
