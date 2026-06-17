@@ -16,6 +16,9 @@ interface MatchAnalysisCardProps {
     away: string;
     homeLogo?: string;
     awayLogo?: string;
+    odds?: { h: number; d: number; a: number };
+    ah?: string;
+    ou?: string;
   };
 }
 
@@ -29,7 +32,12 @@ export default function MatchAnalysisCard({ match }: MatchAnalysisCardProps) {
     const fetchPredictions = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/sports/predictions?fixtureId=${match.id}&sport=${match.sport}`);
+        const oddsQuery = match.odds 
+          ? `&oddsH=${match.odds.h}&oddsD=${match.odds.d}&oddsA=${match.odds.a}` 
+          : '';
+        const res = await fetch(
+          `/api/sports/predictions?fixtureId=${match.id}&sport=${match.sport}&home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}${oddsQuery}`
+        );
         const data = await res.json();
         if (data.success && data.predictions) {
           setPredictions(data.predictions);
@@ -45,7 +53,7 @@ export default function MatchAnalysisCard({ match }: MatchAnalysisCardProps) {
     };
 
     fetchPredictions();
-  }, [match.id, match.sport]);
+  }, [match.id, match.sport, match.home, match.away, match.odds]);
 
   return (
     <>

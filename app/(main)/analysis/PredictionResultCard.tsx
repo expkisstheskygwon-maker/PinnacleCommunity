@@ -17,6 +17,9 @@ interface PredictionResultCardProps {
     homeLogo?: string;
     awayLogo?: string;
     scores: { home: number; away: number };
+    odds?: { h: number; d: number; a: number };
+    ah?: string;
+    ou?: string;
   };
 }
 
@@ -28,7 +31,12 @@ export default function PredictionResultCard({ match }: PredictionResultCardProp
     const fetchPredictions = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/sports/predictions?fixtureId=${match.id}&sport=${match.sport}`);
+        const oddsQuery = match.odds 
+          ? `&oddsH=${match.odds.h}&oddsD=${match.odds.d}&oddsA=${match.odds.a}` 
+          : '';
+        const res = await fetch(
+          `/api/sports/predictions?fixtureId=${match.id}&sport=${match.sport}&home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}${oddsQuery}`
+        );
         const data = await res.json();
         if (data.success && data.predictions) {
           setPredictions(data.predictions);
@@ -41,7 +49,7 @@ export default function PredictionResultCard({ match }: PredictionResultCardProp
     };
 
     fetchPredictions();
-  }, [match.id, match.sport]);
+  }, [match.id, match.sport, match.home, match.away, match.odds]);
 
   // 실제 결과 계산
   const actualHome = match.scores?.home ?? 0;
