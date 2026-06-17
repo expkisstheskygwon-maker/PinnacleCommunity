@@ -87,7 +87,6 @@ const NAV_ITEMS: NavItem[] = [
       { href: "/community?cat=free", label: "자유게시판", labelEn: "Free Board" },
       { href: "/community?cat=match", label: "경기 토론", labelEn: "Match Talk" },
       { href: "/community?cat=picks", label: "픽 공유", labelEn: "Picks" },
-      { href: "/community/leaderboard", label: "수익률 랭킹", labelEn: "ROI Leaderboard" },
       { href: "/community?cat=events", label: "이벤트/랭킹", labelEn: "Events" },
     ]
   },
@@ -202,10 +201,6 @@ export default function Header({ user }: HeaderProps) {
                 { href: "/analysis?tab=analysis", label: "스포츠 분석", labelEn: "Sports Analysis" },
                 { href: "/analysis?tab=result", label: "예측/결과", labelEn: "Prediction/Result" },
               ];
-            } else if (m.menuId === 'community') {
-              staticCh = [
-                { href: "/community/leaderboard", label: "수익률 랭킹", labelEn: "ROI Leaderboard" }
-              ];
             } else if (m.menuId === 'concepts') {
               staticCh = [
                 { href: "/concepts?cat=fails", label: "베팅 복기", labelEn: "Betting Review" },
@@ -314,8 +309,8 @@ export default function Header({ user }: HeaderProps) {
         return { ...item, children: finalChildren };
       }
       
-      // If dynamic categories are fetched successfully, only keep special static children (like leaderboard, calculator)
-      const specialStatic = staticChildren.filter(s => s.href.includes('/leaderboard') || s.href.includes('/calculator'));
+      // If dynamic categories are fetched successfully, only keep special static children (like calculator)
+      const specialStatic = staticChildren.filter(s => s.href.includes('/calculator'));
       return { ...item, children: [...specialStatic, ...dynamic] };
     }
     return item;
