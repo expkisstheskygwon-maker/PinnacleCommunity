@@ -41,6 +41,11 @@ function CalculatorContent() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    
+    // Smooth scroll to top when tab changes
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   // Tab configurations
