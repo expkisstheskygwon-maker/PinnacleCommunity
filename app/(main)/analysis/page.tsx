@@ -1,16 +1,22 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import PredictionResultTab from "./PredictionResultTab";
 import AiAnalysisTab from "./AiAnalysisTab";
 
 function AnalysisPageContent() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") === "result" ? "result" : "analysis";
-  const [activeTab, setActiveTab] = useState<"analysis" | "result">(initialTab);
+  const router = useRouter();
+  const activeTab = searchParams.get("tab") === "result" ? "result" : "analysis";
+
+  const handleTabChange = (tab: "analysis" | "result") => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.push(`/analysis?${params.toString()}`);
+  };
 
   return (
     <div className="mesh-gradient min-h-screen">
@@ -37,7 +43,7 @@ function AnalysisPageContent() {
 
           <div className="flex items-center bg-white/5 p-1 rounded-2xl border border-white/10 shrink-0">
             <button
-              onClick={() => setActiveTab("analysis")}
+              onClick={() => handleTabChange("analysis")}
               className={cn(
                 "px-6 py-3 rounded-xl text-sm font-bold transition-all",
                 activeTab === "analysis"
@@ -48,7 +54,7 @@ function AnalysisPageContent() {
               스포츠 분석
             </button>
             <button
-              onClick={() => setActiveTab("result")}
+              onClick={() => handleTabChange("result")}
               className={cn(
                 "px-6 py-3 rounded-xl text-sm font-bold transition-all",
                 activeTab === "result"
