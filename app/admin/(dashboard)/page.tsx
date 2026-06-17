@@ -716,7 +716,10 @@ function CommunityView() {
 
   const [individualEditForm, setIndividualEditForm] = useState({
     views: 0,
-    likes: 0
+    likes: 0,
+    title: "",
+    content: "",
+    image: null as string | null
   });
 
   const fetchPosts = async () => {
@@ -763,7 +766,10 @@ function CommunityView() {
       if (post) {
         setIndividualEditForm({
           views: post.views || 0,
-          likes: post.likes || 0
+          likes: post.likes || 0,
+          title: post.title || "",
+          content: post.content || "",
+          image: post.image || null
         });
       }
     }
@@ -873,6 +879,9 @@ function CommunityView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           postId,
+          title: individualEditForm.title,
+          content: individualEditForm.content,
+          image: individualEditForm.image,
           views: individualEditForm.views,
           likes: individualEditForm.likes
         })
@@ -1180,49 +1189,129 @@ function CommunityView() {
                     {expandedPostId === p.id && (
                       <tr className="bg-white/[0.01]">
                         <td colSpan={7} className="px-5 py-4 border-t border-white/[0.02]">
-                          <div className="p-5 bg-black/20 rounded-xl border border-white/5 space-y-4 max-h-[500px] overflow-y-auto">
-                            <h4 className="font-bold text-sm text-primary flex items-center gap-2">
-                              <FileText className="w-4 h-4" /> 게시글 본문 확인
-                            </h4>
-                            <div 
-                              className="text-sm text-muted-foreground prose prose-invert prose-sm max-w-none break-all" 
-                              dangerouslySetInnerHTML={{ __html: p.content || '<p class="italic">내용이 없습니다.</p>' }} 
-                            />
-                            {p.image && (
-                              <div className="mt-4 border-t border-white/5 pt-4">
-                                <p className="text-[10px] font-bold text-muted-foreground mb-2">첨부 이미지</p>
-                                <img src={p.image} alt="첨부 이미지" className="max-h-[300px] rounded-lg object-contain border border-white/10 bg-black/40" />
-                              </div>
-                            )}
+                          <div className="p-6 bg-black/40 rounded-2xl border border-white/5 space-y-6 max-h-[700px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                              <h4 className="font-black text-sm text-primary flex items-center gap-2">
+                                <Edit className="w-4 h-4" /> 게시글 상세 및 수정
+                              </h4>
+                              <span className="text-[10px] text-muted-foreground font-mono">게시글 ID: {p.id}</span>
+                            </div>
 
-                            <div className="mt-4 border-t border-white/5 pt-4" onClick={(e) => e.stopPropagation()}>
-                              <h5 className="font-bold text-xs text-primary mb-3">조회수 및 추천수 개별 수정</h5>
-                              <div className="flex items-end gap-4 flex-wrap">
-                                <div>
-                                  <label className="text-[10px] text-muted-foreground block mb-1 font-bold">조회수</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Left side: Text inputs */}
+                              <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                  <label className="text-[10px] text-muted-foreground font-black uppercase tracking-wider block">제목</label>
                                   <input 
-                                    type="number" 
-                                    value={individualEditForm.views}
-                                    onChange={e => setIndividualEditForm({ ...individualEditForm, views: parseInt(e.target.value) || 0 })}
-                                    className="px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-xs w-28 text-white font-bold"
+                                    type="text" 
+                                    value={individualEditForm.title}
+                                    onChange={e => setIndividualEditForm({ ...individualEditForm, title: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white font-bold focus:outline-none focus:border-primary/50"
+                                    placeholder="게시글 제목"
                                   />
                                 </div>
-                                <div>
-                                  <label className="text-[10px] text-muted-foreground block mb-1 font-bold">추천수</label>
-                                  <input 
-                                    type="number" 
-                                    value={individualEditForm.likes}
-                                    onChange={e => setIndividualEditForm({ ...individualEditForm, likes: parseInt(e.target.value) || 0 })}
-                                    className="px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-xs w-28 text-white font-bold"
+
+                                <div className="space-y-1.5">
+                                  <label className="text-[10px] text-muted-foreground font-black uppercase tracking-wider block">내용</label>
+                                  <textarea 
+                                    value={individualEditForm.content}
+                                    onChange={e => setIndividualEditForm({ ...individualEditForm, content: e.target.value })}
+                                    rows={8}
+                                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-primary/50 font-medium leading-relaxed"
+                                    placeholder="본문 내용을 입력하세요 (HTML 태그 지원)"
                                   />
                                 </div>
-                                <button 
-                                  onClick={() => handleIndividualEditSubmit(p.id)}
-                                  className="px-4 py-2 bg-primary hover:opacity-90 text-white rounded-lg text-xs font-bold transition-all"
-                                >
-                                  조회/추천 수정 완료
-                                </button>
                               </div>
+
+                              {/* Right side: Image, Stats and Actions */}
+                              <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                  <label className="text-[10px] text-muted-foreground font-black uppercase tracking-wider block">첨부 이미지</label>
+                                  <div className="relative group">
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          const reader = new FileReader();
+                                          reader.onloadend = () => {
+                                            setIndividualEditForm(prev => ({ ...prev, image: reader.result as string }));
+                                          };
+                                          reader.readAsDataURL(file);
+                                        }
+                                      }}
+                                      className="hidden"
+                                      id={`image-upload-detail-${p.id}`}
+                                    />
+                                    <label
+                                      htmlFor={`image-upload-detail-${p.id}`}
+                                      className="cursor-pointer block w-full aspect-video bg-white/5 border border-dashed border-white/20 rounded-xl overflow-hidden hover:bg-white/10 transition-all flex flex-col items-center justify-center relative"
+                                    >
+                                      {individualEditForm.image ? (
+                                        <>
+                                          <img src={individualEditForm.image} alt="Preview" className="w-full h-full object-contain" />
+                                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                            <Upload className="w-5 h-5 text-white" />
+                                            <span className="text-[10px] text-white font-bold">이미지 변경</span>
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                          <ImageIcon className="w-6 h-6 opacity-40" />
+                                          <span className="text-[10px] font-bold">이미지 업로드 (선택)</span>
+                                        </div>
+                                      )}
+                                    </label>
+                                    {individualEditForm.image && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setIndividualEditForm(prev => ({ ...prev, image: null }))}
+                                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all z-10"
+                                        title="이미지 삭제"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1.5">
+                                    <label className="text-[10px] text-muted-foreground font-black block font-bold">조회수</label>
+                                    <input 
+                                      type="number" 
+                                      value={individualEditForm.views}
+                                      onChange={e => setIndividualEditForm({ ...individualEditForm, views: parseInt(e.target.value) || 0 })}
+                                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white font-bold focus:outline-none focus:border-primary/50"
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-[10px] text-muted-foreground font-black block font-bold">추천수</label>
+                                    <input 
+                                      type="number" 
+                                      value={individualEditForm.likes}
+                                      onChange={e => setIndividualEditForm({ ...individualEditForm, likes: parseInt(e.target.value) || 0 })}
+                                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white font-bold focus:outline-none focus:border-primary/50"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 border-t border-white/5 pt-4">
+                              <button 
+                                onClick={() => setExpandedPostId(null)}
+                                className="px-5 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:bg-white/5 transition-colors border border-white/10 bg-white/[0.02]"
+                              >
+                                취소
+                              </button>
+                              <button 
+                                onClick={() => handleIndividualEditSubmit(p.id)}
+                                className="px-6 py-2.5 bg-primary hover:opacity-90 text-white rounded-xl text-xs font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+                              >
+                                수정 완료
+                              </button>
                             </div>
                           </div>
                         </td>
