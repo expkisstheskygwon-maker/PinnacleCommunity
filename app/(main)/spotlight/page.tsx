@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import {
   Star, CheckCircle2, ThumbsUp, MessageSquare, Filter,
@@ -20,17 +20,26 @@ export default function SpotlightPage() {
 }
 
 function SpotlightContent() {
-  const [activeCat, setActiveCat] = useState("all");
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const activeCat = searchParams.get("cat") || "all";
+
   const [posts, setPosts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mainMenuDesc, setMainMenuDesc] = useState<string>("전문가들이 선별한 프리미엄 베팅 인사이트");
 
-  useEffect(() => {
-    const cat = searchParams.get('cat');
-    if (cat) setActiveCat(cat);
+  const setActiveCat = (catId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (catId === "all") {
+      params.delete("cat");
+    } else {
+      params.set("cat", catId);
+    }
+    router.push(`/spotlight?${params.toString()}`);
+  };
 
+  useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
