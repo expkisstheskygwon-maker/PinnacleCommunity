@@ -58,10 +58,31 @@ export default function PredictionResultCard({ match }: PredictionResultCardProp
 
   // 적중 여부 판별 함수
   const isHit = (pick: string) => {
+    const pickLower = pick.toLowerCase();
+
+    // 1. 단순 승무패 매칭
     if (pick.includes("홈 승") && actualResult === "홈 승") return true;
     if (pick.includes("원정 승") && actualResult === "원정 승") return true;
     if (pick.includes("무승부") && actualResult === "무승부") return true;
-    // 오버/언더나 다른 픽들은 복잡하므로 여기서는 단순 승무패 기반 텍스트 매칭 위주로 처리
+
+    // 2. API-Sports 축구 어드바이스 매칭 (예: "Double chance : home or draw")
+    if (match.sport === 'soccer') {
+      if (actualResult === "홈 승" && (pickLower.includes("home") || pickLower.includes("1x"))) return true;
+      if (actualResult === "원정 승" && (pickLower.includes("away") || pickLower.includes("x2"))) return true;
+      if (actualResult === "무승부" && (pickLower.includes("draw") || pickLower.includes("1x") || pickLower.includes("x2"))) return true;
+    }
+
+    // 3. 언더/오버 매칭 (예: "언더/오버 2.5 오버")
+    if (pick.includes("오버") || pick.includes("언더") || pickLower.includes("over") || pickLower.includes("under")) {
+      const matchLine = pick.match(/(\d+(\.\d+)?)/);
+      if (matchLine) {
+        const line = parseFloat(matchLine[0]);
+        const total = actualHome + actualAway;
+        if ((pick.includes("오버") || pickLower.includes("over")) && total > line) return true;
+        if ((pick.includes("언더") || pickLower.includes("under")) && total < line) return true;
+      }
+    }
+
     return false;
   };
 

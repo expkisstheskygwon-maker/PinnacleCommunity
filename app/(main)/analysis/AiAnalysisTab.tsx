@@ -49,6 +49,22 @@ export default function AiAnalysisTab() {
   const [activeSport, setActiveSport] = useState("soccer");
   const [matches, setMatches] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [botStats, setBotStats] = useState<Record<string, { winRate: number; recentHit: string }>>({});
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/sports/predictions/stats");
+        const data = await res.json();
+        if (data.success && data.stats) {
+          setBotStats(data.stats);
+        }
+      } catch (err) {
+        console.error("Failed to fetch bot stats", err);
+      }
+    };
+    fetchStats();
+  }, []);
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -89,36 +105,39 @@ export default function AiAnalysisTab() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {AI_EXPERTS.map((bot, i) => (
-            <div key={i} className={cn("bg-background/60 backdrop-blur-sm border rounded-2xl p-5 hover:scale-[1.02] transition-transform", bot.borderColor)}>
-              <div className="flex items-center gap-4 mb-4">
-                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl", bot.bgColor, bot.color)}>
-                  {bot.avatar}
+          {AI_EXPERTS.map((bot, i) => {
+            const stats = botStats[bot.name] || { winRate: bot.winRate, recentHit: bot.recentHit };
+            return (
+              <div key={i} className={cn("bg-background/60 backdrop-blur-sm border rounded-2xl p-5 hover:scale-[1.02] transition-transform", bot.borderColor)}>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl", bot.bgColor, bot.color)}>
+                    {bot.avatar}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-foreground text-lg">{bot.name}</h3>
+                    <p className="text-xs text-muted-foreground">{bot.title}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-foreground text-lg">{bot.name}</h3>
-                  <p className="text-xs text-muted-foreground">{bot.title}</p>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/5 rounded-xl p-3 text-center">
-                  <div className="text-[10px] text-muted-foreground mb-1">주간 적중</div>
-                  <div className="font-mono font-bold text-lg">
-                    <span className={bot.color}>{bot.recentHit.split('/')[0]}</span>
-                    <span className="text-white/30 text-sm mx-0.5">/</span>
-                    <span className="text-muted-foreground text-sm">{bot.recentHit.split('/')[1]}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 rounded-xl p-3 text-center">
+                    <div className="text-[10px] text-muted-foreground mb-1">주간 적중</div>
+                    <div className="font-mono font-bold text-lg">
+                      <span className={bot.color}>{stats.recentHit.split('/')[0]}</span>
+                      <span className="text-white/30 text-sm mx-0.5">/</span>
+                      <span className="text-muted-foreground text-sm">{stats.recentHit.split('/')[1]}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="bg-white/5 rounded-xl p-3 text-center">
-                  <div className="text-[10px] text-muted-foreground mb-1">전체 적중률</div>
-                  <div className="font-mono font-black text-lg">
-                    {bot.winRate}<span className="text-sm ml-0.5">%</span>
+                  <div className="bg-white/5 rounded-xl p-3 text-center">
+                    <div className="text-[10px] text-muted-foreground mb-1">전체 적중률</div>
+                    <div className="font-mono font-black text-lg">
+                      {stats.winRate}<span className="text-sm ml-0.5">%</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
