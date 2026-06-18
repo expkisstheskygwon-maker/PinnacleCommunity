@@ -2,9 +2,33 @@ import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 const DEFAULT_STATS = {
-  "AI 데이터봇 알파": { winRate: 58, recentHit: "4/10" },
-  "AI 통계봇 베타": { winRate: 62, recentHit: "6/10" },
-  "AI 밸류봇 감마": { winRate: 51, recentHit: "3/10" }
+  "AI 데이터봇 알파": { 
+    winRate: 58, 
+    recentHit: "4/10",
+    bySport: {
+      soccer: { winRate: 60, total: 10, hits: 6 },
+      baseball: { winRate: 50, total: 10, hits: 5 },
+      basketball: { winRate: 60, total: 10, hits: 6 }
+    }
+  },
+  "AI 통계봇 베타": { 
+    winRate: 62, 
+    recentHit: "6/10",
+    bySport: {
+      soccer: { winRate: 65, total: 10, hits: 6 },
+      baseball: { winRate: 60, total: 10, hits: 6 },
+      basketball: { winRate: 60, total: 10, hits: 6 }
+    }
+  },
+  "AI 밸류봇 감마": { 
+    winRate: 51, 
+    recentHit: "3/10",
+    bySport: {
+      soccer: { winRate: 50, total: 10, hits: 5 },
+      baseball: { winRate: 50, total: 10, hits: 5 },
+      basketball: { winRate: 50, total: 10, hits: 5 }
+    }
+  }
 };
 
 // Hit evaluation function matching backend and frontend logic
@@ -118,10 +142,27 @@ export async function GET(request: Request) {
     );
 
     // Calculate stats per bot
-    const botStatsRaw: Record<string, { total: number; hits: number; recentHits: number; recentTotal: number }> = {
-      "AI 데이터봇 알파": { total: 0, hits: 0, recentHits: 0, recentTotal: 0 },
-      "AI 통계봇 베타": { total: 0, hits: 0, recentHits: 0, recentTotal: 0 },
-      "AI 밸류봇 감마": { total: 0, hits: 0, recentHits: 0, recentTotal: 0 }
+    interface BotRaw {
+      total: number;
+      hits: number;
+      recentHits: number;
+      recentTotal: number;
+      bySport: Record<string, { total: number; hits: number }>;
+    }
+
+    const botStatsRaw: Record<string, BotRaw> = {
+      "AI 데이터봇 알파": { 
+        total: 0, hits: 0, recentHits: 0, recentTotal: 0,
+        bySport: { soccer: { total: 0, hits: 0 }, baseball: { total: 0, hits: 0 }, basketball: { total: 0, hits: 0 } }
+      },
+      "AI 통계봇 베타": { 
+        total: 0, hits: 0, recentHits: 0, recentTotal: 0,
+        bySport: { soccer: { total: 0, hits: 0 }, baseball: { total: 0, hits: 0 }, basketball: { total: 0, hits: 0 } }
+      },
+      "AI 밸류봇 감마": { 
+        total: 0, hits: 0, recentHits: 0, recentTotal: 0,
+        bySport: { soccer: { total: 0, hits: 0 }, baseball: { total: 0, hits: 0 }, basketball: { total: 0, hits: 0 } }
+      }
     };
 
     predictionResults.forEach(({ match, predictions }) => {
@@ -133,6 +174,15 @@ export async function GET(request: Request) {
           botStatsRaw[botName].total += 1;
           if (hit) {
             botStatsRaw[botName].hits += 1;
+          }
+
+          // Accumulate by sport
+          const sport = match.sport;
+          if (botStatsRaw[botName].bySport[sport]) {
+            botStatsRaw[botName].bySport[sport].total += 1;
+            if (hit) {
+              botStatsRaw[botName].bySport[sport].hits += 1;
+            }
           }
 
           // Recent hit: out of the first 10 matches (most recent)
@@ -147,13 +197,25 @@ export async function GET(request: Request) {
     });
 
     // Format stats
-    const finalStats: Record<string, { winRate: number; recentHit: string }> = {};
+    const finalStats: Record<string, { winRate: number; recentHit: string; bySport: Record<string, { winRate: number; total: number; hits: number }> }> = {};
     Object.keys(botStatsRaw).forEach((botName) => {
       const raw = botStatsRaw[botName];
       const winRate = raw.total > 0 ? Math.round((raw.hits / raw.total) * 100) : DEFAULT_STATS[botName as keyof typeof DEFAULT_STATS].winRate;
       const recentHit = raw.recentTotal > 0 ? `${raw.recentHits}/${raw.recentTotal}` : DEFAULT_STATS[botName as keyof typeof DEFAULT_STATS].recentHit;
       
-      finalStats[botName] = { winRate, recentHit };
+      const bySportFormatted: Record<string, { winRate: number; total: number; hits: number }> = {};
+      Object.keys(raw.bySport).forEach((sport) => {
+        const sportRaw = raw.bySport[sport];
+        const defaultSportVal = DEFAULT_STATS[botName as keyof typeof DEFAULT_STATS].bySport[sport as 'soccer' | 'baseball' | 'basketball'];
+        
+        bySportFormatted[sport] = {
+          winRate: sportRaw.total > 0 ? Math.round((sportRaw.hits / sportRaw.total) * 100) : defaultSportVal.winRate,
+          total: sportRaw.total > 0 ? sportRaw.total : defaultSportVal.total,
+          hits: sportRaw.total > 0 ? sportRaw.hits : defaultSportVal.hits
+        };
+      });
+
+      finalStats[botName] = { winRate, recentHit, bySport: bySportFormatted };
     });
 
     // 3. Save to database cache
