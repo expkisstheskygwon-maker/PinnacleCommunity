@@ -10,11 +10,69 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get('sport') || 'soccer';
   const dateParam = searchParams.get('date');
+  const fixtureId = searchParams.get('fixtureId');
   
   const apiKey = process.env.APISPORTS_KEY;
 
   if (!apiKey) {
     return NextResponse.json({ error: 'API Key missing' }, { status: 500 });
+  }
+
+  // 종목별 설정 정의
+  const sportConfigs: Record<string, { host: string; endpoint: string }> = {
+    soccer: { host: 'v3.football.api-sports.io', endpoint: '/fixtures' },
+    baseball: { host: 'v1.baseball.api-sports.io', endpoint: '/games' },
+    basketball: { host: 'v1.basketball.api-sports.io', endpoint: '/games' },
+    volleyball: { host: 'v1.volleyball.api-sports.io', endpoint: '/games' },
+    handball: { host: 'v1.handball.api-sports.io', endpoint: '/games' },
+    hockey: { host: 'v1.hockey.api-sports.io', endpoint: '/games' },
+  };
+
+  // 단일 경기 조회 처리
+  if (fixtureId) {
+    const config = sportConfigs[sport] || { host: `v1.${sport}.api-sports.io`, endpoint: '/games' };
+    const url = `https://${config.host}${config.endpoint}?id=${fixtureId}`;
+    try {
+      const response = await fetch(url, { 
+        headers: { 'x-apisports-key': apiKey },
+        next: { revalidate: 60 }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const fixtureData = data.response || [];
+        if (fixtureData.length > 0) {
+          const item = fixtureData[0];
+          const fixture = item.fixture || item;
+          const teams = item.teams;
+          const league = item.league;
+          const status = fixture.status || item.status;
+          
+          const scores = item.goals || item.scores || { home: 0, away: 0 };
+          const homeScore = scores.home != null ? (typeof scores.home === 'object' ? scores.home?.total ?? 0 : scores.home) : 0;
+          const awayScore = scores.away != null ? (typeof scores.away === 'object' ? scores.away?.total ?? 0 : scores.away) : 0;
+
+          const matchResult = {
+            id: fixture.id,
+            home: teams.home.name,
+            away: teams.away.name,
+            league: league.name,
+            country: league.country || item.country?.name || "World",
+            sport: sport,
+            status: status.long || status.short,
+            statusCode: status.short,
+            time: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            date: new Date(fixture.timestamp * 1000 || fixture.date).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }),
+            live: ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN PROGRESS', 'Q1', 'Q2', 'Q3', 'Q4', 'OT', 'IN1', 'IN2', 'IN3', 'IN4', 'IN5', 'IN6', 'IN7', 'IN8', 'IN9'].includes(status.short?.toUpperCase()),
+            finished: ['FT', 'AET', 'PEN', 'POST', 'CANC', 'ABD', 'AWD', 'WO', 'AOT', 'F', 'END'].includes(status.short?.toUpperCase()),
+            scores: { home: homeScore ?? 0, away: awayScore ?? 0 }
+          };
+          return NextResponse.json({ success: true, match: matchResult });
+        }
+      }
+      return NextResponse.json({ success: false, error: '경기를 찾을 수 없습니다.' }, { status: 404 });
+    } catch (err: any) {
+      return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    }
   }
 
   const targetDate = dateParam ? dateParam : new Date().toISOString().split('T')[0];
