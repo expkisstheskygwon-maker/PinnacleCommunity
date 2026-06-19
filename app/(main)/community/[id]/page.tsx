@@ -527,6 +527,8 @@ export default function PostDetailPage() {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
                 
                 {post.authorId === 0 || ['notices', 'guide', 'analysis', 'spotlight'].includes(post.category) ? (
                   <div 
