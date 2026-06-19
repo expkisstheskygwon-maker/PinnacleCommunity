@@ -41,6 +41,68 @@ export default function PostDetailPage() {
   
   const { cleanContent, betData } = parseBetLog(post?.content || '');
 
+  // AI 예측 및 매칭 경기 결과 상태 추가
+  const [matchedMatch, setMatchedMatch] = useState<any>(null);
+  const [aiPredictions, setAiPredictions] = useState<any[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // AI 예측 적중 검증 헬퍼 함수
+  const isPredictionHit = (pick: string, actualHome: number, actualAway: number, sport: string): boolean => {
+    const actualResult = actualHome > actualAway ? "홈 승" : actualHome < actualAway ? "원정 승" : "무승부";
+    const pickLower = pick.toLowerCase();
+
+    if (pick.includes("홈 승") && actualResult === "홈 승") return true;
+    if (pick.includes("원정 승") && actualResult === "원정 승") return true;
+    if (pick.includes("무승부") && actualResult === "무승부") return true;
+
+    if (sport === 'soccer') {
+      if (actualResult === "홈 승" && (pickLower.includes("home") || pickLower.includes("1x"))) return true;
+      if (actualResult === "원정 승" && (pickLower.includes("away") || pickLower.includes("x2"))) return true;
+      if (actualResult === "무승부" && (pickLower.includes("draw") || pickLower.includes("1x") || pickLower.includes("x2"))) return true;
+    }
+
+    if (pick.includes("오버") || pick.includes("언더") || pickLower.includes("over") || pickLower.includes("under")) {
+      const matchLine = pick.match(/(\d+(\.\d+)?)/);
+      if (matchLine) {
+        const line = parseFloat(matchLine[0]);
+        const total = actualHome + actualAway;
+        if ((pick.includes("오버") || pickLower.includes("over")) && total > line) return true;
+        if ((pick.includes("언더") || pickLower.includes("under")) && total < line) return true;
+      }
+    }
+
+    return false;
+  };
+
+  useEffect(() => {
+    const fetchAiAndMatchData = async () => {
+      if (!betData || !betData.fixtureId) return;
+      
+      setAiLoading(true);
+      try {
+        // 1. 경기 결과 조회
+        const matchRes = await fetch(`/api/sports/matches?fixtureId=${betData.fixtureId}&sport=${betData.sport || 'soccer'}`);
+        const matchData = await matchRes.json();
+        if (matchData.success && matchData.match) {
+          setMatchedMatch(matchData.match);
+        }
+
+        // 2. AI 예측 데이터 조회
+        const predRes = await fetch(`/api/sports/predictions?fixtureId=${betData.fixtureId}&sport=${betData.sport || 'soccer'}`);
+        const predData = await predRes.json();
+        if (predData.success && predData.predictions) {
+          setAiPredictions(predData.predictions);
+        }
+      } catch (err) {
+        console.error("Failed to fetch AI details for post", err);
+      } finally {
+        setAiLoading(false);
+      }
+    };
+
+    fetchAiAndMatchData();
+  }, [betData]);
+
   useEffect(() => {
     const fetchPost = async () => {
       try {
@@ -364,6 +426,107 @@ export default function PostDetailPage() {
                     </div>
                   </div>
                 )}
+
+                {/* AI Prediction Verification Card */}
+                {betData && betData.fixtureId && (matchedMatch || aiPredictions.length > 0 || aiLoading) && (
+                  <div className="border border-white/5 rounded-3xl p-6 bg-white/[0.01] space-y-4 animate-fade-in relative overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-5 h-5 text-primary animate-pulse" />
+                        <h4 className="text-sm font-black tracking-tight">AI 실시간 예측 복기 & 신뢰도 검증</h4>
+                      </div>
+                      {matchedMatch && (
+                        <span className="text-[10px] text-muted-foreground font-bold">
+                          {matchedMatch.sport === 'soccer' ? '축구' : matchedMatch.sport === 'baseball' ? '야구' : '농구'} • {matchedMatch.league}
+                        </span>
+                      )}
+                    </div>
+
+                    {aiLoading ? (
+                      <div className="flex flex-col items-center justify-center py-8 gap-2">
+                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                        <span className="text-xs text-muted-foreground/60 font-bold">AI 예측 데이터 및 경기 결과를 불러오는 중...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Match Result Display */}
+                        {matchedMatch && (
+                          <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                            <div className="text-xs font-bold text-muted-foreground/70">경기 결과</div>
+                            <div className="flex items-center gap-4">
+                              <span className="text-sm font-black text-white">{matchedMatch.home}</span>
+                              <span className="px-2.5 py-1 rounded bg-black/40 text-sm font-mono font-black text-primary border border-white/5">
+                                {matchedMatch.scores.home} : {matchedMatch.scores.away}
+                              </span>
+                              <span className="text-sm font-black text-white">{matchedMatch.away}</span>
+                            </div>
+                            <div className="shrink-0">
+                              {matchedMatch.finished ? (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-white/10 text-muted-foreground">
+                                  종료됨
+                                </span>
+                              ) : matchedMatch.live ? (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-500/20 text-red-400 animate-pulse border border-red-500/30">
+                                  진행중
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-white/5 text-muted-foreground border border-white/5">
+                                  대기중
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* AI Bots Predictions List */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {aiPredictions.map((pred, i) => {
+                            const hasScores = matchedMatch && (matchedMatch.finished || matchedMatch.live);
+                            const hit = hasScores 
+                              ? isPredictionHit(pred.pick, matchedMatch.scores.home, matchedMatch.scores.away, matchedMatch.sport || 'soccer')
+                              : null;
+
+                            return (
+                              <div key={i} className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-white/10 transition-colors">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-black">
+                                      {pred.botAvatar || 'AI'}
+                                    </span>
+                                    <span className="text-xs font-black text-white">{pred.botName}</span>
+                                  </div>
+                                  <span className="text-[9px] text-muted-foreground/60 font-mono font-bold">
+                                    승률 {pred.winRate}%
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <div className="text-[9px] text-muted-foreground font-bold">예측 픽 (AI Pick)</div>
+                                  <div className="text-sm font-black text-[hsl(var(--gold))]">{pred.pick}</div>
+                                </div>
+
+                                <div className="border-t border-white/5 pt-2.5 flex items-center justify-between">
+                                  <span className="text-[9px] text-muted-foreground font-bold">검증 상태</span>
+                                  {hit === true ? (
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-0.5">
+                                      <Check className="w-3 h-3" /> 적중 (HIT)
+                                    </span>
+                                  ) : hit === false ? (
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-0.5">
+                                      <X className="w-3 h-3" /> 미적중
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-black bg-white/5 text-muted-foreground border border-white/5">
+                                      대기중
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                 
                 {post.authorId === 0 || ['notices', 'guide', 'analysis', 'spotlight'].includes(post.category) ? (
                   <div 
