@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   PenLine, X, Check, ChevronLeft, Hash, 
   Info, Loader2, AlertTriangle, Image as ImageIcon, Send,
-  History, Shield, Zap, Lightbulb, Flame, Trophy
+  History, Shield, Zap, Lightbulb, Flame, Trophy, Search, Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -54,8 +54,59 @@ export default function ConceptsWritePage() {
     match: '',
     odds: '',
     stake: '',
-    result: 'win'
+    result: 'win',
+    fixtureId: null as number | null,
+    sport: ''
   });
+
+  // 경기 검색 관련 상태 추가
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchDate, setSearchDate] = useState(new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [searchSport, setSearchSport] = useState('all');
+  const [searchMatches, setSearchMatches] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+
+  const handleSearchMatches = async () => {
+    if (!searchQuery.trim()) {
+      setSearchError('검색어를 입력해주세요.');
+      return;
+    }
+    setSearchLoading(true);
+    setSearchError('');
+    try {
+      const res = await fetch(`/api/sports/matches/search?query=${encodeURIComponent(searchQuery)}&date=${searchDate}&sport=${searchSport}`);
+      const data = await res.json();
+      if (data.success) {
+        setSearchMatches(data.matches || []);
+        if ((data.matches || []).length === 0) {
+          setSearchError('검색 조건에 맞는 경기가 없습니다.');
+        }
+      } else {
+        setSearchError(data.error || '경기 검색 중 오류가 발생했습니다.');
+      }
+    } catch (err) {
+      console.error("Match search fetch error:", err);
+      setSearchError('서버 연결 중 오류가 발생했습니다.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleSelectMatch = (match: any) => {
+    setBetLog(prev => ({
+      ...prev,
+      match: `${match.home} vs ${match.away} (${match.league})`,
+      fixtureId: match.id,
+      sport: match.sport,
+      odds: match.odds?.h && match.odds.h > 0 ? String(match.odds.h) : prev.odds
+    }));
+    setSearchModalOpen(false);
+    setSearchQuery('');
+    setSearchMatches([]);
+    setSearchError('');
+  };
 
   const isBetLogCategory = formData.category === 'review' || formData.category === 'strategy' || formData.category === 'fails' || formData.category === 'experiments';
 
@@ -158,7 +209,9 @@ export default function ConceptsWritePage() {
         odds: parseFloat(betLog.odds),
         stake: parseFloat(betLog.stake),
         result: betLog.result,
-        net: net
+        net: net,
+        fixtureId: betLog.fixtureId,
+        sport: betLog.sport
       })}]`;
       finalContent = logTag + "\n" + finalContent;
     }
@@ -274,14 +327,30 @@ export default function ConceptsWritePage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-1.5 col-span-1 md:col-span-2">
-                    <label className="text-[10px] text-muted-foreground font-bold">대상 경기 / 베팅 팀</label>
-                    <input
-                      type="text"
-                      placeholder="예: 레알 마드리드 승"
-                      value={betLog.match}
-                      onChange={(e) => setBetLog(prev => ({ ...prev, match: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 text-sm placeholder:text-muted-foreground/30 font-bold"
-                    />
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-muted-foreground font-bold">대상 경기 / 베팅 팀</label>
+                      <button
+                        type="button"
+                        onClick={() => setSearchModalOpen(true)}
+                        className="text-[10px] text-primary hover:underline font-black flex items-center gap-1"
+                      >
+                        <Search className="w-2.5 h-2.5" /> 경기 검색 및 매칭
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="예: 레알 마드리드 승"
+                        value={betLog.match}
+                        onChange={(e) => setBetLog(prev => ({ ...prev, match: e.target.value, fixtureId: null }))}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 text-sm placeholder:text-muted-foreground/30 font-bold pr-20"
+                      />
+                      {betLog.fixtureId && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-black">
+                          매칭됨
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-muted-foreground font-bold">배당률 (Odds)</label>
@@ -478,6 +547,155 @@ export default function ConceptsWritePage() {
               )}
             </button>
           </div>
+          {/* 경기 검색 모달 */}
+          {searchModalOpen && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+              <div className="bg-neutral-900 border border-white/10 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+                {/* Header */}
+                <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Search className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-black tracking-tight">베팅 경기 검색 및 매칭</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchModalOpen(false);
+                      setSearchQuery('');
+                      setSearchMatches([]);
+                      setSearchError('');
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Filter and Input */}
+                <div className="p-6 space-y-4 border-b border-white/5 bg-white/[0.01]">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">종목</label>
+                      <select
+                        value={searchSport}
+                        onChange={(e) => setSearchSport(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 outline-none text-xs font-bold focus:border-primary"
+                      >
+                        <option value="all" className="bg-neutral-900">전체 종목</option>
+                        <option value="soccer" className="bg-neutral-900">축구</option>
+                        <option value="baseball" className="bg-neutral-900">야구</option>
+                        <option value="basketball" className="bg-neutral-900">농구</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">경기 날짜</label>
+                      <input
+                        type="date"
+                        value={searchDate}
+                        onChange={(e) => setSearchDate(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 outline-none text-xs font-mono font-bold focus:border-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">팀 이름 / 리그 검색</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="예: 레알 마드리드, Dodgers, NBA 등"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSearchMatches();
+                          }
+                        }}
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary text-sm font-bold placeholder:text-muted-foreground/30"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSearchMatches}
+                        disabled={searchLoading}
+                        className="btn-primary px-5 rounded-xl font-bold text-xs flex items-center gap-1.5 shrink-0"
+                      >
+                        {searchLoading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <>
+                            <Search className="w-3.5 h-3.5" />
+                            검색
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search Results */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-3 min-h-[250px] max-h-[400px]">
+                  {searchError && (
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-xs font-bold text-center">
+                      {searchError}
+                    </div>
+                  )}
+
+                  {!searchLoading && searchMatches.length === 0 && !searchError && (
+                    <div className="text-center py-12 text-muted-foreground/50 text-xs font-bold">
+                      날짜와 종목을 설정하고 검색어를 입력해 경기를 찾아보세요.
+                    </div>
+                  )}
+
+                  {searchMatches.map((match) => (
+                    <button
+                      key={match.id}
+                      type="button"
+                      onClick={() => handleSelectMatch(match)}
+                      className="w-full bg-white/5 border border-white/5 hover:border-white/20 rounded-2xl p-4 text-left transition-all hover:bg-white/10 flex items-center justify-between group"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-primary/20 text-primary">
+                            {match.sport === 'soccer' ? '축구' : match.sport === 'baseball' ? '야구' : match.sport === 'basketball' ? '농구' : match.sport}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-bold">
+                            {match.league}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {match.date} {match.time}
+                          </span>
+                        </div>
+                        <div className="text-sm font-black tracking-tight text-white flex items-center gap-2 pt-0.5">
+                          <span>{match.home}</span>
+                          <span className="text-muted-foreground/50 font-normal">vs</span>
+                          <span>{match.away}</span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-2">
+                        {match.finished ? (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-neutral-800 text-muted-foreground">
+                            {match.scores.home} : {match.scores.away} (종료)
+                          </span>
+                        ) : match.live ? (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-400 animate-pulse border border-red-500/30">
+                            LIVE {match.scores.home} : {match.scores.away}
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/5 text-muted-foreground border border-white/5">
+                            예정
+                          </span>
+                        )}
+                        <span className="p-1 rounded-lg bg-white/5 group-hover:bg-primary/20 group-hover:text-primary transition-colors text-muted-foreground">
+                          <Check className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </div>
