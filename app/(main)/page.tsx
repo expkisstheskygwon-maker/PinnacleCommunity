@@ -393,25 +393,34 @@ export default function HomePage() {
                 color: "text-emerald-400" 
               },
               { 
-                icon: Star, 
-                label: siteSettings.trust_stat_3_label || "평균 평점", 
-                value: siteSettings.trust_stat_3_value || "4.3 / 5", 
+                icon: Target, 
+                label: "최근 최고 적중 (알파)", 
+                value: aiStatsLoading ? "..." : `${aiStats?.["AI 데이터봇 알파"]?.recentHit || "4/10"}`, 
                 color: "text-[hsl(var(--gold))]" 
               },
               { 
-                icon: MessageSquare, 
-                label: siteSettings.trust_stat_4_label || "오늘 게시글", 
-                value: siteSettings.trust_stat_4_value || "234건", 
+                icon: Zap, 
+                label: "AI 종합 예측 정확도", 
+                value: aiStatsLoading 
+                  ? "..." 
+                  : `${Math.round(((aiStats?.["AI 데이터봇 알파"]?.winRate || 58) + (aiStats?.["AI 통계봇 베타"]?.winRate || 62) + (aiStats?.["AI 밸류봇 감마"]?.winRate || 51)) / 3)}%`, 
                 color: "text-purple-400" 
               },
             ].map((stat) => (
-              <div key={stat.label} className="stat-card rounded-xl">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
+              <Link 
+                key={stat.label} 
+                href="/analysis" 
+                className="stat-card rounded-xl block hover:bg-white/10 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer border border-white/5 hover:border-primary/30 group"
+              >
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold group-hover:text-primary transition-colors">
                   <stat.icon className={cn("w-3.5 h-3.5", stat.color)} />
                   {stat.label}
                 </div>
-                <span className={cn("text-2xl font-black tracking-tight", stat.color)}>{stat.value}</span>
-              </div>
+                <span className={cn("text-2xl font-black tracking-tight flex items-center gap-1 mt-1", stat.color)}>
+                  {stat.value}
+                  <span className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity font-bold">→</span>
+                </span>
+              </Link>
             ))}
           </div>
         </div>
