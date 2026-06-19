@@ -77,16 +77,6 @@ export async function GET(request: Request) {
 
   const targetDate = dateParam ? dateParam : new Date().toISOString().split('T')[0];
 
-  // 종목별 설정 정의
-  const sportConfigs: Record<string, { host: string; endpoint: string }> = {
-    soccer: { host: 'v3.football.api-sports.io', endpoint: '/fixtures' },
-    baseball: { host: 'v1.baseball.api-sports.io', endpoint: '/games' },
-    basketball: { host: 'v1.basketball.api-sports.io', endpoint: '/games' },
-    volleyball: { host: 'v1.volleyball.api-sports.io', endpoint: '/games' },
-    handball: { host: 'v1.handball.api-sports.io', endpoint: '/games' },
-    hockey: { host: 'v1.hockey.api-sports.io', endpoint: '/games' },
-  };
-
   const fetchTheSportsDBData = async (sportKey: string) => {
     const tsdbKey = process.env.THESPORTSDB_KEY || '123';
     
