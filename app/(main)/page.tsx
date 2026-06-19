@@ -129,6 +129,10 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState("all"); // all, interest, favorite, bet
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
 
+  // AI 예측 통계 데이터 추가
+  const [aiStats, setAiStats] = useState<any>(null);
+  const [aiStatsLoading, setAiStatsLoading] = useState(true);
+
   const handleInterestChange = async (category: string, value: string, action: 'add' | 'remove') => {
     try {
       const res = await fetch("/api/user/interests", {
@@ -268,6 +272,21 @@ export default function HomePage() {
       }
     };
 
+    const fetchAiStats = async () => {
+      setAiStatsLoading(true);
+      try {
+        const res = await fetch("/api/sports/predictions/stats");
+        const data = await res.json();
+        if (data.success && data.stats) {
+          setAiStats(data.stats);
+        }
+      } catch (err) {
+        console.error("Failed to fetch AI stats for main dashboard", err);
+      } finally {
+        setAiStatsLoading(false);
+      }
+    };
+
     fetchMatches();
     fetchUserPrefs();
     fetchPosts();
@@ -276,6 +295,7 @@ export default function HomePage() {
     fetchSettings();
     fetchQna();
     fetchScamPosts();
+    fetchAiStats();
   }, []);
 
   // Personalized Sorting and Filtering
@@ -361,15 +381,15 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 max-w-4xl mx-auto stagger-children">
             {[
               { 
-                icon: Users, 
-                label: siteSettings.trust_stat_1_label || "활성 회원", 
-                value: siteSettings.trust_stat_1_value || "12,847", 
+                icon: Trophy, 
+                label: "AI 최고 승률 (베타)", 
+                value: aiStatsLoading ? "..." : `${aiStats?.["AI 통계봇 베타"]?.winRate || 62}%`, 
                 color: "text-primary" 
               },
               { 
                 icon: BarChart3, 
-                label: siteSettings.trust_stat_2_label || "오늘 경기", 
-                value: siteSettings.trust_stat_2_value || `${matches.length}개`, 
+                label: "오늘 AI 예측 경기", 
+                value: aiStatsLoading ? "..." : `${matches.length}개`, 
                 color: "text-emerald-400" 
               },
               { 
