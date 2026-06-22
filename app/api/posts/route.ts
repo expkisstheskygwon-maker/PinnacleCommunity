@@ -56,27 +56,44 @@ export async function POST(request: NextRequest) {
 
     const postId = result.meta.last_row_id;
 
-    // 2. Bonus: Increase user's activity score (+20 score, +50 VP)
-    const userData: any = await db.prepare('SELECT score, points FROM users WHERE id = ?').bind(sessionData.id).first();
-    const newScore = (userData?.score || 0) + 20;
-    const newPoints = (userData?.points || 0) + 50;
-    
-    const { calculateLevel } = await import('@/lib/gamification');
-    const newLevel = calculateLevel(newScore);
+    // 2. Bonus: Increase user's activity score (+20 score, +50 VP) with daily limit (max 5 times)
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayStartStr = todayStart.toISOString();
 
-    const statements = [
-      db.prepare('UPDATE users SET score = ?, level = ?, points = ? WHERE id = ?')
-        .bind(newScore, newLevel, newPoints, sessionData.id),
-      db.prepare("INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, 50, 'post_write', ?)")
-        .bind(sessionData.id, postId)
-    ];
+    const postLogCount: any = await db
+      .prepare("SELECT COUNT(id) as count FROM points_logs WHERE userId = ? AND reason = 'post_write' AND createdAt >= ?")
+      .bind(sessionData.id, todayStartStr)
+      .first();
 
-    await db.batch(statements);
+    const isLimitReached = (postLogCount?.count || 0) >= 5;
+    let message = '글이 성공적으로 등록되었습니다.';
+
+    if (!isLimitReached) {
+      const userData: any = await db.prepare('SELECT score, points FROM users WHERE id = ?').bind(sessionData.id).first();
+      const newScore = (userData?.score || 0) + 20;
+      const newPoints = (userData?.points || 0) + 50;
+      
+      const { calculateLevel } = await import('@/lib/gamification');
+      const newLevel = calculateLevel(newScore);
+
+      const statements = [
+        db.prepare('UPDATE users SET score = ?, level = ?, points = ? WHERE id = ?')
+          .bind(newScore, newLevel, newPoints, sessionData.id),
+        db.prepare("INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, 50, 'post_write', ?)")
+          .bind(sessionData.id, postId)
+      ];
+
+      await db.batch(statements);
+      message += ' (+20 활동점수, +50 VP)';
+    } else {
+      message += ' (오늘 포인트 적립 한도 5회를 초과하여 포인트가 지급되지 않았습니다.)';
+    }
 
     return NextResponse.json(
       { 
         success: true, 
-        message: '글이 성공적으로 등록되었습니다. (+20 활동점수, +50 VP)',
+        message: message,
         postId: postId 
       },
       { status: 201 }

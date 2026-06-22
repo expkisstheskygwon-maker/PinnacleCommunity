@@ -2,6 +2,58 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { cookies } from 'next/headers';
 
+// GET: Retrieve attendance history and stats for the current user
+export async function GET(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const authSession = cookieStore.get('auth_session');
+
+    if (!authSession?.value) {
+      return NextResponse.json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
+    }
+
+    const sessionData = JSON.parse(authSession.value);
+    const { env } = getCloudflareContext();
+    const db = env.DB as any;
+
+    // 1. Fetch user stats
+    const user: any = await db
+      .prepare('SELECT id, score, points, attendanceCount, lastAttendanceDate, attendanceStreak FROM users WHERE id = ?')
+      .bind(sessionData.id)
+      .first();
+
+    if (!user) {
+      return NextResponse.json({ success: false, error: '유저를 찾을 수 없습니다.' }, { status: 404 });
+    }
+
+    // 2. Fetch check-in dates from points_logs
+    // Using substr(createdAt, 1, 10) to format as YYYY-MM-DD
+    const { results } = await db
+      .prepare("SELECT DISTINCT substr(createdAt, 1, 10) as date FROM points_logs WHERE userId = ? AND reason = 'attendance' ORDER BY date DESC LIMIT 365")
+      .bind(sessionData.id)
+      .all();
+
+    const checkedInDates = (results || []).map((r: any) => r.date);
+
+    return NextResponse.json({
+      success: true,
+      stats: {
+        points: user.points || 0,
+        score: user.score || 0,
+        attendanceCount: user.attendanceCount || 0,
+        attendanceStreak: user.attendanceStreak || 0,
+        lastAttendanceDate: user.lastAttendanceDate || null,
+      },
+      history: checkedInDates
+    });
+
+  } catch (error: any) {
+    console.error('Fetch attendance history error:', error);
+    return NextResponse.json({ success: false, error: '서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+// POST: Perform attendance check
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
