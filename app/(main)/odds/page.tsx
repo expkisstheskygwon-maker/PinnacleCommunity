@@ -806,6 +806,167 @@ function OddsContent() {
           </div>
         </div>
       )}
+
+      {/* Bet Slip Modal */}
+      {selectedBet && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => { setSelectedBet(null); setStake(""); setAppliedItem(null); }} />
+          <div className="relative w-full max-w-md glass-card rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] border border-white/[0.08] shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="px-6 py-5 border-b border-white/[0.06] bg-white/[0.02] flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-sm tracking-tight flex items-center gap-1.5 text-primary">
+                  <TrendingUp className="w-4.5 h-4.5" /> 가상 배팅 슬립 (Bet Slip)
+                </h3>
+              </div>
+              <button 
+                onClick={() => { setSelectedBet(null); setStake(""); setAppliedItem(null); }}
+                className="p-1.5 bg-white/5 hover:bg-white/10 rounded-xl transition-all"
+              >
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Selected Bet Details */}
+              <div className="bg-black/35 rounded-2xl p-4 border border-white/5 space-y-2 text-left">
+                <p className="text-[9px] font-bold text-primary uppercase tracking-widest">{selectedBet.league}</p>
+                <h4 className="text-xs font-black truncate">{selectedBet.matchName}</h4>
+                <div className="h-px bg-white/5 my-2" />
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] text-muted-foreground uppercase font-bold">선택 픽</span>
+                    <span className="font-black text-emerald-400">{selectedBet.selection}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[9px] text-muted-foreground uppercase font-bold">배당률</span>
+                    <span className="font-black font-mono text-sm">@{selectedBet.odds.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stake Input */}
+              <div className="space-y-2 text-left">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase">배팅 금액 입력 (BM)</label>
+                  {profile && (
+                    <span className="text-[9px] text-muted-foreground font-semibold">보유: {profile.betMoney.toLocaleString()} BM</span>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  placeholder="최소 100 BM 이상"
+                  value={stake}
+                  onChange={(e) => setStake(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold font-mono focus:outline-none focus:border-primary/50 outline-none"
+                />
+                
+                {/* Quick stake buttons */}
+                {profile && (
+                  <div className="grid grid-cols-4 gap-1.5 pt-1">
+                    {[
+                      { label: "+10K", value: 10000 },
+                      { label: "+50K", value: 50000 },
+                      { label: "+100K", value: 100000 },
+                      { label: "MAX", value: profile.betMoney }
+                    ].map((btn, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          const currentStake = parseInt(stake) || 0;
+                          if (btn.label === "MAX") {
+                            setStake(String(btn.value));
+                          } else {
+                            setStake(String(currentStake + btn.value));
+                          }
+                        }}
+                        className="py-1.5 rounded-lg bg-white/5 border border-white/[0.04] text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Booster / Insurance Cards Checklist */}
+              {profile && (
+                (() => {
+                  const boosterCount = profile?.inventory?.find((i: any) => i.itemType === 'odds_booster')?.quantity || 0;
+                  const insuranceCount = profile?.inventory?.find((i: any) => i.itemType === 'bet_insurance')?.quantity || 0;
+                  if (boosterCount > 0 || insuranceCount > 0) {
+                    return (
+                      <div className="space-y-2 text-left border-t border-white/5 pt-4">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase">부스터/보험 카드 적용</label>
+                        <div className="space-y-1.5 pt-1">
+                          {boosterCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAppliedItem(appliedItem === 'odds_booster' ? null : 'odds_booster')}
+                              className={cn(
+                                "w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-bold border transition-all",
+                                appliedItem === 'odds_booster'
+                                  ? "bg-primary/10 border-primary text-primary"
+                                  : "bg-white/5 border-white/[0.04] text-muted-foreground"
+                              )}
+                            >
+                              <span className="flex items-center gap-1.5"><ArrowUpRight className="w-3.5 h-3.5" /> 배당 부스터 (+10%)</span>
+                              <span>보유: {boosterCount}장</span>
+                            </button>
+                          )}
+                          {insuranceCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAppliedItem(appliedItem === 'bet_insurance' ? null : 'bet_insurance')}
+                              className={cn(
+                                "w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-bold border transition-all",
+                                appliedItem === 'bet_insurance'
+                                  ? "bg-emerald-500/10 border-emerald-500 text-emerald-400"
+                                  : "bg-white/5 border-white/[0.04] text-muted-foreground"
+                              )}
+                            >
+                              <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" /> 배팅 보험 (50% 환급)</span>
+                              <span>보유: {insuranceCount}장</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()
+              )}
+
+              {/* Potential Payout */}
+              <div className="border-t border-white/5 pt-4 flex justify-between items-center text-left">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">예상 적중금</span>
+                <span className="text-base font-black font-mono text-[hsl(var(--gold))]">
+                  {(() => {
+                    const stakeNum = parseInt(stake) || 0;
+                    if (stakeNum <= 0) return 0;
+                    let payout = stakeNum * selectedBet.odds;
+                    if (appliedItem === 'odds_booster') {
+                      payout = payout * 1.10;
+                    }
+                    return Math.floor(payout).toLocaleString();
+                  })()}{" "}
+                  BM
+                </span>
+              </div>
+            </div>
+
+            <div className="px-6 py-5 border-t border-white/[0.06] flex flex-col gap-2">
+              <button
+                disabled={submitting}
+                onClick={handlePlaceBet}
+                className="w-full btn-primary py-3.5 text-xs font-black uppercase rounded-2xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                {submitting ? "배팅 전송 중..." : "배팅 완료 (Place Bet)"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
