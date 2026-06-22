@@ -39,6 +39,15 @@ export default function MyPageTabs({
   const router = useRouter();
   const [profileData, setProfileData] = useState<any>(profile);
   const [pointsLogs, setPointsLogs] = useState<any[]>([]);
+  const [betMoneyLogs, setBetMoneyLogs] = useState<any[]>([]);
+  const [exchangeAmount, setExchangeAmount] = useState("");
+  const [exchanging, setExchanging] = useState(false);
+  const [exchangeError, setExchangeError] = useState("");
+  const [exchangeSuccess, setExchangeSuccess] = useState("");
+  const [recharging, setRecharging] = useState(false);
+  const [rechargeError, setRechargeError] = useState("");
+  const [rechargeSuccess, setRechargeSuccess] = useState("");
+
   const [activeTab, setActiveTab] = useState("overview");
   const [isClient, setIsClient] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -59,6 +68,7 @@ export default function MyPageTabs({
         setProfileData({
           ...profile,
           points: data.profile.points,
+          betMoney: data.profile.betMoney,
           inventory: data.profile.inventory,
           nicknameColor: data.profile.nicknameColor
         });
@@ -79,6 +89,15 @@ export default function MyPageTabs({
         .then(data => {
           if (data.success) {
             setPointsLogs(data.logs);
+          }
+        })
+        .catch(err => console.error(err));
+    } else if (activeTab === "bet_money_logs") {
+      fetch('/api/user/bet-money-logs')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setBetMoneyLogs(data.logs);
           }
         })
         .catch(err => console.error(err));
@@ -131,6 +150,7 @@ export default function MyPageTabs({
     { id: "betting", label: "수동 배팅 일지", icon: History, count: manualRecords.length },
     { id: "inventory", label: "아이템 보관함", icon: Zap, count: 0 },
     { id: "points_logs", label: "포인트 내역", icon: Award, count: 0 },
+    { id: "bet_money_logs", label: "배팅 머니 내역", icon: Award, count: 0 },
     { id: "interests", label: "관심 설정", icon: Heart, count: safeInterests.length },
     { id: "favorites", label: "관심 게시글", icon: Star, count: safeFavoritePosts.length },
     { id: "notifications", label: "알림 서랍", icon: Bell, count: safeNotifications.filter(n => n && !n.readAt).length },
