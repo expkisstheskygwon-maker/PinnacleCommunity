@@ -618,16 +618,43 @@ function OddsContent() {
                                         </div>
                                       </div>
                                     </td>
-                                    <td className="text-center px-3 py-4">
-                                      <span className="font-mono text-xs font-bold text-foreground">{m.odds.h > 0 ? m.odds.h.toFixed(2) : "-"}</span>
+                                    <td className="text-center px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                                      {m.odds.h > 0 ? (
+                                        <button 
+                                          onClick={() => handleSelectOdd(m, 'home', m.odds.h)}
+                                          className="font-mono text-xs font-bold text-foreground bg-white/5 hover:bg-primary/20 hover:text-primary px-2.5 py-1 rounded-lg border border-transparent hover:border-primary/20 transition-all min-w-[55px] inline-block"
+                                        >
+                                          {m.odds.h.toFixed(2)}
+                                        </button>
+                                      ) : (
+                                        <span className="font-mono text-xs font-bold text-muted-foreground/30">-</span>
+                                      )}
                                     </td>
                                     {groupMatches.some(gm => gm.odds.d > 0) && (
-                                      <td className="text-center px-3 py-4">
-                                        <span className="font-mono text-xs text-muted-foreground">{m.odds.d > 0 ? m.odds.d.toFixed(2) : "-"}</span>
+                                      <td className="text-center px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                                        {m.odds.d > 0 ? (
+                                          <button 
+                                            onClick={() => handleSelectOdd(m, 'draw', m.odds.d)}
+                                            className="font-mono text-xs font-bold text-muted-foreground bg-white/5 hover:bg-primary/20 hover:text-primary px-2.5 py-1 rounded-lg border border-transparent hover:border-primary/20 transition-all min-w-[55px] inline-block"
+                                          >
+                                            {m.odds.d.toFixed(2)}
+                                          </button>
+                                        ) : (
+                                          <span className="font-mono text-xs font-bold text-muted-foreground/30">-</span>
+                                        )}
                                       </td>
                                     )}
-                                    <td className="text-center px-3 py-4">
-                                      <span className="font-mono text-xs text-foreground font-bold">{m.odds.a > 0 ? m.odds.a.toFixed(2) : "-"}</span>
+                                    <td className="text-center px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                                      {m.odds.a > 0 ? (
+                                        <button 
+                                          onClick={() => handleSelectOdd(m, 'away', m.odds.a)}
+                                          className="font-mono text-xs font-bold text-foreground bg-white/5 hover:bg-primary/20 hover:text-primary px-2.5 py-1 rounded-lg border border-transparent hover:border-primary/20 transition-all min-w-[55px] inline-block"
+                                        >
+                                          {m.odds.a.toFixed(2)}
+                                        </button>
+                                      ) : (
+                                        <span className="font-mono text-xs font-bold text-muted-foreground/30">-</span>
+                                      )}
                                     </td>
                                     <td className="text-center px-3 py-4 whitespace-nowrap">
                                       <span className={cn("inline-flex items-center justify-center text-[10px] font-black px-2.5 py-1 rounded border whitespace-nowrap", resultColor)}>
