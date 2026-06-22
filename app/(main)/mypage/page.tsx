@@ -179,6 +179,8 @@ export default async function MyPage() {
     postCount: stats?.postCount || 0,
     score: safeUser.score || 0,
     likeReceived: stats?.totalLikesReceived || 0,
+    points: safeUser.points || 0,
+    betMoney: safeUser.betMoney || 0,
   };
 
   return (
