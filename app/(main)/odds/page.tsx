@@ -7,7 +7,8 @@ import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
   ChevronDown, Filter, Star, Zap, Gamepad2, Trophy,
   ChevronRight, Info, Users, History, MapPin, User, Clock, 
-  AlertCircle, X, Search, Eye, EyeOff, LayoutGrid, Check
+  AlertCircle, X, Search, Eye, EyeOff, LayoutGrid, Check,
+  ArrowUpRight, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SportsSidebar from "./SportsSidebar";
