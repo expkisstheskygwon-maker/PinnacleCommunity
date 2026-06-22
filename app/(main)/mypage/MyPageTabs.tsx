@@ -142,43 +142,39 @@ export default function MyPageTabs({
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-      {/* Left - Profile & Menu */}
-      <div className="xl:col-span-4 space-y-6">
+      {/* Left - Profile */}
+      <div className="xl:col-span-4">
         <ProfileSection user={user} profile={profileData} />
-
-        {/* Menu */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          {MENU_ITEMS.map((item, idx) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={cn(
-                "w-full flex items-center justify-between px-5 py-4 transition-colors",
-                activeTab === item.id ? "bg-primary/10 border-l-4 border-primary" : "hover:bg-white/[0.03] border-l-4 border-transparent",
-                idx < MENU_ITEMS.length - 1 && "border-b border-white/[0.04]"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className={cn("w-4 h-4", activeTab === item.id ? "text-primary" : "text-muted-foreground")} />
-                <span className={cn("text-sm font-medium", activeTab === item.id ? "text-foreground font-bold" : "text-muted-foreground")}>
-                  {item.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {item.count > 0 && (
-                  <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full min-w-[24px] text-center">
-                    {item.count}
-                  </span>
-                )}
-                <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
-              </div>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Right - Dynamic Content Area */}
       <div className="xl:col-span-8 space-y-8 animate-fade-in">
+        {/* Menu Tabs */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 bg-white/[0.02] p-3 rounded-2xl border border-white/[0.04]">
+          {MENU_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={cn(
+                "flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl border text-[11px] sm:text-xs font-semibold transition-all duration-200",
+                activeTab === item.id
+                  ? "bg-primary/20 text-primary border-primary/30 shadow-[0_0_15px_rgba(59,130,246,0.15)] font-bold"
+                  : "glass-card border-transparent text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+              )}
+            >
+              <item.icon className={cn("w-3.5 h-3.5 shrink-0", activeTab === item.id ? "text-primary" : "text-muted-foreground/70")} />
+              <span className="truncate">{item.label}</span>
+              {item.count > 0 && (
+                <span className={cn(
+                  "text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0",
+                  activeTab === item.id ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                )}>
+                  {item.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
         
         {/* ─── Tab: Overview or Interests ─── */}
         {activeTab === "interests" && (
