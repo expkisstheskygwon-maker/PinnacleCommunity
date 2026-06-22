@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     // 1. 유저 정보 조회
     const user: any = await db
-      .prepare('SELECT id, score, attendanceCount, lastAttendanceDate FROM users WHERE id = ?')
+      .prepare('SELECT id, score, points, attendanceCount, lastAttendanceDate, attendanceStreak FROM users WHERE id = ?')
       .bind(sessionData.id)
       .first();
 
@@ -25,8 +25,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '유저를 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    // 2. 오늘 날짜 확인 (KST 기준 권장이나 여기서는 UTC 기준 YYYY-MM-DD)
+    // 2. 오늘 및 어제 날짜 확인 (KST/UTC 기준 문자열 YYYY-MM-DD)
     const today = new Date().toISOString().split('T')[0];
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = yesterdayDate.toISOString().split('T')[0];
 
     // 3. 중복 체크
     if (user.lastAttendanceDate === today) {
@@ -37,26 +40,74 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 4. 포인트 지급 및 업데이트
-    const ATTENDANCE_POINTS = 10;
-    const newScore = (user.score || 0) + ATTENDANCE_POINTS;
+    // 4. 연속 출석(Streak) 및 총 출석 횟수 계산
+    let newStreak = 1;
+    if (user.lastAttendanceDate === yesterday) {
+      newStreak = (user.attendanceStreak || 0) + 1;
+    } else {
+      newStreak = 1;
+    }
     const newAttendanceCount = (user.attendanceCount || 0) + 1;
+
+    // 5. 포인트 지급 및 업데이트 설정
+    // 기본 출석: +10 EXP(활동점수), +50 VP(포인트)
+    const ATTENDANCE_EXP = 10;
+    const ATTENDANCE_POINTS = 50;
+    
+    const newScore = (user.score || 0) + ATTENDANCE_EXP;
     
     // 자동 레벨 계산
     const { calculateLevel } = await import('@/lib/gamification');
     const newLevel = calculateLevel(newScore);
 
-    await db
-      .prepare('UPDATE users SET score = ?, level = ?, attendanceCount = ?, lastAttendanceDate = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
-      .bind(newScore, newLevel, newAttendanceCount, today, user.id)
-      .run();
+    // 연속 출석 보너스 계산
+    let streakBonus = 0;
+    let streakReason = '';
+    
+    if (newStreak === 7) {
+      streakBonus = 100;
+      streakReason = 'attendance_streak_7';
+    } else if (newStreak === 30) {
+      streakBonus = 500;
+      streakReason = 'attendance_streak_30';
+    }
+
+    const totalPointsAdded = ATTENDANCE_POINTS + streakBonus;
+    const newPoints = (user.points || 0) + totalPointsAdded;
+
+    // 6. DB 일괄 업데이트 (Batch)
+    const statements = [
+      // 유저 테이블 업데이트
+      db.prepare('UPDATE users SET score = ?, level = ?, points = ?, attendanceCount = ?, attendanceStreak = ?, lastAttendanceDate = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
+        .bind(newScore, newLevel, newPoints, newAttendanceCount, newStreak, today, user.id),
+      // 기본 출석 포인트 로그 작성
+      db.prepare("INSERT INTO points_logs (userId, amount, reason) VALUES (?, ?, 'attendance')")
+        .bind(user.id, ATTENDANCE_POINTS)
+    ];
+
+    // 연속 출석 보너스 로그 추가
+    if (streakBonus > 0) {
+      statements.push(
+        db.prepare("INSERT INTO points_logs (userId, amount, reason) VALUES (?, ?, ?)")
+          .bind(user.id, streakBonus, streakReason)
+      );
+    }
+
+    await db.batch(statements);
+
+    let message = `출석 체크 완료! ${ATTENDANCE_POINTS} VP가 지급되었습니다.`;
+    if (streakBonus > 0) {
+      message += ` 🎉 ${newStreak}일 연속 출석 보너스 +${streakBonus} VP 추가 지급!`;
+    }
 
     return NextResponse.json({
       success: true,
-      message: '출석 체크 완료! 10포인트가 지급되었습니다.',
-      addedPoints: ATTENDANCE_POINTS,
+      message,
+      addedPoints: totalPointsAdded,
       totalScore: newScore,
-      attendanceCount: newAttendanceCount
+      totalPoints: newPoints,
+      attendanceCount: newAttendanceCount,
+      attendanceStreak: newStreak
     });
 
   } catch (error: any) {
