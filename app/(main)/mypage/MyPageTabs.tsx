@@ -103,6 +103,65 @@ export default function MyPageTabs({
         .catch(err => console.error(err));
     }
   }, [activeTab]);
+
+  const handleRechargeBM = async () => {
+    setRecharging(true);
+    setRechargeError("");
+    setRechargeSuccess("");
+    try {
+      const res = await fetch("/api/user/recharge", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setRechargeSuccess(data.message);
+        fetchClientProfile();
+        // Refresh logs if current tab is bet_money_logs
+        fetch('/api/user/bet-money-logs')
+          .then(res => res.json())
+          .then(d => { if (d.success) setBetMoneyLogs(d.logs); });
+      } else {
+        setRechargeError(data.error);
+      }
+    } catch (e) {
+      setRechargeError("충전 처리 중 오류가 발생했습니다.");
+    } finally {
+      setRecharging(false);
+    }
+  };
+
+  const handleExchange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const vpAmount = parseInt(exchangeAmount);
+    if (isNaN(vpAmount) || vpAmount <= 0) {
+      setExchangeError("올바른 환전 금액을 입력해주세요.");
+      return;
+    }
+    setExchanging(true);
+    setExchangeError("");
+    setExchangeSuccess("");
+    try {
+      const res = await fetch("/api/user/exchange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: vpAmount })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setExchangeSuccess(data.message);
+        setExchangeAmount("");
+        fetchClientProfile();
+        // Refresh logs
+        fetch('/api/user/bet-money-logs')
+          .then(res => res.json())
+          .then(d => { if (d.success) setBetMoneyLogs(d.logs); });
+      } else {
+        setExchangeError(data.error);
+      }
+    } catch (e) {
+      setExchangeError("환전 처리 중 오류가 발생했습니다.");
+    } finally {
+      setExchanging(false);
+    }
+  };
   
   const safeInterests = Array.isArray(interests) ? interests : [];
   const safeMatches = Array.isArray(initialMatches) ? initialMatches : [];
