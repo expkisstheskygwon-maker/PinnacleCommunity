@@ -207,10 +207,10 @@ export async function POST(request: NextRequest) {
             .bind(refundAmount, bet.id)
         );
         batchStatements.push(
-          db.prepare('UPDATE users SET points = points + ? WHERE id = ?').bind(refundAmount, bet.userId)
+          db.prepare('UPDATE users SET betMoney = betMoney + ? WHERE id = ?').bind(refundAmount, bet.userId)
         );
         batchStatements.push(
-          db.prepare('INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, ?, "bet_refund_void", ?)')
+          db.prepare('INSERT INTO bet_money_logs (userId, amount, reason, referenceId) VALUES (?, ?, "bet_refund_void", ?)')
             .bind(bet.userId, refundAmount, bet.id)
         );
         batchStatements.push(
@@ -245,11 +245,11 @@ export async function POST(request: NextRequest) {
               .bind(winnings, bet.id)
           );
           batchStatements.push(
-            db.prepare('UPDATE users SET points = points + ?, score = score + ? WHERE id = ?')
+            db.prepare('UPDATE users SET betMoney = betMoney + ?, score = score + ? WHERE id = ?')
               .bind(winnings, netProfit, bet.userId)
           );
           batchStatements.push(
-            db.prepare('INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, ?, "bet_win", ?)')
+            db.prepare('INSERT INTO bet_money_logs (userId, amount, reason, referenceId) VALUES (?, ?, "bet_win", ?)')
               .bind(bet.userId, winnings, bet.id)
           );
           batchStatements.push(
@@ -278,10 +278,10 @@ export async function POST(request: NextRequest) {
 
           if (refundAmount > 0) {
             batchStatements.push(
-              db.prepare('UPDATE users SET points = points + ? WHERE id = ?').bind(refundAmount, bet.userId)
+              db.prepare('UPDATE users SET betMoney = betMoney + ? WHERE id = ?').bind(refundAmount, bet.userId)
             );
             batchStatements.push(
-              db.prepare('INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, ?, "bet_refund_insurance", ?)')
+              db.prepare('INSERT INTO bet_money_logs (userId, amount, reason, referenceId) VALUES (?, ?, "bet_refund_insurance", ?)')
                 .bind(bet.userId, refundAmount, bet.id)
             );
             batchStatements.push(
@@ -312,10 +312,10 @@ export async function POST(request: NextRequest) {
               .bind(refundAmount, bet.id)
           );
           batchStatements.push(
-            db.prepare('UPDATE users SET points = points + ? WHERE id = ?').bind(refundAmount, bet.userId)
+            db.prepare('UPDATE users SET betMoney = betMoney + ? WHERE id = ?').bind(refundAmount, bet.userId)
           );
           batchStatements.push(
-            db.prepare('INSERT INTO points_logs (userId, amount, reason, referenceId) VALUES (?, ?, "bet_refund_void", ?)')
+            db.prepare('INSERT INTO bet_money_logs (userId, amount, reason, referenceId) VALUES (?, ?, "bet_refund_void", ?)')
               .bind(bet.userId, refundAmount, bet.id)
           );
           batchStatements.push(

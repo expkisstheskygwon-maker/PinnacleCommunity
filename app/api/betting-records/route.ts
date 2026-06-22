@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (isVirtual === 1 || isVirtual === true) {
       // 가상 배팅 처리
       const user: any = await db
-        .prepare('SELECT points FROM users WHERE id = ?')
+        .prepare('SELECT betMoney FROM users WHERE id = ?')
         .bind(userId)
         .first();
 
@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: '유저를 찾을 수 없습니다.' }, { status: 404 });
       }
 
-      if (user.points < stake) {
-        return NextResponse.json({ success: false, error: '보유한 포인트가 부족합니다.' }, { status: 400 });
+      if (user.betMoney < stake) {
+        return NextResponse.json({ success: false, error: '보유한 배팅 머니가 부족합니다.' }, { status: 400 });
       }
 
       if (appliedItem) {
@@ -63,15 +63,15 @@ export async function POST(request: NextRequest) {
         `).bind(userId, sport, league || null, match || null, matchId || null, market, selection, odds, stake, appliedItem || null, betDate || new Date().toISOString())
       );
 
-      // 2. Deduct points
+      // 2. Deduct betMoney
       statements.push(
-        db.prepare('UPDATE users SET points = points - ? WHERE id = ?').bind(stake, userId)
+        db.prepare('UPDATE users SET betMoney = betMoney - ? WHERE id = ?').bind(stake, userId)
       );
 
-      // 3. Log point transaction
+      // 3. Log betMoney transaction
       statements.push(
         db.prepare(`
-          INSERT INTO points_logs (userId, amount, reason)
+          INSERT INTO bet_money_logs (userId, amount, reason)
           VALUES (?, ?, 'bet_stake')
         `).bind(userId, -stake)
       );
@@ -218,11 +218,11 @@ export async function DELETE(request: NextRequest) {
       // 대기 중인 가상 배팅 삭제 시 베팅금 환급
       const statements = [
         db.prepare('DELETE FROM betting_records WHERE id = ? AND userId = ?').bind(id, userId),
-        db.prepare('UPDATE users SET points = points + ? WHERE id = ?').bind(record.stake, userId),
+        db.prepare('UPDATE users SET betMoney = betMoney + ? WHERE id = ?').bind(record.stake, userId),
         db.prepare(`
-          INSERT INTO points_logs (userId, amount, reason)
-          VALUES (?, ?, 'bet_refund')
-        `).bind(userId, record.stake)
+          INSERT INTO bet_money_logs (userId, amount, reason, referenceId)
+          VALUES (?, ?, 'bet_refund', ?)
+        `).bind(userId, record.stake, id)
       ];
 
       await db.batch(statements);

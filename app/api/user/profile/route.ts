@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const db = env.DB as any;
 
     const user: any = await db
-      .prepare('SELECT id, userId, nickname, email, avatar, score, level, points, status, attendanceCount, createdAt FROM users WHERE id = ?')
+      .prepare('SELECT id, userId, nickname, email, avatar, score, level, points, betMoney, status, attendanceCount, createdAt FROM users WHERE id = ?')
       .bind(sessionData.id)
       .first();
 
