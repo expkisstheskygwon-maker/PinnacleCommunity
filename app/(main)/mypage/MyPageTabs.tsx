@@ -882,6 +882,138 @@ export default function MyPageTabs({
             </div>
           </section>
         )}
+
+        {/* ─── Tab: 배팅 머니 내역 ─── */}
+        {activeTab === "bet_money_logs" && (
+          <section className="space-y-6">
+            <div className="flex items-center gap-2">
+              <div className="bg-emerald-500/15 p-1.5 rounded-lg">
+                <Award className="w-4 h-4 text-emerald-400" />
+              </div>
+              <h3 className="font-bold text-lg">배팅 머니 충전 및 거래 내역</h3>
+            </div>
+
+            {/* BM Recharge & VP Exchange Card */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Daily BM Recharge Widget */}
+              <div className="glass-card rounded-2xl p-6 border-white/5 space-y-4">
+                <div>
+                  <h4 className="font-black text-sm text-foreground flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-emerald-400" /> 매일 무료 충전하기
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground mt-1">보유 배팅 머니가 10,000 BM 미만일 때, 50,000 BM을 무료로 충전해 드립니다. (1일 1회)</p>
+                </div>
+                
+                {rechargeError && (
+                  <p className="text-red-400 text-xs font-semibold">{rechargeError}</p>
+                )}
+                {rechargeSuccess && (
+                  <p className="text-emerald-400 text-xs font-semibold">{rechargeSuccess}</p>
+                )}
+
+                <button
+                  disabled={recharging}
+                  onClick={handleRechargeBM}
+                  className="w-full btn-primary py-3 text-xs font-black uppercase rounded-xl transition-all"
+                >
+                  {recharging ? "충전 진행 중..." : "무료 충전하기 (+50,000 BM)"}
+                </button>
+              </div>
+
+              {/* VP -> BM Exchange Widget */}
+              <div className="glass-card rounded-2xl p-6 border-white/5 space-y-4">
+                <div>
+                  <h4 className="font-black text-sm text-foreground flex items-center gap-1.5">
+                    <ArrowUpRight className="w-4 h-4 text-primary" /> 포인트 환전소
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground mt-1">커뮤니티 활동으로 획득한 포인트(VP)를 배팅 머니(BM)로 환전합니다. (환전 비율 1 : 10, 최소 100 VP)</p>
+                </div>
+
+                <form onSubmit={handleExchange} className="space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="최소 100 VP"
+                      value={exchangeAmount}
+                      onChange={(e) => setExchangeAmount(e.target.value)}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold font-mono focus:outline-none focus:border-primary/50 outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={exchanging}
+                      className="btn-primary px-5 py-2 text-xs font-bold shrink-0 rounded-xl"
+                    >
+                      {exchanging ? "환전 중..." : "환전하기"}
+                    </button>
+                  </div>
+                  {exchangeAmount && !isNaN(parseInt(exchangeAmount)) && (
+                    <p className="text-[10px] text-muted-foreground font-bold">
+                      예상 지급 배팅 머니: <span className="text-emerald-400 font-mono">{(parseInt(exchangeAmount) * 10).toLocaleString()} BM</span>
+                    </p>
+                  )}
+                  {exchangeError && (
+                    <p className="text-red-400 text-xs font-semibold">{exchangeError}</p>
+                  )}
+                  {exchangeSuccess && (
+                    <p className="text-emerald-400 text-xs font-semibold">{exchangeSuccess}</p>
+                  )}
+                </form>
+              </div>
+            </div>
+
+            {/* BM Transaction Logs Table */}
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-white/5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-white/10">
+                      <th className="px-5 py-3 text-left">일시</th>
+                      <th className="px-5 py-3 text-left">유형</th>
+                      <th className="px-5 py-3 text-center">배팅 머니 변동</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {betMoneyLogs.map(log => {
+                      const isPositive = log.amount > 0;
+                      let reasonKo = log.reason;
+                      if (log.reason === 'bet_stake') reasonKo = '가상 배팅 참가';
+                      else if (log.reason === 'bet_win') reasonKo = '가상 배팅 적중 당첨금';
+                      else if (log.reason === 'bet_refund') reasonKo = '가상 배팅 취소 환급';
+                      else if (log.reason === 'bet_refund_insurance') reasonKo = '가상 배팅 미적중 보험금';
+                      else if (log.reason === 'bet_refund_void') reasonKo = '가상 배팅 적특 환급';
+                      else if (log.reason === 'recharge') reasonKo = '일일 무료 머니 충전';
+                      else if (log.reason === 'exchange_in') reasonKo = '포인트 환전 유입';
+
+                      return (
+                        <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="px-5 py-3.5 text-muted-foreground text-xs font-mono">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+                          <td className="px-5 py-3.5 font-bold text-xs text-foreground">
+                            {reasonKo}
+                          </td>
+                          <td className={cn(
+                            "px-5 py-3.5 text-center font-mono font-black text-sm",
+                            isPositive ? "text-emerald-400" : "text-red-400"
+                          )}>
+                            {isPositive ? '+' : ''}{log.amount.toLocaleString()} BM
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {betMoneyLogs.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="text-center py-20 text-muted-foreground text-sm italic">
+                          기록된 배팅 머니 거래 내역이 없습니다.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
 
 
