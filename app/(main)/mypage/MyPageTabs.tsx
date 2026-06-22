@@ -632,7 +632,7 @@ export default function MyPageTabs({
                             <p className="text-[10px] text-muted-foreground">@{record.odds}</p>
                           </td>
                           <td className="px-4 py-4 text-center font-mono font-bold">
-                            {record.stake.toLocaleString()} VP
+                            {record.stake.toLocaleString()} BM
                           </td>
                           <td className="px-4 py-4 text-center text-[10px] font-bold">
                             {record.appliedItem === 'odds_booster' ? (
@@ -649,7 +649,7 @@ export default function MyPageTabs({
                             </span>
                           </td>
                           <td className="px-4 py-4 text-right font-mono font-bold text-emerald-400">
-                            {record.status === 'pending' ? '-' : `${record.resultAmount.toLocaleString()} VP`}
+                            {record.status === 'pending' ? '-' : `${record.resultAmount.toLocaleString()} BM`}
                           </td>
                         </tr>
                       );
