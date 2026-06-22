@@ -7,7 +7,7 @@ import {
   TrendingUp, TrendingDown, Activity, Swords, Timer, BarChart3,
   ChevronDown, Filter, Star, Zap, Gamepad2, Trophy,
   ChevronRight, Info, Users, History, MapPin, User, Clock, 
-  AlertCircle, X, Search, Eye, EyeOff, LayoutGrid
+  AlertCircle, X, Search, Eye, EyeOff, LayoutGrid, Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SportsSidebar from "./SportsSidebar";
@@ -57,6 +57,118 @@ function OddsContent() {
   const [expandedMatches, setExpandedMatches] = useState<Record<string, boolean>>({});
 
   const [favTeams, setFavTeams] = useState<string[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+  const [selectedBet, setSelectedBet] = useState<any | null>(null);
+  const [stake, setStake] = useState<string>("");
+  const [appliedItem, setAppliedItem] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch('/api/user/profile');
+      const data = await res.json();
+      if (data.success) {
+        setProfile(data.profile);
+      } else {
+        setProfile(null);
+      }
+    } catch (err) {}
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 4000);
+  };
+
+  const handleSelectOdd = (match: any, selection: string, odds: number) => {
+    if (!profile) {
+      showToast('error', '가상 배팅을 진행하려면 먼저 로그인해주셔야 합니다.');
+      return;
+    }
+    
+    if (match.finished) {
+      showToast('error', '종료된 경기에는 배팅할 수 없습니다.');
+      return;
+    }
+
+    let selectionKo = selection;
+    if (selection === 'home') selectionKo = '홈승';
+    else if (selection === 'away') selectionKo = '원정승';
+    else if (selection === 'draw') selectionKo = '무승부';
+
+    setSelectedBet({
+      matchId: String(match.id),
+      matchName: `${match.home} vs ${match.away}`,
+      sport: activeCat,
+      league: match.league,
+      market: 'Match Winner',
+      selection: selectionKo,
+      odds,
+      rawSelection: selection,
+      matchData: match
+    });
+    setStake("");
+    setAppliedItem(null);
+  };
+
+  const handleOpenBetSlip = (match: any) => {
+    handleSelectOdd(match, 'home', match.odds.h);
+  };
+
+  const handlePlaceBet = async () => {
+    if (!profile || !selectedBet || submitting) return;
+    const stakeNum = parseInt(stake);
+    
+    if (isNaN(stakeNum) || stakeNum <= 0) {
+      showToast('error', '배팅 금액을 정확히 입력해주세요.');
+      return;
+    }
+
+    if (stakeNum > profile.betMoney) {
+      showToast('error', '보유한 배팅 머니보다 많은 금액을 배팅할 수 없습니다.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/betting-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sport: selectedBet.sport,
+          league: selectedBet.league,
+          match: selectedBet.matchName,
+          matchId: selectedBet.matchId,
+          market: selectedBet.market,
+          selection: selectedBet.selection,
+          odds: selectedBet.odds,
+          stake: stakeNum,
+          isVirtual: 1,
+          appliedItem
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showToast('success', data.message);
+        setSelectedBet(null);
+        setStake("");
+        setAppliedItem(null);
+        fetchProfile(); // update betMoney balance
+      } else {
+        showToast('error', data.error);
+      }
+    } catch (err) {
+      showToast('error', '배팅 처리 중 오류가 발생했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/user/interests')
@@ -213,6 +325,19 @@ function OddsContent() {
 
   return (
     <div className="mesh-gradient min-h-screen">
+      {/* Toast Notification */}
+      {message && (
+        <div className={cn(
+          "fixed top-20 right-4 z-[200] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border animate-in slide-in-from-top-5 duration-300",
+          message.type === 'success' 
+            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+            : "bg-red-500/10 border-red-500/20 text-red-400"
+        )}>
+          {message.type === 'success' ? <Check className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+          <span className="text-sm font-bold">{message.text}</span>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-10">
         
         {/* Search Bar */}
