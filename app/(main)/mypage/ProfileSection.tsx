@@ -175,6 +175,18 @@ export default function ProfileSection({ user, profile }: ProfileSectionProps) {
           </div>
         </div>
 
+        {/* Wallet Balances (VP & BM) */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="bg-white/[0.02] rounded-xl p-3 border border-white/[0.04] text-left">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">활동 포인트 (VP)</span>
+            <p className="text-sm font-black text-primary mt-1">{(profile?.points || 0).toLocaleString()} VP</p>
+          </div>
+          <div className="bg-white/[0.02] rounded-xl p-3 border border-white/[0.04] text-left">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">배팅 머니 (BM)</span>
+            <p className="text-sm font-black text-emerald-400 mt-1">{(profile?.betMoney || 0).toLocaleString()} BM</p>
+          </div>
+        </div>
+
         <button 
           onClick={() => setIsEditModalOpen(true)}
           className="mt-5 w-full btn-outline text-xs py-3 flex items-center justify-center gap-2 rounded-xl group"
