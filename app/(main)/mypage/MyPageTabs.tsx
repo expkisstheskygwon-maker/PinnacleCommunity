@@ -560,7 +560,7 @@ export default function MyPageTabs({
                   const roi = totalStake > 0 ? ((totalReturn - totalStake) / totalStake * 100).toFixed(1) : "0.0";
                   const winRate = finished.length > 0 ? (finished.filter(r => r.status === 'won').length / finished.length * 100).toFixed(1) : "0.0";
                   
-                  const content = `[나의 가상 배팅 성과 인증]\n\n📊 ROI: ${roi}%\n🎯 승률: ${winRate}%\n💰 총 수익: ${(totalReturn - totalStake).toLocaleString()} VP\n\n#가상배팅 #피나클프리딕터 #스포츠분석`;
+                  const content = `[나의 가상 배팅 성과 인증]\n\n📊 ROI: ${roi}%\n🎯 승률: ${winRate}%\n💰 총 수익: ${(totalReturn - totalStake).toLocaleString()} BM\n\n#가상배팅 #피나클프리딕터 #스포츠분석`;
                   router.push(`/community/write?content=${encodeURIComponent(content)}&category=review`);
                 }}
                 className="btn-primary text-[10px] py-1.5 px-3 rounded-xl flex items-center gap-1.5"
