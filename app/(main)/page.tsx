@@ -133,6 +133,41 @@ export default function HomePage() {
   const [aiStats, setAiStats] = useState<any>(null);
   const [aiStatsLoading, setAiStatsLoading] = useState(true);
 
+  // Interactive background state (optimized for performance)
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(true);
+
+  useEffect(() => {
+    // Check if device supports fine pointer (mouse hover/move)
+    const mediaQuery = window.matchMedia("(pointer: fine)");
+    setIsMobile(!mediaQuery.matches);
+
+    if (!mediaQuery.matches) return;
+
+    let frameId: number;
+    const handleMouseMove = (e: MouseEvent) => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        setMousePos({ x: e.clientX, y: e.clientY });
+      });
+    };
+
+    const handleMouseEnter = () => setIsHovered(true);
+    const handleMouseLeave = () => setIsHovered(false);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    document.body.addEventListener("mouseenter", handleMouseEnter);
+    document.body.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      document.body.removeEventListener("mouseenter", handleMouseEnter);
+      document.body.removeEventListener("mouseleave", handleMouseLeave);
+      cancelAnimationFrame(frameId);
+    };
+  }, []);
+
   const handleInterestChange = async (category: string, value: string, action: 'add' | 'remove') => {
     try {
       const res = await fetch("/api/user/interests", {
@@ -345,6 +380,25 @@ export default function HomePage() {
 
   return (
     <div className="mesh-gradient overflow-x-hidden">
+      {/* Interactive mouse-tracking background glow (Only on desktop for performance) */}
+      {!isMobile && (
+        <div 
+          className="fixed inset-0 -z-20 pointer-events-none transition-opacity duration-1000"
+          style={{ opacity: isHovered ? 1 : 0 }}
+        >
+          <div 
+            className="w-[400px] h-[400px] rounded-full bg-primary/10 blur-[120px] absolute"
+            style={{
+              left: 0,
+              top: 0,
+              transform: `translate3d(calc(${mousePos.x}px - 200px), calc(${mousePos.y}px - 200px), 0)`,
+              willChange: "transform",
+              transition: "transform 0.15s cubic-bezier(0.25, 1, 0.5, 1)"
+            }}
+          />
+        </div>
+      )}
+
       {/* Abstract background */}
       <div className="fixed top-20 left-0 w-72 h-72 bg-primary/10 rounded-full blur-[120px] -z-10 animate-float pointer-events-none" />
       <div className="fixed bottom-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[150px] -z-10 pointer-events-none" />
