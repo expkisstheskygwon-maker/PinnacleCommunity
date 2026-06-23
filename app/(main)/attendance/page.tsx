@@ -54,8 +54,10 @@ export default function AttendancePage() {
       const res = await fetch("/api/user/attendance");
       const data = await res.json();
 
-      if (res.status === 401 || !data.success) {
+      if (res.status === 401) {
         setIsLoggedIn(false);
+      } else if (!data.success) {
+        showToastMsg("error", data.error || "데이터를 불러오는 중 오류가 발생했습니다.");
       } else {
         setIsLoggedIn(true);
         setStats(data.stats);
@@ -63,6 +65,7 @@ export default function AttendancePage() {
       }
     } catch (err) {
       console.error("Failed to fetch attendance data", err);
+      showToastMsg("error", "서버와의 통신에 실패했습니다.");
     } finally {
       setLoading(false);
     }
