@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/useLanguage";
 
 // Chart.js imports for Betting Simulator
 import {
@@ -37,18 +38,18 @@ ChartJS.register(
   Filler
 );
 
-const CONCEPT_META: Record<string, { label: string; icon: any; desc: string }> = {
-  experiments: { label: "기상천외 배팅 실험실", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션" },
-  fails: { label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
-  gamification: { label: "레벨/경험치", icon: Flame, desc: "커뮤니티 활동 및 보상 통계" },
-  flex: { label: "수익 인증", icon: Trophy, desc: "나의 수익 및 당첨 베팅 자랑하기" },
-  sentiment: { label: "시장 여론", icon: Shield, desc: "베팅 시장의 심리 및 흐름 분석" },
+const CONCEPT_META: Record<string, { label: string; labelEn: string; icon: any; desc: string; descEn: string }> = {
+  experiments: { label: "기상천외 배팅 실험실", labelEn: "Betting Strategy Lab", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션", descEn: "Crazy betting strategy simulation" },
+  fails: { label: "베팅 복기", labelEn: "Bet Talk", icon: History, desc: "나의 베팅 성과 복기", descEn: "Reviewing my betting performance" },
+  gamification: { label: "레벨/경험치", labelEn: "Level/XP", icon: Flame, desc: "커뮤니티 활동 및 보상 통계", descEn: "Community activity and reward stats" },
+  flex: { label: "수익 인증", labelEn: "Profit Flex", icon: Trophy, desc: "나의 수익 및 당첨 베팅 자랑하기", descEn: "Show off my profits and winning bets" },
+  sentiment: { label: "시장 여론", labelEn: "Market Sentiment", icon: Shield, desc: "베팅 시장의 심리 및 흐름 분석", descEn: "Analyzing psychology and flow of betting market" },
 };
 
 const CONCEPT_CATEGORIES = [
-  { id: "fails", label: "베팅 복기", icon: History, desc: "나의 베팅 성과 복기" },
-  { id: "sentiment", label: "시장 여론", icon: Shield, desc: "베팅 시장의 심리 및 흐름 분석" },
-  { id: "experiments", label: "기상천외 배팅 실험실", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션" },
+  { id: "fails", label: "베팅 복기", labelEn: "Bet Talk", icon: History, desc: "나의 베팅 성과 복기" },
+  { id: "sentiment", label: "시장 여론", labelEn: "Market Sentiment", icon: Shield, desc: "베팅 시장의 심리 및 흐름 분석" },
+  { id: "experiments", label: "기상천외 배팅 실험실", labelEn: "Betting Strategy Lab", icon: Zap, desc: "기상천외한 배팅 전략 시뮬레이션" },
 ];
 
 const STRATEGY_INFO = [
@@ -157,6 +158,7 @@ function ConceptsDashboard({ activeCat }: { activeCat: string }) {
 }
 
 export default function ConceptsPage() {
+  const { lang } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -187,6 +189,7 @@ export default function ConceptsPage() {
           const mapped = data.categories.map((c: any) => ({
             id: c.name,
             label: CONCEPT_META[c.name]?.label || c.name,
+            labelEn: c.nameEn || CONCEPT_META[c.name]?.labelEn || c.name,
             icon: CONCEPT_META[c.name]?.icon || Lightbulb,
             desc: CONCEPT_META[c.name]?.desc || "",
           }));
@@ -474,7 +477,11 @@ export default function ConceptsPage() {
           <span className="hover:text-primary transition-colors cursor-pointer" onClick={() => router.push('/concepts')}>개념 탑재</span>
           <span>/</span>
           <span className="text-foreground font-bold">
-            {dynCategories.find(c => c.id === activeCat)?.label || "베팅 복기"}
+            {(() => {
+              const cat = dynCategories.find(c => c.id === activeCat);
+              if (!cat) return lang === 'ko' ? "베팅 복기" : "Bet Talk";
+              return lang === 'ko' ? cat.label : (cat.labelEn || cat.label);
+            })()}
           </span>
         </div>
 
@@ -527,7 +534,7 @@ export default function ConceptsPage() {
               )}
             >
               <cat.icon className="w-3.5 h-3.5" />
-              {cat.label}
+              {lang === 'ko' ? cat.label : (cat.labelEn || cat.label)}
             </button>
           ))}
           <Link
@@ -810,7 +817,11 @@ export default function ConceptsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                             <span className="text-[9px] font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">
-                              {dynCategories.find(c => c.id === post.category)?.label || post.category}
+                              {(() => {
+                                const cat = dynCategories.find(c => c.id === post.category);
+                                if (!cat) return post.category;
+                                return lang === 'ko' ? cat.label : (cat.labelEn || cat.label);
+                              })()}
                             </span>
                             {post.views > 1000 && (
                               <span className="badge-danger text-[8px]">

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/useLanguage";
 import {
   BookOpen, FileText, Shield, CreditCard, UserPlus,
   ChevronRight, Clock, Eye, CheckCircle2, Zap,
@@ -19,6 +20,7 @@ export default function GuidePage() {
 }
 
 function GuideContent() {
+  const { lang } = useLanguage();
   const searchParams = useSearchParams();
   const initialCat = searchParams.get("cat") || "all";
   const [activeCat, setActiveCat] = useState(initialCat);
@@ -99,7 +101,7 @@ function GuideContent() {
                 : "bg-white/5 text-muted-foreground border-white/10 hover:border-white/20"
             )}
           >
-            전체 가이드
+            {lang === "ko" ? "전체 가이드" : "All Guides"}
           </button>
           {categories.map(cat => (
             <button
@@ -112,7 +114,7 @@ function GuideContent() {
                   : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20"
               )}
             >
-              {cat.name}
+              {lang === "ko" ? cat.name : (cat.nameEn || cat.name)}
             </button>
           ))}
         </div>
@@ -152,7 +154,13 @@ function GuideContent() {
                           <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-1.5 text-[10px] md:text-xs text-muted-foreground/60">
                             <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(guide.createdAt).toLocaleDateString()}</span>
                             <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {(guide.views || 0).toLocaleString()}</span>
-                            <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-black text-[9px] uppercase tracking-wider">{guide.tags || "General"}</span>
+                            <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-black text-[9px] uppercase tracking-wider">
+                              {(() => {
+                                const cat = categories.find(c => c.name === guide.tags);
+                                if (!cat) return guide.tags || "General";
+                                return lang === 'ko' ? cat.name : (cat.nameEn || cat.name);
+                              })()}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -190,7 +198,13 @@ function GuideContent() {
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(guide.createdAt).toLocaleDateString()}</span>
                           <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {guide.views || 0}</span>
-                          <span className="bg-primary/20 text-primary px-2 py-0.5 rounded font-bold uppercase tracking-wider">{guide.tags || "General"}</span>
+                          <span className="bg-primary/20 text-primary px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                            {(() => {
+                              const cat = categories.find(c => c.name === guide.tags);
+                              if (!cat) return guide.tags || "General";
+                              return lang === 'ko' ? cat.name : (cat.nameEn || cat.name);
+                            })()}
+                          </span>
                         </div>
                       </div>
                     </div>

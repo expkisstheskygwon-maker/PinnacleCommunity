@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/useLanguage";
 import {
   Bell, AlertTriangle, Wrench, FileText, Shield,
   Clock, ChevronRight, Pin, Megaphone, XCircle, Info
@@ -26,6 +27,7 @@ export default function NoticesPage() {
 }
 
 function NoticeContent() {
+  const { lang } = useLanguage();
   const searchParams = useSearchParams();
   const initialCat = searchParams.get("cat") || "all";
   const [activeCat, setActiveCat] = useState(initialCat);
@@ -103,7 +105,7 @@ function NoticeContent() {
             )}
           >
             <Bell className="w-3.5 h-3.5" />
-            전체
+            {lang === "ko" ? "전체" : "All"}
           </button>
           {categories.map(cat => (
             <button
@@ -117,7 +119,7 @@ function NoticeContent() {
               )}
             >
               <Bell className="w-3.5 h-3.5 opacity-50" />
-              {cat.name}
+              {lang === "ko" ? cat.name : (cat.nameEn || cat.name)}
             </button>
           ))}
         </div>
@@ -144,8 +146,14 @@ function NoticeContent() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={cn("badge text-[8px]", config.bgColor, config.color)}>{notice.tags || "공지"}</span>
-                            <span className="badge-primary text-[8px]"><Pin className="w-2 h-2" />고정</span>
+                            <span className={cn("badge text-[8px]", config.bgColor, config.color)}>
+                              {(() => {
+                                const cat = categories.find(c => c.name === notice.tags);
+                                if (!cat) return notice.tags || (lang === "ko" ? "공지" : "Notice");
+                                return lang === 'ko' ? cat.name : (cat.nameEn || cat.name);
+                              })()}
+                            </span>
+                            <span className="badge-primary text-[8px]"><Pin className="w-2 h-2" />{lang === "ko" ? "고정" : "Pinned"}</span>
                           </div>
                           {notice.authorId === 0 ? (
                             <h3 className="font-bold text-sm" dangerouslySetInnerHTML={{ __html: notice.title }} />
@@ -184,7 +192,13 @@ function NoticeContent() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className={cn("text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded", config.bgColor, config.color)}>{notice.tags || "공지"}</span>
+                            <span className={cn("text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded", config.bgColor, config.color)}>
+                              {(() => {
+                                const cat = categories.find(c => c.name === notice.tags);
+                                if (!cat) return notice.tags || (lang === "ko" ? "공지" : "Notice");
+                                return lang === 'ko' ? cat.name : (cat.nameEn || cat.name);
+                              })()}
+                            </span>
                           </div>
                           {notice.authorId === 0 ? (
                             <h3 className="font-bold text-sm" dangerouslySetInnerHTML={{ __html: notice.title }} />
