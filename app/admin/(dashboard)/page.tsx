@@ -2255,8 +2255,10 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
   const [activeType, setActiveType] = useState(initialType || "notices");
   const [isLoading, setIsLoading] = useState(true);
   const [newCatName, setNewCatName] = useState("");
+  const [newCatNameEn, setNewCatNameEn] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
+  const [editNameEn, setEditNameEn] = useState("");
   const [newCatDesc, setNewCatDesc] = useState("");
   const [editDesc, setEditDesc] = useState("");
 
@@ -2365,11 +2367,12 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
       const res = await fetch("/api/admin/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: activeType, name: newCatName, description: newCatDesc }),
+        body: JSON.stringify({ type: activeType, name: newCatName, nameEn: newCatNameEn, description: newCatDesc }),
       });
       const data = await res.json();
       if (data.success) {
         setNewCatName("");
+        setNewCatNameEn("");
         setNewCatDesc("");
         fetchCategories();
       } else {
@@ -2386,7 +2389,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
       const res = await fetch("/api/admin/categories", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, name: editName, description: editDesc }),
+        body: JSON.stringify({ id, name: editName, nameEn: editNameEn, description: editDesc }),
       });
       const data = await res.json();
       if (data.success) {
@@ -2936,15 +2939,22 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                 <input
                   value={newCatName}
                   onChange={e => setNewCatName(e.target.value)}
-                  placeholder="새 카테고리 이름..."
-                  className="w-full sm:w-1/3 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+                  placeholder="새 카테고리 이름 (한글)..."
+                  className="w-full sm:w-1/4 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+                  onKeyDown={e => e.key === "Enter" && handleAdd()}
+                />
+                <input
+                  value={newCatNameEn}
+                  onChange={e => setNewCatNameEn(e.target.value)}
+                  placeholder="영문 이름 (예: Free Board)..."
+                  className="w-full sm:w-1/4 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
                   onKeyDown={e => e.key === "Enter" && handleAdd()}
                 />
                 <input
                   value={newCatDesc}
                   onChange={e => setNewCatDesc(e.target.value)}
                   placeholder="게시판 성격/설명 (선택, AI 활용 목적 등)..."
-                  className="w-full sm:w-2/3 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
+                  className="w-full sm:w-2/4 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-all"
                   onKeyDown={e => e.key === "Enter" && handleAdd()}
                 />
               </div>
@@ -2968,7 +2978,18 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                           autoFocus
                           value={editName}
                           onChange={e => setEditName(e.target.value)}
-                          className="w-full sm:w-1/3 px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-sm focus:outline-none text-foreground"
+                          placeholder="카테고리 한글명"
+                          className="w-full sm:w-1/4 px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-sm focus:outline-none text-foreground"
+                          onKeyDown={e => {
+                            if (e.key === "Enter") handleUpdate(cat.id);
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                        />
+                        <input
+                          value={editNameEn}
+                          onChange={e => setEditNameEn(e.target.value)}
+                          placeholder="카테고리 영문명"
+                          className="w-full sm:w-1/4 px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-sm focus:outline-none text-foreground"
                           onKeyDown={e => {
                             if (e.key === "Enter") handleUpdate(cat.id);
                             if (e.key === "Escape") setEditingId(null);
@@ -2978,7 +2999,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                           value={editDesc}
                           onChange={e => setEditDesc(e.target.value)}
                           placeholder="설명"
-                          className="w-full sm:w-2/3 px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-sm focus:outline-none text-foreground"
+                          className="w-full sm:w-2/4 px-3 py-1.5 bg-black/40 border border-primary/30 rounded-lg text-sm focus:outline-none text-foreground"
                           onKeyDown={e => {
                             if (e.key === "Enter") handleUpdate(cat.id);
                             if (e.key === "Escape") setEditingId(null);
@@ -2987,9 +3008,10 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                       </div>
                     ) : (
                       <div className="flex flex-col">
-                        <span className={cn("font-bold text-sm", cat.name === "사기주의" && "text-red-400")}>
-                          {cat.name}
-                          {cat.name === "사기주의" && <span className="ml-2 text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 uppercase">고정</span>}
+                        <span className={cn("font-bold text-sm flex items-center gap-2", cat.name === "사기주의" && "text-red-400")}>
+                          <span>{cat.name}</span>
+                          {cat.nameEn && <span className="text-xs text-muted-foreground font-normal">({cat.nameEn})</span>}
+                          {cat.name === "사기주의" && <span className="text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 uppercase font-black">고정</span>}
                         </span>
                         {cat.description && (
                           <span className="text-xs text-muted-foreground mt-0.5">
@@ -3007,7 +3029,7 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
                         </>
                       ) : (
                         <>
-                          <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); setEditDesc(cat.description || ""); }} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); setEditNameEn(cat.nameEn || ""); setEditDesc(cat.description || ""); }} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"><Edit className="w-3.5 h-3.5" /></button>
                           {cat.name !== "사기주의" && (
                             <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                           )}

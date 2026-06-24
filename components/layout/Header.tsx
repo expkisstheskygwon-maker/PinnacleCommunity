@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import NotificationBell from "@/components/NotificationBell";
 import { getLevelInfo } from "@/lib/gamification";
+import { useLanguage } from "@/lib/useLanguage";
 
 interface SubItem {
   href: string;
@@ -131,7 +132,7 @@ interface HeaderProps {
 export default function Header({ user }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [lang, setLang] = useState<"ko" | "en">("ko");
+  const { lang, changeLanguage } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -172,7 +173,7 @@ export default function Header({ user }: HeaderProps) {
                   return {
                     href: `/${menu.menuId}?cat=${encodeURIComponent(c.name)}`,
                     label: translation ? translation.ko : c.name,
-                    labelEn: translation ? translation.en : c.name
+                    labelEn: translation ? translation.en : (c.nameEn || c.name)
                   };
                 });
               }
@@ -244,7 +245,7 @@ export default function Header({ user }: HeaderProps) {
                 return {
                   href: `/${type}?cat=${encodeURIComponent(c.name)}`,
                   label: translation ? translation.ko : c.name,
-                  labelEn: translation ? translation.en : c.name
+                  labelEn: translation ? translation.en : (c.nameEn || c.name)
                 };
               });
             }
@@ -372,7 +373,7 @@ export default function Header({ user }: HeaderProps) {
             </div>
             <div className="hidden md:flex items-center gap-4 text-muted-foreground">
               <button
-                onClick={() => setLang(prev => prev === "ko" ? "en" : "ko")}
+                onClick={() => changeLanguage(lang === "ko" ? "en" : "ko")}
                 className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/5 bg-white/5 hover:bg-white/10 transition-all text-[10px] font-bold text-foreground"
               >
                 <Languages className="w-3 h-3 text-primary" />
@@ -503,7 +504,7 @@ export default function Header({ user }: HeaderProps) {
               <div className="pb-4 mb-4 border-b border-white/[0.06] flex items-center justify-between">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{lang === "ko" ? "메뉴" : "Menu"}</span>
                 <button
-                  onClick={() => setLang(prev => prev === "ko" ? "en" : "ko")}
+                  onClick={() => changeLanguage(lang === "ko" ? "en" : "ko")}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-[11px] font-bold"
                 >
                   <Languages className="w-3.5 h-3.5 text-primary" />
