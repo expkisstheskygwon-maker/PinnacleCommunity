@@ -379,6 +379,13 @@ export default function Header({ user }: HeaderProps) {
                 <Languages className="w-3 h-3 text-primary" />
                 <span>{lang === "ko" ? "English" : "한국어"}</span>
               </button>
+              <Link
+                href="/attendance"
+                className="flex items-center gap-1 px-2 py-1 rounded-md border border-[hsl(var(--gold))]/30 bg-[hsl(var(--gold))]/5 hover:bg-[hsl(var(--gold))]/10 transition-all text-[10px] font-bold text-[hsl(var(--gold))] shadow-[0_0_8px_rgba(251,191,36,0.1)]"
+              >
+                <Flame className="w-3 h-3 text-[hsl(var(--gold))] animate-pulse" />
+                <span>{lang === "ko" ? "출석체크" : "Attendance"}</span>
+              </Link>
               <span className="opacity-20">|</span>
               <span className="flex items-center gap-1">
                 <Shield className="w-3 h-3 text-emerald-400" />
@@ -503,13 +510,22 @@ export default function Header({ user }: HeaderProps) {
             <div className="p-6 space-y-1">
               <div className="pb-4 mb-4 border-b border-white/[0.06] flex items-center justify-between">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{lang === "ko" ? "메뉴" : "Menu"}</span>
-                <button
-                  onClick={() => changeLanguage(lang === "ko" ? "en" : "ko")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-[11px] font-bold"
-                >
-                  <Languages className="w-3.5 h-3.5 text-primary" />
-                  <span>{lang === "ko" ? "English" : "한국어"}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/attendance"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[hsl(var(--gold))]/30 bg-[hsl(var(--gold))]/5 hover:bg-[hsl(var(--gold))]/10 transition-all text-[11px] font-bold text-[hsl(var(--gold))] shadow-[0_0_8px_rgba(251,191,36,0.1)]"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-[hsl(var(--gold))] animate-pulse" />
+                    <span>{lang === "ko" ? "출석체크" : "Attendance"}</span>
+                  </Link>
+                  <button
+                    onClick={() => changeLanguage(lang === "ko" ? "en" : "ko")}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-[11px] font-bold"
+                  >
+                    <Languages className="w-3.5 h-3.5 text-primary" />
+                    <span>{lang === "ko" ? "English" : "한국어"}</span>
+                  </button>
+                </div>
               </div>
               {navItems.map((item) => (
                 <div key={item.id}>
