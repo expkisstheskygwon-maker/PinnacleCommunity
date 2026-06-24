@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/useLanguage";
 
 const CATEGORIES = [
   { id: "all", label: "전체", icon: Users },
@@ -47,6 +48,7 @@ const BADGE_COLORS: Record<string, string> = {
 };
 
 export default function CommunityPage() {
+  const { lang } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
   const [totalPosts, setTotalPosts] = useState(0);
   const [mainMenuDesc, setMainMenuDesc] = useState<string>("경기 토론, 픽 공유, 자유로운 소통의 공간");
@@ -131,11 +133,12 @@ export default function CommunityPage() {
           const mapped = data.categories.map((c: any) => ({
             id: c.name,
             label: c.name === 'free' ? '자유게시판' : c.name === 'match' ? '경기 토론' : c.name === 'picks' ? '픽 공유' : c.name === 'events' ? '이벤트/랭킹' : c.name,
+            labelEn: c.nameEn || (c.name === 'free' ? 'Free Board' : c.name === 'match' ? 'Match Talk' : c.name === 'picks' ? 'Picks' : c.name === 'events' ? 'Events' : c.name),
             icon: getIcon(c.name),
             description: c.description
           }));
           setDynCategories([
-            { id: "all", label: "전체", icon: Users },
+            { id: "all", label: lang === "ko" ? "전체" : "All", icon: Users },
             ...mapped
           ]);
         }
@@ -144,7 +147,7 @@ export default function CommunityPage() {
       }
     };
     fetchCategories();
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -237,7 +240,7 @@ export default function CommunityPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter">
-              {activeCat === "all" ? "커뮤니티" : (dynCategories.find(c => c.id === activeCat)?.label || "커뮤니티")}
+              {activeCat === "all" ? (lang === "ko" ? "커뮤니티" : "Community") : (dynCategories.find(c => c.id === activeCat)?.label || "커뮤니티")}
             </h1>
             <p className="text-muted-foreground mt-1">
               {activeCat !== "all" && dynCategories.find(c => c.id === activeCat)?.description 
@@ -286,7 +289,7 @@ export default function CommunityPage() {
               )}
             >
               <cat.icon className="w-3.5 h-3.5" />
-              {cat.label}
+              {lang === "ko" ? cat.label : (cat.labelEn || cat.label)}
             </button>
           ))}
         </div>
@@ -329,14 +332,22 @@ export default function CommunityPage() {
                           <td className="px-4 py-3.5 text-center text-muted-foreground hidden sm:table-cell font-mono">{postNumber}</td>
                           <td className="px-4 py-3.5 text-center hidden md:table-cell">
                             <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded uppercase">
-                              {dynCategories.find(c => c.id === post.category)?.label || post.category}
+                              {(() => {
+                                const cat = dynCategories.find(c => c.id === post.category);
+                                if (!cat) return post.category;
+                                return lang === 'ko' ? cat.label : (cat.labelEn || cat.label);
+                              })()}
                             </span>
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-2">
                               {/* 모바일용 카테고리 뱃지 */}
                               <span className="md:hidden text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded uppercase shrink-0">
-                                {dynCategories.find(c => c.id === post.category)?.label || post.category}
+                                {(() => {
+                                  const cat = dynCategories.find(c => c.id === post.category);
+                                  if (!cat) return post.category;
+                                  return lang === 'ko' ? cat.label : (cat.labelEn || cat.label);
+                                })()}
                               </span>
                               
                               <span className="font-medium group-hover:text-primary transition-colors line-clamp-1 break-all">
