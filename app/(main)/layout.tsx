@@ -38,7 +38,6 @@ export default async function MainLayout({
   return (
     <>
       <Header user={user} />
-      <AttendanceTracker user={user} />
       <main className="flex-1">{children}</main>
       <Footer 
         description={footerSettings.footer_description} 
