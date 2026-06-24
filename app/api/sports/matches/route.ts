@@ -170,16 +170,49 @@ export async function GET(request: Request) {
         if (fallback.length > 0) return fallback;
       }
 
-      // 배당 데이터
-      const oddsUrl = `https://${config.host}/odds?date=${targetDate}&timezone=Asia/Seoul`;
+      // 배당 데이터 (페이지네이션 적용 및 축구는 Pinnacle 필터링)
+      const bookmakerParam = sportKey === 'soccer' ? '&bookmaker=4' : '';
+      const oddsUrl = `https://${config.host}/odds?date=${targetDate}&timezone=Asia/Seoul&page=1${bookmakerParam}`;
       const oddsResponse = await fetch(oddsUrl, { 
         headers: { 'x-apisports-key': apiKey },
         next: { revalidate: 180 }
       });
+      
       let oddsMap: Record<number, any> = {};
       if (oddsResponse.ok) {
         const oddsData = await oddsResponse.json();
-        (oddsData.response || []).forEach((item: any) => {
+        const firstPageResponse = oddsData.response || [];
+        const totalPages = oddsData.paging?.total || 1;
+        
+        let allOddsResponses = [...firstPageResponse];
+        
+        // 추가 페이지가 있는 경우 안전 한도(최대 8페이지) 내에서 병렬 조회
+        if (totalPages > 1) {
+          const remainingPages = Array.from({ length: Math.min(totalPages, 8) - 1 }, (_, i) => i + 2);
+          const pageRequests = remainingPages.map(async (page) => {
+            try {
+              const pageUrl = `https://${config.host}/odds?date=${targetDate}&timezone=Asia/Seoul&page=${page}${bookmakerParam}`;
+              const pageRes = await fetch(pageUrl, { 
+                headers: { 'x-apisports-key': apiKey },
+                next: { revalidate: 180 }
+              });
+              if (pageRes.ok) {
+                const pageData = await pageRes.json();
+                return pageData.response || [];
+              }
+            } catch (err) {
+              console.error(`Failed to fetch odds page ${page} for ${sportKey}:`, err);
+            }
+            return [];
+          });
+          
+          const pagesResults = await Promise.all(pageRequests);
+          pagesResults.forEach((res) => {
+            allOddsResponses = [...allOddsResponses, ...res];
+          });
+        }
+
+        allOddsResponses.forEach((item: any) => {
           const bookmakers = item.bookmakers || [];
           const bookmaker = bookmakers.find((b: any) => b.name.toLowerCase().includes('pinnacle')) || 
                             bookmakers.find((b: any) => b.name.toLowerCase().includes('bet365')) || 
