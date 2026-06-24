@@ -9,12 +9,13 @@ import {
   Loader2, AlertTriangle, Image as ImageIcon, Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/useLanguage';
 
 const DEFAULT_CATEGORIES = [
-  { id: "free", label: "자유게시판", icon: MessageSquare, desc: "자유로운 일상과 소통" },
-  { id: "match", label: "경기 토론", icon: Swords, desc: "경기 분석 및 토론" },
-  { id: "picks", label: "픽 공유", icon: Target, desc: "승무패/핸디캡 픽 공유" },
-  { id: "events", label: "이벤트/랭킹", icon: Trophy, desc: "혜택과 순위 경쟁" },
+  { id: "free", label: "자유게시판", labelEn: "Free Board", icon: MessageSquare, desc: "자유로운 일상과 소통" },
+  { id: "match", label: "경기 토론", labelEn: "Match Talk", icon: Swords, desc: "경기 분석 및 토론" },
+  { id: "picks", label: "픽 공유", labelEn: "Picks", icon: Target, desc: "승무패/핸디캡 픽 공유" },
+  { id: "events", label: "이벤트/랭킹", labelEn: "Events", icon: Trophy, desc: "혜택과 순위 경쟁" },
 ];
 
 const getIcon = (id: string) => {
@@ -52,6 +53,7 @@ const TEMPLATES = [
 ];
 
 export default function WritePage() {
+  const { lang } = useLanguage();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -137,6 +139,7 @@ export default function WritePage() {
           const mapped = data.categories.map((c: any) => ({
             id: c.name,
             label: c.name === 'free' ? '자유게시판' : c.name === 'match' ? '경기 토론' : c.name === 'picks' ? '픽 공유' : c.name === 'events' ? '이벤트/랭킹' : c.name,
+            labelEn: c.nameEn || (c.name === 'free' ? 'Free Board' : c.name === 'match' ? 'Match Talk' : c.name === 'picks' ? 'Picks' : c.name === 'events' ? 'Events' : c.name),
             icon: getIcon(c.name),
             desc: getDesc(c.name)
           }));
@@ -279,7 +282,7 @@ export default function WritePage() {
                 <span className={cn(
                   "text-xs font-black tracking-widest",
                   formData.category === cat.id ? "text-primary" : "text-muted-foreground"
-                )}>{cat.label}</span>
+                )}>{lang === 'ko' ? cat.label : (cat.labelEn || cat.label)}</span>
                 {formData.category === cat.id && (
                   <div className="absolute top-1.5 right-1.5">
                     <Check className="w-3.5 h-3.5 text-primary" />
