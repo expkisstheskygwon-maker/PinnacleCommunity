@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
+import { useLanguage } from "@/lib/useLanguage";
 import {
   Star, CheckCircle2, ThumbsUp, MessageSquare, Filter,
   ChevronDown, PenLine, ArrowUpDown, Clock, TrendingUp,
@@ -20,6 +21,7 @@ export default function SpotlightPage() {
 }
 
 function SpotlightContent() {
+  const { lang } = useLanguage();
   const searchParams = useSearchParams();
   const router = useRouter();
   const activeCat = searchParams.get("cat") || "all";
@@ -103,7 +105,7 @@ function SpotlightContent() {
                 : "bg-white/5 text-muted-foreground hover:bg-white/10"
             )}
           >
-            전체
+            {lang === "ko" ? "전체" : "All"}
           </button>
           {categories.map(cat => (
             <button
@@ -116,7 +118,7 @@ function SpotlightContent() {
                   : "bg-white/5 border-white/[0.06] text-muted-foreground hover:border-white/20"
               )}
             >
-              {cat.name}
+              {lang === "ko" ? cat.name : (cat.nameEn || cat.name)}
             </button>
           ))}
         </div>
@@ -140,7 +142,11 @@ function SpotlightContent() {
                       <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       <div className="absolute top-4 left-4">
                         <span className="bg-primary px-3 py-1 rounded-lg text-[10px] font-black text-white uppercase tracking-wider">
-                          {post.tags || "Spotlight"}
+                          {(() => {
+                            const cat = categories.find(c => c.name === post.tags);
+                            if (!cat) return post.tags || "Spotlight";
+                            return lang === 'ko' ? cat.name : (cat.nameEn || cat.name);
+                          })()}
                         </span>
                       </div>
                     </div>
@@ -149,7 +155,11 @@ function SpotlightContent() {
                       <Zap className="w-16 h-16 text-primary/30" />
                       <div className="absolute top-4 left-4">
                         <span className="bg-primary px-3 py-1 rounded-lg text-[10px] font-black text-white uppercase tracking-wider">
-                          {post.tags || "Spotlight"}
+                          {(() => {
+                            const cat = categories.find(c => c.name === post.tags);
+                            if (!cat) return post.tags || "Spotlight";
+                            return lang === 'ko' ? cat.name : (cat.nameEn || cat.name);
+                          })()}
                         </span>
                       </div>
                     </div>

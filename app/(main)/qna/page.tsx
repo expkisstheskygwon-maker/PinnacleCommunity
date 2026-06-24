@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/useLanguage";
 import {
   HelpCircle, CheckCircle2, MessageSquare, Clock, ChevronRight,
   UserPlus, CreditCard, BarChart3, Shield, ThumbsUp, Eye, PenLine
@@ -25,6 +26,7 @@ export default function QnAPage() {
 }
 
 function QnAContent() {
+  const { lang } = useLanguage();
   const searchParams = useSearchParams();
   const initialCat = searchParams.get("cat") || "all";
   const [activeCat, setActiveCat] = useState(initialCat);
@@ -166,7 +168,7 @@ function QnAContent() {
             )}
           >
             <HelpCircle className="w-3.5 h-3.5" />
-            전체
+            {lang === "ko" ? "전체" : "All"}
           </button>
           {categories.map(cat => (
             <button
@@ -180,7 +182,7 @@ function QnAContent() {
               )}
             >
               <HelpCircle className="w-3.5 h-3.5 opacity-50" />
-              {cat.name}
+              {lang === "ko" ? cat.name : (cat.nameEn || cat.name)}
             </button>
           ))}
         </div>
@@ -190,13 +192,13 @@ function QnAContent() {
             onClick={() => setShowFAQ(true)}
             className={cn("px-6 py-2.5 rounded-lg text-sm font-bold transition-all", showFAQ ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground")}
           >
-            공식 FAQ
+            {lang === "ko" ? "공식 FAQ" : "Official FAQ"}
           </button>
           <button
             onClick={() => setShowFAQ(false)}
             className={cn("px-6 py-2.5 rounded-lg text-sm font-bold transition-all", !showFAQ ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground")}
           >
-            사용자 Q&A
+            {lang === "ko" ? "사용자 Q&A" : "User Q&A"}
           </button>
         </div>
 
