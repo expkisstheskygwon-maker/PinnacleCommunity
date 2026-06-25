@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch user info
     const user: any = await db
-      .prepare('SELECT betMoney, lastRechargeDate FROM users WHERE id = ?')
+      .prepare('SELECT points, lastRechargeDate FROM users WHERE id = ?')
       .bind(userId)
       .first();
 
@@ -27,11 +27,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '유저를 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    // 1. Check betMoney balance limit
-    if ((user.betMoney || 0) >= 10000) {
+    // 1. Check points balance limit (under 1000 VP)
+    if ((user.points || 0) >= 1000) {
       return NextResponse.json({ 
         success: false, 
-        error: '무료 충전은 보유 배팅 머니가 10,000 BM 미만일 때만 신청 가능합니다.' 
+        error: '무료 충전은 보유 포인트가 1,000 VP 미만일 때만 신청 가능합니다.' 
       }, { status: 400 });
     }
 
@@ -44,22 +44,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const rechargeAmount = 50000;
+    const rechargeAmount = 5000; // +5,000 VP
     const statements = [
-      // Update betMoney and last recharge date
-      db.prepare('UPDATE users SET betMoney = betMoney + ?, lastRechargeDate = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
+      // Update points and last recharge date
+      db.prepare('UPDATE users SET points = points + ?, lastRechargeDate = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?')
         .bind(rechargeAmount, today, userId),
-      // Log betMoney transaction
+      // Log points transaction
       db.prepare(`
-        INSERT INTO bet_money_logs (userId, amount, reason)
+        INSERT INTO points_logs (userId, amount, reason)
         VALUES (?, ?, 'recharge')
       `).bind(userId, rechargeAmount),
       // Create notification
       db.prepare('INSERT INTO notifications (userId, type, title, body) VALUES (?, "system", ?, ?)')
         .bind(
           userId,
-          `⚡ 무료 배팅 머니 충전 완료 (+${rechargeAmount.toLocaleString()} BM)`,
-          `배팅 머니 무료 충전이 완료되어 50,000 BM이 지급되었습니다. 보유 배팅 머니: ${(user.betMoney + rechargeAmount).toLocaleString()} BM`
+          `⚡ 무료 포인트 충전 완료 (+${rechargeAmount.toLocaleString()} VP)`,
+          `포인트 무료 충전이 완료되어 5,000 VP가 지급되었습니다. 보유 포인트: ${(user.points + rechargeAmount).toLocaleString()} VP`
         )
     ];
 
@@ -67,9 +67,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: '50,000 BM이 무료 충전되었습니다.',
+      message: '5,000 VP가 무료 충전되었습니다.',
       addedPoints: rechargeAmount,
-      totalPoints: user.betMoney + rechargeAmount
+      totalPoints: user.points + rechargeAmount
     });
 
   } catch (error: any) {

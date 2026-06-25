@@ -33,6 +33,12 @@ export default function AttendancePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // Roulette States
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [rotationAngle, setRotationAngle] = useState(0);
+  const [spinResult, setSpinResult] = useState<any>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
+
   // Calendar setup (based on local user browser time)
   const todayObj = new Date();
   const currentYear = todayObj.getFullYear();
@@ -104,6 +110,53 @@ export default function AttendancePage() {
       showToastMsg("error", "네트워크 오류가 발생했습니다.");
     } finally {
       setCheckingIn(false);
+    }
+  };
+
+  const handleSpinRoulette = async () => {
+    if (!isLoggedIn) {
+      router.push("/login");
+      return;
+    }
+    if (isSpinning) return;
+    if (stats.points < 100) {
+      showToastMsg("error", "포인트가 부족합니다. (최소 100 VP 필요)");
+      return;
+    }
+
+    setIsSpinning(true);
+    setSpinResult(null);
+
+    try {
+      const res = await fetch("/api/concepts/roulette", { method: "POST" });
+      const data = await res.json();
+
+      if (data.success) {
+        const baseSpins = 3600; // 10 full spins
+        const slotCenter = data.slotIndex * 60 + 30;
+        const targetAngle = baseSpins - slotCenter + 270; // 270 offset to point at the top 12 o'clock
+        
+        const currentRotationBase = Math.ceil(rotationAngle / 360) * 360;
+        const finalAngle = currentRotationBase + targetAngle;
+
+        setRotationAngle(finalAngle);
+        setSpinResult(data);
+
+        // Wait for spin animation (4 seconds)
+        setTimeout(() => {
+          setIsSpinning(false);
+          setShowResultModal(true);
+          setStats(prev => ({ ...prev, points: data.newPoints }));
+          router.refresh();
+        }, 4100);
+
+      } else {
+        showToastMsg("error", data.error || "룰렛 실행 중 오류가 발생했습니다.");
+        setIsSpinning(false);
+      }
+    } catch (err) {
+      showToastMsg("error", "서버 오류가 발생했습니다.");
+      setIsSpinning(false);
     }
   };
 
@@ -324,6 +377,170 @@ export default function AttendancePage() {
                 </div>
               </div>
 
+              {/* Lucky Point Roulette Card */}
+              <div className="glass-card border-white/10 p-6 rounded-3xl shadow-xl bg-white/[0.01]">
+                <div className="flex items-center gap-2 mb-6 pb-4 border-b border-white/[0.05]">
+                  <RotateCcw className="w-4 h-4 text-amber-400" />
+                  <h3 className="font-black text-base">럭키 포인트 룰렛</h3>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12 py-4">
+                  {/* Visual Roulette Wheel Container */}
+                  <div className="relative w-56 h-56 shrink-0 select-none">
+                    {/* Top Pointer Arrow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10 w-6 h-6 filter drop-shadow-[0_2px_4px_rgba(251,191,36,0.5)]">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
+                        <path d="M12 21L21 6H3L12 21Z" fill="hsl(var(--gold))" stroke="#000" strokeWidth="1" />
+                      </svg>
+                    </div>
+
+                    {/* Spinning SVG Wheel */}
+                    <div 
+                      className="w-full h-full"
+                      style={{ 
+                        transform: `rotate(${rotationAngle}deg)`, 
+                        transition: isSpinning ? 'transform 4s cubic-bezier(0.15, 0.85, 0.35, 1)' : 'none' 
+                      }}
+                    >
+                      <svg viewBox="0 0 200 200" className="w-full h-full">
+                        <defs>
+                          <radialGradient id="hubGradient" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stopColor="#1e293b" />
+                            <stop offset="100%" stopColor="#0f172a" />
+                          </radialGradient>
+                          <linearGradient id="rimGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="hsl(var(--gold))" />
+                            <stop offset="50%" stopColor="#3b82f6" />
+                            <stop offset="100%" stopColor="hsl(var(--gold))" />
+                          </linearGradient>
+                        </defs>
+                        
+                        {/* 6 Slices */}
+                        {[
+                          { label: "50 VP", prob: "35%", color: "rgba(59, 130, 246, 0.12)", stroke: "rgba(59, 130, 246, 0.25)", textColor: "#60a5fa" },
+                          { label: "100 VP", prob: "30%", color: "rgba(6, 182, 212, 0.12)", stroke: "rgba(6, 182, 212, 0.25)", textColor: "#22d3ee" },
+                          { label: "200 VP", prob: "20%", color: "rgba(168, 85, 247, 0.12)", stroke: "rgba(168, 85, 247, 0.25)", textColor: "#c084fc" },
+                          { label: "500 VP", prob: "8%", color: "rgba(244, 63, 94, 0.12)", stroke: "rgba(244, 63, 94, 0.25)", textColor: "#fb7185" },
+                          { label: "1000 VP", prob: "2%", color: "rgba(251, 191, 36, 0.20)", stroke: "rgba(251, 191, 36, 0.4)", textColor: "hsl(var(--gold))" },
+                          { label: "꽝", prob: "5%", color: "rgba(255, 255, 255, 0.01)", stroke: "rgba(255, 255, 255, 0.05)", textColor: "#6b7280" },
+                        ].map((sec, idx) => {
+                          const alpha = (idx * 60) * Math.PI / 180;
+                          const beta = ((idx + 1) * 60) * Math.PI / 180;
+                          const gamma = (idx * 60 + 30) * Math.PI / 180;
+                          const r = 90;
+                          const x1 = 100 + r * Math.cos(alpha);
+                          const y1 = 100 + r * Math.sin(alpha);
+                          const x2 = 100 + r * Math.cos(beta);
+                          const y2 = 100 + r * Math.sin(beta);
+                          
+                          const xt = 100 + 52 * Math.cos(gamma);
+                          const yt = 100 + 52 * Math.sin(gamma);
+                          const xp = 100 + 72 * Math.cos(gamma);
+                          const yp = 100 + 72 * Math.sin(gamma);
+                          
+                          return (
+                            <g key={idx}>
+                              <path
+                                d={`M 100 100 L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`}
+                                fill={sec.color}
+                                stroke={sec.stroke}
+                                strokeWidth="1"
+                              />
+                              <text
+                                x={xt}
+                                y={yt}
+                                fill={sec.textColor}
+                                fontSize="7.5"
+                                fontWeight="900"
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                transform={`rotate(${idx * 60 + 30}, ${xt}, ${yt})`}
+                              >
+                                {sec.label}
+                              </text>
+                              <text
+                                x={xp}
+                                y={yp}
+                                fill={sec.textColor}
+                                opacity="0.6"
+                                fontSize="5.5"
+                                fontWeight="bold"
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                transform={`rotate(${idx * 60 + 30}, ${xp}, ${yp})`}
+                              >
+                                {sec.prob}
+                              </text>
+                            </g>
+                          );
+                        })}
+
+                        {/* Outer rim */}
+                        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
+                        <circle cx="100" cy="100" r="92" fill="none" stroke="url(#rimGradient)" strokeWidth="1.5" />
+                        
+                        {/* Hub (Inner Circle) */}
+                        <circle cx="100" cy="100" r="20" fill="url(#hubGradient)" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
+                      </svg>
+                    </div>
+
+                    {/* Wheel Center Button (Static, overlays the spinning wheel) */}
+                    <button
+                      disabled={isSpinning || stats.points < 100}
+                      onClick={handleSpinRoulette}
+                      className={cn(
+                        "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full border flex flex-col items-center justify-center font-black transition-all shadow-xl z-20",
+                        isSpinning 
+                          ? "bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed" 
+                          : stats.points < 100
+                            ? "bg-slate-900 border-white/5 text-muted-foreground/30 cursor-not-allowed"
+                            : "bg-gradient-to-br from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 border-amber-300 text-black shadow-amber-500/20 active:scale-95"
+                      )}
+                      style={{ fontSize: '9px' }}
+                    >
+                      <span>SPIN</span>
+                    </button>
+                  </div>
+
+                  {/* Roulette info and helper text */}
+                  <div className="space-y-4 max-w-xs text-center md:text-left">
+                    <div>
+                      <span className="text-[10px] font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded uppercase tracking-wider">LUCKY ROULETTE</span>
+                      <h4 className="text-lg font-black mt-2">100 VP로 인생역전!</h4>
+                      <p className="text-muted-foreground text-xs leading-relaxed mt-1">
+                        1회 참가 시 <strong>100 VP</strong>가 차감되며, 당첨 확률에 따라 최대 <strong>1,000 VP</strong> 또는 보너스 포인트를 획득할 수 있습니다.
+                      </p>
+                    </div>
+
+                    <div className="bg-black/30 border border-white/5 rounded-2xl p-3 text-[11px] space-y-1.5 font-mono">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">내 보유 포인트</span>
+                        <span className="font-bold">{stats.points.toLocaleString()} VP</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">참가 비용</span>
+                        <span className="font-bold text-rose-400">-100 VP</span>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={isSpinning || stats.points < 100}
+                      onClick={handleSpinRoulette}
+                      className={cn(
+                        "w-full py-3 px-6 rounded-2xl font-black text-xs transition-all shadow-md",
+                        isSpinning
+                          ? "bg-white/5 border border-white/10 text-muted-foreground/40 cursor-not-allowed shadow-none"
+                          : stats.points < 100
+                            ? "bg-white/5 border border-white/5 text-muted-foreground/30 cursor-not-allowed shadow-none"
+                            : "bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-[0.98]"
+                      )}
+                    >
+                      {isSpinning ? "룰렛 회전 중..." : stats.points < 100 ? "포인트가 부족합니다" : "룰렛 돌리기 (-100 VP)"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             {/* Right Column: User Stats & Other Point Methods */}
@@ -499,6 +716,49 @@ export default function AttendancePage() {
 
           </div>
         )}
+      {/* Roulette Result Modal */}
+      {showResultModal && spinResult && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="glass-card max-w-sm w-full p-6 text-center rounded-[32px] border-white/10 shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/25 flex items-center justify-center mx-auto mb-5">
+              <Sparkles className="w-8 h-8 text-[hsl(var(--gold))] animate-pulse" />
+            </div>
+            <h3 className="text-xl font-black mb-2">
+              {spinResult.reward > 0 ? "축하합니다!" : "아쉽게도 다음 기회에!"}
+            </h3>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+              {spinResult.reward > 0 
+                ? `룰렛 결과로 ${spinResult.reward.toLocaleString()} VP 당첨되었습니다.`
+                : "꽝입니다! 다음 룰렛에서 대박을 노려보세요."}
+            </p>
+            
+            <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-2xl mb-6 font-mono text-left">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>차감 포인트</span>
+                <span>-100 VP</span>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>당첨 포인트</span>
+                <span className={spinResult.reward > 0 ? "text-[hsl(var(--gold))] font-bold" : "text-gray-400"}>
+                  +{spinResult.reward} VP
+                </span>
+              </div>
+              <div className="h-px bg-white/5 my-2" />
+              <div className="flex justify-between text-sm font-bold">
+                <span>최종 포인트</span>
+                <span>{spinResult.newPoints.toLocaleString()} VP</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowResultModal(false)}
+              className="btn-primary w-full py-3 text-sm font-bold"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
