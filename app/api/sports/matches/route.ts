@@ -6,6 +6,51 @@ import { getTodayMatches } from '@/lib/sports';
 const cache: Record<string, { data: any, timestamp: number }> = {};
 const CACHE_TTL = 3 * 60 * 1000;
 
+
+// 결정론적 해시 함수 (일정한 예측 결과 반환을 위해 사용)
+function getDeterministicHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+}
+
+// 결정론적 임시 배당 생성기
+function generateDeterministicOdds(idStr: string, sportKey: string): { h: number; d: number; a: number; ah: string; ou: string } {
+  const hash = getDeterministicHash(idStr);
+  const hashType = hash % 3;
+  let h = 0, d = 0, a = 0;
+  if (hashType === 0) { // 홈 정배
+    h = 1.45 + (hash % 30) / 100; // 1.45 ~ 1.75
+    d = 3.20 + (hash % 40) / 100; // 3.20 ~ 3.60
+    a = 4.20 + (hash % 150) / 100; // 4.20 ~ 5.70
+  } else if (hashType === 1) { // 원정 정배
+    h = 3.90 + (hash % 120) / 100; // 3.90 ~ 5.10
+    d = 3.10 + (hash % 40) / 100; // 3.10 ~ 3.50
+    a = 1.50 + (hash % 35) / 100; // 1.50 ~ 1.85
+  } else { // 팽팽한 매치
+    h = 2.15 + (hash % 35) / 100; // 2.15 ~ 2.50
+    d = 2.90 + (hash % 30) / 100; // 2.90 ~ 3.20
+    a = 2.60 + (hash % 40) / 100; // 2.60 ~ 3.00
+  }
+
+  const hasDraw = sportKey === 'soccer';
+  if (!hasDraw) {
+    d = 0;
+    // 2지선다 배당 정규화
+    const total = h + a;
+    h = parseFloat((h / total * 3).toFixed(2));
+    a = parseFloat((a / total * 3).toFixed(2));
+  } else {
+    h = parseFloat(h.toFixed(2));
+    d = parseFloat(d.toFixed(2));
+    a = parseFloat(a.toFixed(2));
+  }
+
+  return { h, d, a, ah: "-", ou: "-" };
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get('sport') || 'soccer';
@@ -98,30 +143,33 @@ export async function GET(request: Request) {
         return data.events || [];
       }));
 
-      return allEvents.flat().map((event: any) => ({
-        id: event.idEvent,
-        home: event.strHomeTeam,
-        away: event.strAwayTeam,
-        league: event.strLeague,
-        country: event.strCountry || "World",
-        countryCode: "EU", // TheSportsDB는 국가 코드를 주지 않으므로 기본값
-        flag: null,
-        leagueLogo: null,
-        sport: sportKey,
-        status: "Upcoming",
-        statusCode: "NS",
-        time: event.strTime ? event.strTime.substring(0, 5) : "00:00",
-        date: event.dateEvent ? event.dateEvent.substring(5).replace('-', '/') : "00/00",
-        live: false,
-        finished: false,
-        scores: { home: 0, away: 0 },
-        odds: { h: 0, d: 0, a: 0 },
-        ah: "-",
-        ou: "-",
-        openH: 0,
-        movement: "steady",
-        source: "TheSportsDB"
-      }));
+      return allEvents.flat().map((event: any) => {
+        const generated = generateDeterministicOdds(String(event.idEvent), sportKey);
+        return {
+          id: event.idEvent,
+          home: event.strHomeTeam,
+          away: event.strAwayTeam,
+          league: event.strLeague,
+          country: event.strCountry || "World",
+          countryCode: "EU", // TheSportsDB는 국가 코드를 주지 않으므로 기본값
+          flag: null,
+          leagueLogo: null,
+          sport: sportKey,
+          status: "Upcoming",
+          statusCode: "NS",
+          time: event.strTime ? event.strTime.substring(0, 5) : "00:00",
+          date: event.dateEvent ? event.dateEvent.substring(5).replace('-', '/') : "00/00",
+          live: false,
+          finished: false,
+          scores: { home: 0, away: 0 },
+          odds: { h: generated.h, d: generated.d, a: generated.a },
+          ah: generated.ah,
+          ou: generated.ou,
+          openH: generated.h,
+          movement: "steady",
+          source: "TheSportsDB"
+        };
+      });
     } catch (err) {
       console.error(`TheSportsDB Fallback Error for ${sportKey}:`, err);
       return [];
@@ -240,7 +288,10 @@ export async function GET(request: Request) {
         const teams = item.teams;
         const league = item.league;
         const status = fixture.status || item.status;
-        const matchOdds = oddsMap[fixture.id] || { h: 0, d: 0, a: 0, ah: "-", ou: "-" };
+        let matchOdds = oddsMap[fixture.id];
+        if (!matchOdds || (Number(matchOdds.h) <= 0 && Number(matchOdds.a) <= 0)) {
+          matchOdds = generateDeterministicOdds(String(fixture.id), sportKey);
+        }
         
         const scores = item.goals || item.scores || { home: 0, away: 0 };
         const homeScore = scores.home != null ? (typeof scores.home === 'object' ? scores.home?.total ?? 0 : scores.home) : 0;
