@@ -6,9 +6,11 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   TrendingUp, Activity, Swords, Trophy, Zap, Clock, Shield,
   ChevronDown, Filter, Star, Info, Users, History, Check, X,
-  Search, AlertCircle, ShoppingBag, Landmark, ArrowUpRight
+  Search, AlertCircle, ShoppingBag, Landmark, ArrowUpRight,
+  Brain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import AnalysisModal from "../analysis/AnalysisModal";
 
 const CATEGORIES = [
   { id: "soccer", label: "축구", icon: Swords },
@@ -36,6 +38,15 @@ function VirtualBettingContent() {
   const [appliedItem, setAppliedItem] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // AI Prediction States
+  const [selectedAiMatch, setSelectedAiMatch] = useState<any | null>(null);
+  const [aiPredictions, setAiPredictions] = useState<any[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // Bet Slip AI Prediction States
+  const [slipPredictions, setSlipPredictions] = useState<any[]>([]);
+  const [slipPredLoading, setSlipPredLoading] = useState(false);
 
   // Sync category with URL query param
   useEffect(() => {
@@ -74,6 +85,62 @@ function VirtualBettingContent() {
       setLoading(false);
     }
   };
+
+  const handleOpenAiAnalysis = async (match: any) => {
+    setSelectedAiMatch(match);
+    setAiLoading(true);
+    try {
+      const oddsQuery = match.odds 
+        ? `&oddsH=${match.odds.h}&oddsD=${match.odds.d}&oddsA=${match.odds.a}` 
+        : '';
+      const res = await fetch(
+        `/api/sports/predictions?fixtureId=${match.id}&sport=${activeCat}&home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}${oddsQuery}`
+      );
+      const data = await res.json();
+      if (data.success && data.predictions) {
+        setAiPredictions(data.predictions);
+      } else {
+        setAiPredictions([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setAiPredictions([]);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Automatically fetch prediction for selected bet in slip
+  useEffect(() => {
+    if (!selectedBet || !selectedBet.matchData) {
+      setSlipPredictions([]);
+      return;
+    }
+    const fetchSlipPredictions = async () => {
+      setSlipPredLoading(true);
+      try {
+        const match = selectedBet.matchData;
+        const oddsQuery = match.odds 
+          ? `&oddsH=${match.odds.h}&oddsD=${match.odds.d}&oddsA=${match.odds.a}` 
+          : '';
+        const res = await fetch(
+          `/api/sports/predictions?fixtureId=${match.id}&sport=${activeCat}&home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}${oddsQuery}`
+        );
+        const data = await res.json();
+        if (data.success && data.predictions) {
+          setSlipPredictions(data.predictions);
+        } else {
+          setSlipPredictions([]);
+        }
+      } catch (e) {
+        console.error(e);
+        setSlipPredictions([]);
+      } finally {
+        setSlipPredLoading(false);
+      }
+    };
+    fetchSlipPredictions();
+  }, [selectedBet?.matchId]);
 
   useEffect(() => {
     fetchProfile();
@@ -116,6 +183,7 @@ function VirtualBettingContent() {
       market: 'Match Winner',
       selection: selectionKo,
       odds,
+      matchData: match,
     });
     setStake("");
     setAppliedItem(null);
@@ -332,12 +400,21 @@ function VirtualBettingContent() {
                             </td>
                             
                             <td className="px-5 py-5">
-                              <div className="flex items-center justify-center gap-4">
-                                <span className="font-bold text-right flex-1 truncate max-w-[140px]">{m.home}</span>
-                                <div className="px-2 py-0.5 rounded bg-black/40 border border-white/5 font-mono text-[11px] font-black text-red-500 shrink-0">
-                                  {m.scores?.home} : {m.scores?.away}
+                              <div className="flex flex-col items-center gap-1.5">
+                                <div className="flex items-center justify-center gap-4 w-full">
+                                  <span className="font-bold text-right flex-1 truncate max-w-[140px]">{m.home}</span>
+                                  <div className="px-2 py-0.5 rounded bg-black/40 border border-white/5 font-mono text-[11px] font-black text-red-500 shrink-0">
+                                    {m.scores?.home} : {m.scores?.away}
+                                  </div>
+                                  <span className="font-bold text-left flex-1 truncate max-w-[140px]">{m.away}</span>
                                 </div>
-                                <span className="font-bold text-left flex-1 truncate max-w-[140px]">{m.away}</span>
+                                <button
+                                  onClick={() => handleOpenAiAnalysis(m)}
+                                  className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-[10px] font-bold rounded-lg flex items-center gap-1 transition-all mt-0.5 hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                  <Brain className="w-3 h-3 text-primary animate-pulse" />
+                                  AI 분석 리포트
+                                </button>
                               </div>
                             </td>
 
@@ -445,6 +522,45 @@ function VirtualBettingContent() {
                       <span className="font-black font-mono text-sm">@{selectedBet.odds.toFixed(2)}</span>
                     </div>
                   </div>
+                </div>
+
+                {/* AI Predictions Summary inside Bet Slip */}
+                <div className="bg-primary/5 rounded-2xl p-3.5 border border-primary/10 text-left space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-primary font-black uppercase tracking-wider flex items-center gap-1.5">
+                      <Brain className="w-3.5 h-3.5 text-primary" /> AI 분석 피드
+                    </span>
+                    <button
+                      onClick={() => handleOpenAiAnalysis(selectedBet.matchData)}
+                      className="text-[9px] text-muted-foreground hover:text-primary transition-colors font-bold uppercase"
+                    >
+                      상세 보기 &rarr;
+                    </button>
+                  </div>
+                  {slipPredLoading ? (
+                    <div className="flex items-center gap-2 py-1">
+                      <div className="w-3.5 h-3.5 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                      <span className="text-[10px] text-muted-foreground animate-pulse">AI 예측 분석 중...</span>
+                    </div>
+                  ) : slipPredictions.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {slipPredictions.map((pred, i) => {
+                        const isMatch = selectedBet.selection?.includes(pred.pick.replace(" 승", ""));
+                        return (
+                          <div key={i} className={cn(
+                            "bg-black/20 rounded-xl p-2 border border-white/5 text-center flex flex-col gap-0.5",
+                            isMatch && "border-primary/30 bg-primary/5"
+                          )}>
+                            <span className="text-[8px] text-muted-foreground truncate font-semibold">{pred.botName.replace("AI ", "")}</span>
+                            <span className={cn("text-[10px] font-black", isMatch ? "text-primary" : "text-white")}>{pred.pick}</span>
+                            <span className="text-[8px] text-muted-foreground/60 font-mono font-bold">{pred.winRate}% 신뢰</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground/60 py-1">이 경기에 대한 예측 데이터가 없습니다.</p>
+                  )}
                 </div>
 
                 {/* Stake Input */}
@@ -560,6 +676,27 @@ function VirtualBettingContent() {
           </aside>
         </div>
 
+        {/* AI Detailed Analysis Modal */}
+        {selectedAiMatch && (
+          <AnalysisModal
+            isOpen={!!selectedAiMatch}
+            onClose={() => {
+              setSelectedAiMatch(null);
+              setAiPredictions([]);
+            }}
+            match={{
+              id: selectedAiMatch.id,
+              league: selectedAiMatch.league,
+              date: selectedAiMatch.date,
+              time: selectedAiMatch.time,
+              home: selectedAiMatch.home,
+              away: selectedAiMatch.away,
+              homeLogo: selectedAiMatch.homeLogo,
+              awayLogo: selectedAiMatch.awayLogo,
+            }}
+            predictions={aiPredictions}
+          />
+        )}
       </div>
     </div>
   );

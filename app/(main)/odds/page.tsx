@@ -8,10 +8,11 @@ import {
   ChevronDown, Filter, Star, Zap, Gamepad2, Trophy,
   ChevronRight, Info, Users, History, MapPin, User, Clock, 
   AlertCircle, X, Search, Eye, EyeOff, LayoutGrid, Check,
-  ArrowUpRight, Shield
+  ArrowUpRight, Shield, Brain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SportsSidebar from "./SportsSidebar";
+import AnalysisModal from "../analysis/AnalysisModal";
 
 const CATEGORIES = [
 
@@ -65,6 +66,11 @@ function OddsContent() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+  // AI Prediction States
+  const [selectedAiMatch, setSelectedAiMatch] = useState<any | null>(null);
+  const [aiPredictions, setAiPredictions] = useState<any[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
   const fetchProfile = async () => {
     try {
       const res = await fetch('/api/user/profile');
@@ -84,6 +90,30 @@ function OddsContent() {
   const showToast = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 4000);
+  };
+
+  const handleOpenAiAnalysis = async (match: any) => {
+    setSelectedAiMatch(match);
+    setAiLoading(true);
+    try {
+      const oddsQuery = match.odds 
+        ? `&oddsH=${match.odds.h}&oddsD=${match.odds.d}&oddsA=${match.odds.a}` 
+        : '';
+      const res = await fetch(
+        `/api/sports/predictions?fixtureId=${match.id}&sport=${activeCat}&home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}${oddsQuery}`
+      );
+      const data = await res.json();
+      if (data.success && data.predictions) {
+        setAiPredictions(data.predictions);
+      } else {
+        setAiPredictions([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setAiPredictions([]);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleSelectOdd = (match: any, selection: string, odds: number) => {
@@ -735,6 +765,12 @@ function OddsContent() {
                                             >
                                               전체 마켓 보기 (45+)
                                             </button>
+                                            <button 
+                                              onClick={(e) => { e.stopPropagation(); handleOpenAiAnalysis(m); }}
+                                              className="w-full py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black hover:bg-blue-500 hover:text-white transition-all uppercase tracking-widest mt-2 flex items-center justify-center gap-1.5"
+                                            >
+                                              <Brain className="w-3.5 h-3.5 animate-pulse" /> AI 분석 리포트
+                                            </button>
                                             {profile && (
                                               <button 
                                                 onClick={(e) => { e.stopPropagation(); handleOpenBetSlip(m); }}
@@ -966,6 +1002,28 @@ function OddsContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI Detailed Analysis Modal */}
+      {selectedAiMatch && (
+        <AnalysisModal
+          isOpen={!!selectedAiMatch}
+          onClose={() => {
+            setSelectedAiMatch(null);
+            setAiPredictions([]);
+          }}
+          match={{
+            id: selectedAiMatch.id,
+            league: selectedAiMatch.league,
+            date: selectedAiMatch.date,
+            time: selectedAiMatch.time,
+            home: selectedAiMatch.home,
+            away: selectedAiMatch.away,
+            homeLogo: selectedAiMatch.homeLogo,
+            awayLogo: selectedAiMatch.awayLogo,
+          }}
+          predictions={aiPredictions}
+        />
       )}
     </div>
   );
