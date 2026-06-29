@@ -97,6 +97,21 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
+function formatRelativeTime(dateString: string) {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return "방금 전";
+  if (diffMins < 60) return `${diffMins}분 전`;
+  if (diffHours < 24) return `${diffHours}시간 전`;
+  if (diffDays < 7) return `${diffDays}일 전`;
+  return date.toLocaleDateString();
+}
+
 const getNoticeLabel = (typeOrTag: string) => {
   const mapping: Record<string, string> = {
     scam: "사칭주의",
@@ -120,6 +135,8 @@ export default function HomePage() {
   const [qnaPosts, setQnaPosts] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
   const [scamPosts, setScamPosts] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState<any>({});
   const [userPrefs, setUserPrefs] = useState<{ interests: any[] }>({
     interests: []
@@ -322,6 +339,21 @@ export default function HomePage() {
       }
     };
 
+    const fetchRecentActivities = async () => {
+      setActivitiesLoading(true);
+      try {
+        const res = await fetch("/api/community/recent-activities");
+        const data = await res.json();
+        if (data.success && data.activities) {
+          setRecentActivities(data.activities);
+        }
+      } catch (err) {
+        console.error("Failed to fetch recent activities", err);
+      } finally {
+        setActivitiesLoading(false);
+      }
+    };
+
     fetchMatches();
     fetchUserPrefs();
     fetchPosts();
@@ -331,6 +363,7 @@ export default function HomePage() {
     fetchQna();
     fetchScamPosts();
     fetchAiStats();
+    fetchRecentActivities();
   }, []);
 
   // Personalized Sorting and Filtering
@@ -927,25 +960,48 @@ export default function HomePage() {
             <div className="glass-card rounded-2xl p-5">
               <SectionHeader icon={Users} title="커뮤니티 활동" />
               <div className="space-y-3">
-                {[
-                  { user: "분석왕", action: "경기 토론에 글을 작성했습니다", time: "3분 전", avatar: "분" },
-                  { user: "빠른출금", action: "스포트라이트 글을 확인했습니다", time: "12분 전", avatar: "빠" },
-                  { user: "ProBettor", action: "Q&A에 답변을 달았습니다", time: "25분 전", avatar: "P" },
-                  { user: "축구매니아", action: "EPL 픽을 공유했습니다", time: "42분 전", avatar: "축" },
-                ].map((activity, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer group">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 group-hover:scale-110 transition-transform">
-                      {activity.avatar}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs">
-                        <span className="font-bold text-foreground group-hover:text-primary transition-colors">{activity.user}</span>
-                        <span className="text-muted-foreground">님이 {activity.action}</span>
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/50">{activity.time}</p>
-                    </div>
+                {activitiesLoading ? (
+                  <div className="py-6 text-center text-xs text-muted-foreground animate-pulse">
+                    최근 활동을 불러오는 중...
                   </div>
-                ))}
+                ) : recentActivities.length > 0 ? (
+                  recentActivities.map((activity, idx) => {
+                    const contentEl = (
+                      <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.03] transition-colors group cursor-pointer">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 group-hover:scale-110 transition-transform">
+                          {activity.avatar}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs">
+                            <span className="font-bold text-foreground group-hover:text-primary transition-colors">{activity.user}</span>
+                            <span className="text-muted-foreground font-medium">님이 {activity.action}</span>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/50">{formatRelativeTime(activity.time)}</p>
+                        </div>
+                      </div>
+                    );
+
+                    if (activity.type === 'post' || activity.type === 'comment') {
+                      return (
+                        <Link href={`/community/${activity.postId}`} key={idx} className="block">
+                          {contentEl}
+                        </Link>
+                      );
+                    } else if (activity.type === 'bet') {
+                      return (
+                        <Link href="/odds" key={idx} className="block">
+                          {contentEl}
+                        </Link>
+                      );
+                    }
+
+                    return <div key={idx}>{contentEl}</div>;
+                  })
+                ) : (
+                  <div className="py-6 text-center text-xs text-muted-foreground">
+                    최근 커뮤니티 활동이 없습니다.
+                  </div>
+                )}
               </div>
               <Link href="/community" className="mt-4 block text-center py-2.5 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all">
                 커뮤니티 바로가기
