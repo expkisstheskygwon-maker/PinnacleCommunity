@@ -2424,10 +2424,12 @@ function CategoryManagementView({ initialType, hideHeader }: { initialType?: str
       const defaultMenus = [
         { menuId: 'home', label: '홈', labelEn: 'Home', icon: 'Home', href: '/', sortOrder: 10, isAdminWrite: 0 },
         { menuId: 'odds', label: '배당/경기', labelEn: 'Odds', icon: 'TrendingUp', href: '/odds', sortOrder: 20, isAdminWrite: 0 },
+        { menuId: 'virtual-betting', label: '가상 배팅', labelEn: 'Virtual Bet', icon: 'Trophy', href: '/virtual-betting', sortOrder: 25, isAdminWrite: 0 },
         { menuId: 'analysis', label: '분석/결과', labelEn: 'Prediction/Result', icon: 'BarChart3', href: '/analysis', sortOrder: 30, isAdminWrite: 0 },
         { menuId: 'spotlight', label: '스포트라이트', labelEn: 'Spotlight', icon: 'Star', href: '/spotlight', sortOrder: 40, isAdminWrite: 1 },
         { menuId: 'concepts', label: '개념 탑재', labelEn: 'Concepts', icon: 'Lightbulb', href: '/concepts', sortOrder: 50, isAdminWrite: 0 },
         { menuId: 'community', label: '커뮤니티', labelEn: 'Forum', icon: 'Users', href: '/community', sortOrder: 60, isAdminWrite: 0 },
+        { menuId: 'point-shop', label: '포인트 상점', labelEn: 'Point Shop', icon: 'Zap', href: '/point-shop', sortOrder: 65, isAdminWrite: 0 },
         { menuId: 'guide', label: '가이드', labelEn: 'Guide', icon: 'BookOpen', href: '/guide', sortOrder: 70, isAdminWrite: 1 },
         { menuId: 'qna', label: 'Q&A', labelEn: 'Q&A', icon: 'HelpCircle', href: '/qna', sortOrder: 75, isAdminWrite: 0 },
         { menuId: 'notices', label: '공지/이슈', labelEn: 'Notices', icon: 'Bell', href: '/notices', sortOrder: 80, isAdminWrite: 1 },

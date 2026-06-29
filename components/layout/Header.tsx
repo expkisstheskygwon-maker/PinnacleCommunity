@@ -61,6 +61,12 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
+    id: "virtual-betting", href: "/virtual-betting", label: "가상 배팅", labelEn: "Virtual Bet", icon: Trophy
+  },
+  {
+    id: "point-shop", href: "/point-shop", label: "포인트 상점", labelEn: "Point Shop", icon: Zap
+  },
+  {
     id: "analysis", href: "/analysis", label: "분석/결과", labelEn: "Analysis", icon: BarChart3,
     children: [
       { href: "/analysis?tab=analysis", label: "스포츠 분석", labelEn: "Sports Analysis" },

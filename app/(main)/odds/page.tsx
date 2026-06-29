@@ -771,14 +771,12 @@ function OddsContent() {
                                             >
                                               <Brain className="w-3.5 h-3.5 animate-pulse" /> AI 분석 리포트
                                             </button>
-                                            {profile && (
-                                              <button 
-                                                onClick={(e) => { e.stopPropagation(); handleOpenBetSlip(m); }}
-                                                className="w-full py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black hover:bg-emerald-500 hover:text-white transition-all uppercase tracking-widest mt-2 block"
-                                              >
-                                                가상 배팅 하기
-                                              </button>
-                                            )}
+                                            <button 
+                                              onClick={(e) => { e.stopPropagation(); handleOpenBetSlip(m); }}
+                                              className="w-full py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black hover:bg-emerald-500 hover:text-white transition-all uppercase tracking-widest mt-2 block"
+                                            >
+                                              가상 배팅 하기
+                                            </button>
                                           </div>
                                         </div>
                                       </td>
