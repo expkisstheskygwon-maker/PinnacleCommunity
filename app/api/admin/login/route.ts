@@ -1,27 +1,29 @@
 import { NextResponse } from 'next/server';
-
-// 임시 관리자 계정 (추후 DB 연동)
-const ADMIN_CREDENTIALS = {
-  username: 'admin',
-  password: 'pinnacle2026!',
-};
+import { signToken } from '@/lib/auth-utils';
 
 export async function POST(request: Request) {
   try {
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'pinnacle2026!';
+    const sessionSecret = process.env.SESSION_SECRET || process.env.BOT_API_KEY || 'pinnacle_default_session_secret_key_2026';
+
     const body = await request.json();
     const { username, password } = body;
 
-    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-      const adminSession = JSON.stringify({
+    if (username === adminUsername && password === adminPassword) {
+      const payload = {
         id: 0,
         userId: 'admin',
         nickname: '관리자',
         role: 'admin',
         loginAt: new Date().toISOString(),
-      });
+        exp: Date.now() + 1000 * 60 * 60 * 8, // 8시간 유효
+      };
+
+      const token = await signToken(payload, sessionSecret);
 
       const response = NextResponse.json({ success: true });
-      response.cookies.set('admin_session', adminSession, {
+      response.cookies.set('admin_session', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -37,3 +39,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 }
+

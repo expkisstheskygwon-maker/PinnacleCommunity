@@ -18,6 +18,7 @@ const SIDEBAR_ITEMS = [
   { id: "members", label: "회원 관리", icon: Users },
   { id: "community", label: "커뮤니티 관리", icon: FileText },
   { id: "dummy-generator", label: "더미글 생성기", icon: Sparkles },
+  { id: "crawler", label: "크롤러 관리", icon: Layers },
   { id: "inquiries", label: "1:1 문의 관리", icon: MessageSquare },
   { id: "content", label: "콘텐츠 작성", icon: BookOpen },
   { id: "qna", label: "Q&A 관리", icon: HelpCircle },
@@ -110,6 +111,7 @@ export default function AdminDashboard() {
           {activeTab === "members" && <MembersView search={searchQuery} setSearch={setSearchQuery} />}
           {activeTab === "community" && <CommunityView />}
           {activeTab === "dummy-generator" && <DummyGeneratorView />}
+          {activeTab === "crawler" && <CrawlerManagementView />}
           {activeTab === "inquiries" && <InquiriesView />}
           {activeTab === "content" && <ContentEditorTabsView />}
           {activeTab === "qna" && <QnaAdminTabsView />}
@@ -121,6 +123,7 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
 
 /* ============ Sub Views ============ */
 
@@ -222,24 +225,48 @@ function DashboardView() {
   const [stats, setStats] = useState<any>({ totalUsers: 0, totalPosts: 0, todayJoined: 0 });
   const [activities, setActivities] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSettling, setIsSettling] = useState(false);
+  const [settleResult, setSettleResult] = useState<string | null>(null);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/admin/dashboard');
+      const data = await res.json();
+      if (data.success) {
+        setStats(data.stats);
+        setActivities(data.activities);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch('/api/admin/dashboard');
-        const data = await res.json();
-        if (data.success) {
-          setStats(data.stats);
-          setActivities(data.activities);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchStats();
   }, []);
+
+  const handleSettleBets = async () => {
+    if (isSettling) return;
+    setIsSettling(true);
+    setSettleResult(null);
+    try {
+      const res = await fetch('/api/admin/settle-bets', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSettleResult(data.message || '가상 배팅 정산이 완료되었습니다.');
+        fetchStats();
+      } else {
+        setSettleResult(`에러: ${data.error || '정산 실패'}`);
+      }
+    } catch (err) {
+      setSettleResult('네트워크 오류가 발생했습니다.');
+    } finally {
+      setIsSettling(false);
+      setTimeout(() => setSettleResult(null), 5000);
+    }
+  };
 
   const displayStats = [
     { label: "총 회원", value: stats.totalUsers.toLocaleString(), change: "", icon: Users, color: "text-blue-400" },
@@ -250,10 +277,37 @@ function DashboardView() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-black tracking-tight">대시보드</h1>
-        <p className="text-sm text-muted-foreground mt-1">피나클 커뮤니티 운영 현황</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">대시보드</h1>
+          <p className="text-sm text-muted-foreground mt-1">피나클 커뮤니티 운영 현황</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {settleResult && (
+            <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-xl animate-fade-in">
+              {settleResult}
+            </div>
+          )}
+          <button
+            disabled={isSettling}
+            onClick={handleSettleBets}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white font-bold text-xs shadow-lg shadow-red-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            {isSettling ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>정산 처리 중...</span>
+              </>
+            ) : (
+              <>
+                <Award className="w-3.5 h-3.5" />
+                <span>가상 배팅 결과 정산 실행</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
+
       
       {isLoading ? (
         <div className="py-10 text-center text-muted-foreground text-sm font-bold animate-pulse">
@@ -4234,3 +4288,210 @@ function PolicyManagementView() {
     </div>
   );
 }
+
+function CrawlerManagementView() {
+  const [targets, setTargets] = useState<any[]>([]);
+  const [newUrl, setNewUrl] = useState('');
+  const [newCategory, setNewCategory] = useState('spotlight');
+  const [newSubCategory, setNewSubCategory] = useState('최신 동향');
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchTargets = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/crawler/targets');
+      const data = await res.json();
+      if (data.success) {
+        setTargets(data.targets || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTargets();
+  }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUrl || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/crawler/targets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: newUrl, category: newCategory, subCategory: newSubCategory })
+      });
+      if (res.ok) {
+        setNewUrl('');
+        fetchTargets();
+      } else {
+        const data = await res.json();
+        alert(data.error || '추가 실패');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      const res = await fetch(`/api/crawler/targets?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchTargets();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleToggle = async (id: number, currentStatus: number) => {
+    try {
+      const res = await fetch('/api/crawler/targets', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isActive: currentStatus === 1 ? 0 : 1 })
+      });
+      if (res.ok) {
+        fetchTargets();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-fade-in max-w-5xl">
+      <div>
+        <h1 className="text-2xl font-black tracking-tight">크롤러 타겟 관리</h1>
+        <p className="text-sm text-muted-foreground mt-1">오토 포스터가 참조할 피나클 리소스 정보 수집 대상 링크 목록</p>
+      </div>
+
+      {/* Add Target Card */}
+      <div className="glass-card rounded-2xl p-6 border border-white/5 space-y-4">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">새 타겟 URL 추가</h2>
+        <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="md:col-span-2 space-y-2">
+            <label className="text-xs font-bold text-primary uppercase tracking-widest ml-1">피나클 URL</label>
+            <input 
+              required
+              type="url" 
+              value={newUrl} 
+              onChange={e => setNewUrl(e.target.value)}
+              placeholder="https://www.pinnacle.com/betting-resources/ko/..." 
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 focus:bg-white/10 transition-all font-medium text-sm text-foreground"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-primary uppercase tracking-widest ml-1">카테고리</label>
+            <input 
+              type="text" 
+              value={newCategory} 
+              onChange={e => setNewCategory(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 focus:bg-white/10 transition-all font-medium text-sm text-foreground"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-primary uppercase tracking-widest ml-1">서브 카테고리</label>
+            <input 
+              type="text" 
+              value={newSubCategory} 
+              onChange={e => setNewSubCategory(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 outline-none focus:border-primary/50 focus:bg-white/10 transition-all font-medium text-sm text-foreground"
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full btn-primary py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
+          >
+            {isSubmitting ? '추가 중...' : (
+              <>
+                <Plus className="w-4 h-4" />
+                추가
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+
+      {/* Target List Table */}
+      <div className="glass-card rounded-2xl overflow-hidden border border-white/5">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="text-[10px] text-muted-foreground uppercase tracking-widest border-b border-white/[0.06] bg-white/[0.02]">
+                <th className="px-6 py-4 font-bold">ID</th>
+                <th className="px-6 py-4 font-bold">타겟 URL</th>
+                <th className="px-6 py-4 font-bold">저장 카테고리</th>
+                <th className="px-6 py-4 font-bold">최종 수집 일시</th>
+                <th className="px-6 py-4 font-bold">동작 상태</th>
+                <th className="px-6 py-4 font-bold text-right">관리</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04] text-sm">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground animate-pulse font-bold">
+                    데이터 로딩 중...
+                  </td>
+                </tr>
+              ) : targets.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground font-bold">
+                    등록된 크롤링 타겟 주소가 없습니다.
+                  </td>
+                </tr>
+              ) : (
+                targets.map(target => (
+                  <tr key={target.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4 font-bold text-muted-foreground">{target.id}</td>
+                    <td className="px-6 py-4 max-w-xs truncate font-medium">
+                      <a href={target.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                        {target.url}
+                      </a>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-foreground/80">{target.category} / {target.subCategory}</td>
+                    <td className="px-6 py-4 text-xs font-mono text-muted-foreground">
+                      {target.lastCrawledAt ? new Date(target.lastCrawledAt).toLocaleString('ko-KR') : '수집 이력 없음'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button 
+                        onClick={() => handleToggle(target.id, target.isActive)}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs font-bold border transition-all",
+                          target.isActive 
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                            : "bg-white/5 text-muted-foreground border-white/10"
+                        )}
+                      >
+                        {target.isActive ? '활성' : '비활성'}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button 
+                        onClick={() => handleDelete(target.id)}
+                        className="text-red-400 hover:text-red-300 text-xs font-bold transition-colors inline-flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        삭제
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+

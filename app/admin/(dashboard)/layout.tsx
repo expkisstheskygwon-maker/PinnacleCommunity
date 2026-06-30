@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { verifyToken } from '@/lib/auth-utils';
 
 export default async function AdminLayout({
   children,
@@ -12,8 +13,9 @@ export default async function AdminLayout({
   let isAdmin = false;
   if (adminSession?.value) {
     try {
-      const session = JSON.parse(adminSession.value);
-      isAdmin = session.role === 'admin';
+      const sessionSecret = process.env.SESSION_SECRET || process.env.BOT_API_KEY || 'pinnacle_default_session_secret_key_2026';
+      const decoded = await verifyToken(adminSession.value, sessionSecret);
+      isAdmin = decoded && decoded.role === 'admin';
     } catch (e) {}
   }
 
@@ -23,3 +25,4 @@ export default async function AdminLayout({
 
   return <>{children}</>;
 }
+
